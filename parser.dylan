@@ -232,3 +232,4 @@ define wiki-markup escape-ampersand
     (stream, entire-match, #rest ignore)
   write(stream, "&amp;");
 end;
+

@@ -4,30 +4,21 @@ Synopsis:  Dylan wiki engine
 Copyright: This code is in the public domain.
 
 
+// This can be set to a more appropriate value via the <wiki> element
+// in koala-config.xml.
 define variable *database-directory* :: <locator>
-  = as(<directory-locator>, "/home/andreas/fd-build/www/wiki/content");
-
-define variable *results-per-page* :: <integer> = 20;  // NYI
+  = as(<directory-locator>, "www/wiki/content");
 
 define thread variable *title* = #f;
+define thread variable *version* = #"newest";
 define variable *default-title* = "Home";
 
 // This is only used to save the page content across requests when
 // the page title is invalid.
 define thread variable *content* = #f;
 
-// Tell Koala how to parse the wiki config element.
-//
-define sideways method process-config-element
-    (node :: <xml-element>, name == #"wiki")
-  let cdir = get-attr(node, #"content-directory");
-  if (~cdir)
-    log-warning("Wiki - No content-directory specified.  Will use ./content/");
-    cdir := "./content";
-  end;
-  *database-directory* := as(<directory-locator>, cdir);
-  log-info("Wiki content directory = %s", as(<string>, *database-directory*));
-end;
+define constant sformat = format-to-string;
+
 
 define taglib wiki ()
 end;
@@ -35,10 +26,17 @@ end;
 define class <wiki-page> (<dylan-server-page>)
 end;
 
+define generic page-editable? (page :: <wiki-page>) => (editable? :: <boolean>);
+
+define method  page-editable? (page :: <wiki-page>) => (editable? :: <boolean>)
+  #t
+end;
+
 define method make-wiki-locator
-    (title :: <string>, version :: <integer>) => (loc :: <file-locator>)
+    (title :: <string>, version :: <integer>)
+ => (loc :: <file-locator>)
   merge-locators(as(<file-locator>, 
-                    format-to-string("%s.%d", base64-encode(title), version)), 
+                    sformat("%s.%d", base64-encode(title), version)), 
                  *database-directory*)
 end;
 
@@ -46,13 +44,15 @@ end;
 // on the page title.  Page content is HTML.
 //
 define method page-content
-    (title :: <string>, #key format = #"raw")
- => (content :: <string>)
-  let raw-text = load-page(title) | "(no content)";
-  select (format)
-    #"raw" => raw-text;
-    #"html" => wiki-markup-to-html(raw-text);
-    otherwise => error("Invalid format (%=) requested.", format);
+    (title :: <string>, #key format = #"raw", version = #"newest")
+ => (content :: false-or(<string>))
+  let raw-text = load-page(title, version: version);
+  if (raw-text)
+    select (format)
+      #"raw" => raw-text;
+      #"html" => wiki-markup-to-html(raw-text);
+      otherwise => error("Invalid format (%=) requested.", format);
+    end
   end
 end;
 
@@ -71,14 +71,28 @@ define method save-page
 end method save-page;
 
 define method load-page
-    (title :: <string>) => (raw-text :: false-or(<string>))
-  let version = newest-version-number(title);
-  file-contents(make-wiki-locator(title, version));
+    (title :: <string>, #key version = #"newest")
+ => (raw-text :: false-or(<string>))
+  let v = ((version == #"newest")
+           & newest-version-number(title)
+           | version);
+  file-contents(make-wiki-locator(title, v));
 end method load-page;
 
 define method page-exists?
     (title :: <string>) => (exists? :: <boolean>)
   newest-version-number(title) ~== 0
+end;
+
+define function parse-version
+    (v, #key default) => (v :: <object>)
+  if (~v)
+    default | #"newest"
+  elseif (string-equal?(v, "newest"))
+    #"newest"
+  else
+    ignore-errors(string-to-integer(v)) | default
+  end
 end;
 
 define function split-version
@@ -128,7 +142,9 @@ end;
 define method respond-to-get
     (page :: <view-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
-                *content* = page-content(*title*, format: #"html"))
+                *version* = parse-version(get-query-value("v"), default: #"newest"),
+                *content* = page-content(*title*, version: *version*, format: #"html")
+                            | "(no content)")
     next-method();    // process the DSP template
   end;
 end;
@@ -141,7 +157,10 @@ end;
 define method respond-to-get
     (page :: <edit-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = *title* | get-query-value("title") | *default-title*,
-                *content* = *content* | page-content(*title*, format: #"raw"))
+                *version* = parse-version(get-query-value("v")),
+                *content* = page-content(*title*, version: *version*, format: #"raw")
+                            | "")
+    log-debug("version = %=, content = %=", *version*, *content*);
     next-method();    // process the DSP template
   end;
 end;
@@ -198,122 +217,192 @@ end;
 define thread variable *search-results* = #();
 define thread variable *search-result* = #f;
 
+define method  page-editable? (page :: <search-page>) => (editable? :: <boolean>)
+  #f
+end;
+
+define named-method editable? in wiki
+    (page :: <wiki-page>, request :: <request>)
+  page-editable?(page)
+end;
+
 define method respond-to-get
     (page :: <search-page>, request :: <request>, response :: <response>)
   let search-string = trim(get-query-value("search-terms") | "");
-  if (search-string = "")
-    note-form-error("You must supply some search terms.",
-                    field: "search-terms");
-    // TODO: should redisplay the origin page.
-    next-method();
-  else
-    let search-words = split(search-string);
-    dynamic-bind (*search-results* = do-search(search-words))
+  dynamic-bind (*title* = sformat("Search Results for &quot;%s&quot;", search-string))
+    if (search-string = "")
+      note-form-error("You must supply some search terms.",
+                      field: "search-terms");
+      // TODO: should redisplay the origin page.
       next-method();
+    else
+      dynamic-bind (*search-results* = do-search(search-string))
+        next-method();
+      end;
     end;
   end;
 end method respond-to-get;
 
 define class <search-result> (<object>)
-  constant slot sr-title :: <string>, required-init-keyword: #"title";
-  constant slot sr-version :: <integer>, required-init-keyword: #"version";
-  constant slot sr-weight :: <integer>, required-init-keyword: #"weight";
+  constant slot search-result-title :: <string>, required-init-keyword: #"title";
+  constant slot search-result-version :: <integer>, required-init-keyword: #"version";
+  constant slot search-result-weight :: <integer>, required-init-keyword: #"weight";
+  constant slot search-result-summary :: <string>, required-init-keyword: #"summary";
 end;
 
 // Search all the wiki pages for the given words.
-// Always return the page version number in the results
-// in case the page is modified while the search is underway.
+// Returns an ordered collection of lists, each of which contains all
+// matched versions of a given page title.
+//
 define method do-search
-    (words :: <collection>, #key include-old-versions?)
+    (search-string :: <collection>, #key include-old-versions?)
  => (results :: <collection>)
   // TODO: implement include-old-versions? = #f
-  let matching-files = make(<stretchy-vector>);
-  // First pass just see if any of the words appear anywhere in
-  // any version of the document...
+  let words = concatenate(list(search-string), split(search-string));
+  let matches = make(<string-table>);
   local method find-matches (dir-loc, file-name, file-type)
           if (file-type == #"file")
             let loc = merge-locators(as(<file-locator>, file-name), dir-loc);
-            let weight = search-file(loc, words);
+            let (weight, summary) = search-file(loc, words);
             if (weight > 0)
               let (base, version) = split-version(file-name);
-              matching-files := add!(matching-files,
-                                     make(<search-result>,
-                                          title: base64-decode(base),
-                                          version: version,
-                                          weight: weight));
+              let summary = 
+              matches[base] := add!(element(matches, base, default: list()),
+                                    make(<search-result>,
+                                         title: base64-decode(base),
+                                         version: version,
+                                         weight: weight,
+                                         summary: summary));
             end;
           end;
         end method find-matches;
   do-directory(find-matches, *database-directory*);
-  sort(matching-files, test: method (x, y) x.sr-weight > y.sr-weight end)
+  local method sr-> (x, y)
+          x.search-result-weight > y.search-result-weight
+        end;
+  for (versions keyed-by title in matches)
+    matches[title] := sort(versions, test: sr->);
+  end;
+  local method srl-> (x, y)
+          x[0].search-result-weight > y[0].search-result-weight
+        end;
+  sort(table-values(matches), test: srl->)
 end method do-search;
 
 // Search the given file for the given words and return a number
 // indicating how good a match was found.  Bigger is better.
+// The first item in 'words' is the entire search string, so it
+// should be weighted more heavily.
 define method search-file
     (file :: <file-locator>, words)
- => (weight :: <integer>)
+ => (weight :: <integer>, summary :: <string>)
   let text = file-contents(file);
   if (~text)
-    0
+    values(0, "")
   else
     let weight = 0;
+    let longest-match = 0;
+    let summary = "";
     // TODO: This is hideously expensive.  Optimize it.
     for (i from 0 below text.size)
-      for (word in words)
+      for (word in words, word-n from 0)
         if (i + word.size <= text.size)
           if (string-equal?(word, copy-sequence(text, start: i, end: i + word.size)))
-            inc!(weight, word.size);
-          end;
-        end;
-      end;
-    end;
-    weight
-  end
+            inc!(weight, iff(word-n == 0,
+                             10 * word.size,
+                             5 * word.size));
+            if (word.size > longest-match)
+              longest-match := word.size;
+              // For now just take 200 characters centered around the match...
+              summary := copy-sequence(text,
+                                       start: max(0, i - 100),
+                                       end: min(text.size, i + 100));
+            end if;
+          end if;
+        end if;
+      end for;
+    end for;
+    values(weight, summary)
+  end if
 end method search-file;
 
-define body tag do-search-results in wiki
+define named-method gen-search-results in wiki
+    (page :: <search-page>)
+  *search-results*
+end;
+
+define function current-search-result ()
+  let row = *search-result* | current-row();
+  iff(instance?(row, <collection>),
+      row[0],
+      row)
+end;
+
+define tag sr-title in wiki
+    (page :: <search-page>, response :: <response>)
+    ()
+  write(output-stream(response), search-result-title(current-search-result()));
+end;
+
+define tag sr-version in wiki
+    (page :: <search-page>, response :: <response>)
+    ()
+  write(output-stream(response), integer-to-string(search-result-version(current-search-result())));
+end;
+  
+define tag sr-summary in wiki
+    (page :: <search-page>, response :: <response>)
+    ()
+  write(output-stream(response), search-result-summary(current-search-result()));
+end;
+  
+define body tag do-versions in wiki
     (page :: <search-page>, response :: <response>, do-body :: <function>)
     ()
-  let next = 0;  // TODO: view 20 results per page
-  for (index from next below next + *results-per-page*,
-       while: index < size(*search-results*))
-    let result = *search-results*[index];
-    dynamic-bind(*search-result* = result)
-      do-body()
+  for (sr in copy-sequence(current-row(), start: 1))
+    dynamic-bind (*search-result* = sr)
+      do-body();
     end;
   end;
 end;
 
-define tag search-result-title in wiki
-    (page :: <search-page>, response :: <response>)
-    ()
-  write(output-stream(response), sr-title(*search-result*));
-end;
-  
-define tag search-result-version in wiki
-    (page :: <search-page>, response :: <response>)
-    ()
-  write(output-stream(response), integer-to-string(sr-version(*search-result*)));
-end;
-  
-define tag show-search-result in wiki
-    (page :: <search-page>, response :: <response>)
-    ()
-  write(output-stream(response), *search-result*);
-end;
-
-define tag show-page-title in wiki
+// Show the page title.  If v is true, show the version number if it's not
+// the newest version of the page.
+define tag show-title in wiki
     (page :: <wiki-page>, response :: <response>)
-    ()
-  write(output-stream(response), *title* | "(no title)");
+    (v :: <boolean>, for-url :: <boolean>)
+  let out = output-stream(response);
+  let title = *title* | "(no title)";
+  write(out, title);
+  if (v)
+    // show version, if not newest
+    let newest = newest-version-number(title);
+    log-debug("newest = %=, *version* = %=", newest, *version*);
+    if (*version* ~== #"newest" & *version* ~== newest)
+      format(out, for-url & "&v=%s" | " (version %s)", *version*);
+    end;
+  end;
 end;
 
-define tag show-page-content in wiki
+define tag show-content in wiki
     (page :: <wiki-page>, response :: <response>)
     (format :: <string> = "raw")
   write(output-stream(response),
-        *content* | page-content(*title*, format: as(<symbol>, format)));
+        page-content(*title*, version: *version*, format: as(<symbol>, format))
+        | *content* | "");
+end;
+
+// Tell Koala how to parse the wiki config element.
+//
+define sideways method process-config-element
+    (node :: <xml-element>, name == #"wiki")
+  let cdir = get-attr(node, #"content-directory");
+  if (~cdir)
+    log-warning("Wiki - No content-directory specified.  Will use ./content/");
+    cdir := "./content";
+  end;
+  *database-directory* := as(<directory-locator>, cdir);
+  log-info("Wiki content directory = %s", as(<string>, *database-directory*));
 end;
 
 define function main
