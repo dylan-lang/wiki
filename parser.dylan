@@ -8,13 +8,31 @@ Copyright: This code is in the public domain.
 
 define variable *wiki-link-url* = "/wiki/view.dsp?title=";
 
-// Each element of $matchers is a vector of two elements.  The first element
-// is a regular expression (string) and the second is a function to call if
-// that regular expression matches some wiki markup.  The function will be
-// passed a sequence of strings corresponding to the groups specified
-// in the regex.  The first string is the entire match.
-//
+define class <matcher> (<object>)
+  constant slot matcher-name :: <string>, required-init-keyword: #"name";
+  constant slot matcher-regex :: <string>, required-init-keyword: #"regex";
+  // function is passed a stream and strings corresponding
+  // to the groups specified in the regex (the first string
+  // is the entire match).  The function must generate HTML
+  // on the given stream.
+  constant slot matcher-function :: <function>, required-init-keyword: #"function";
+end;
+
 define constant $matchers :: <stretchy-vector> = make(<stretchy-vector>);
+
+define function add-matcher
+    (name, regex, fun)
+  let new = make(<matcher>, name: name, regex: regex, function: fun);
+  let idx = position($matchers, new,
+                     test: method (x, y)
+                             string-equal?(x.matcher-name, y.matcher-name)
+                           end);
+  if (idx)
+    $matchers[idx] := new;
+  else
+    add!($matchers, new);
+  end
+end;
 
 /*
 define wiki-markup bold
@@ -30,7 +48,7 @@ define macro wiki-markup-definer
     { define wiki-markup ?:name regex: ?regex:expression; (?arglist:*) ?:body end }
  => { begin
         define method "parse-" ## ?name (?arglist) ?body end;
-        add!($matchers, vector(?regex, "parse-" ## ?name));
+        add-matcher(?"name", ?regex, "parse-" ## ?name);
       end;
     }
 end;
@@ -43,21 +61,20 @@ define method wiki-markup-to-html
     let bpos :: <integer> = start;
     while (bpos < text.size)
       let min-pos :: <integer> = text.size;
-      let parser = #f;
+      let matcher = #f;
       let positions = #f;
 
       // find nearest match
-      for (matcher in $matchers)
-        let (regex, fun) = apply(values, matcher);
+      for (m in $matchers)
         // regexp-position returns two values for each group.  The first
         // pair is for the start/end of the entire match.
-        let (#rest indexes) = regexp-position(text, regex, start: bpos);
+        let (#rest indexes) = regexp-position(text, m.matcher-regex, start: bpos);
         if (indexes.size > 1)
           let match-start :: <integer> = indexes[0];
           if (~positions | match-start < min-pos)
             positions := indexes;
             min-pos := match-start;
-            parser := fun;
+            matcher := m;
           end;
         end;
       end for;
@@ -70,7 +87,7 @@ define method wiki-markup-to-html
         for (i from 0 below strings.size)
           strings[i] := copy-sequence(text, start: positions[i * 2], end: positions[i * 2 + 1])
         end;
-        let length-used = apply(parser, html-stream, strings);
+        let length-used = apply(matcher.matcher-function, html-stream, strings);
         bpos := if (length-used)
                   min-pos + length-used
                 else

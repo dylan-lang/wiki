@@ -16,6 +16,19 @@ define variable *default-title* = "Home";
 // the page title is invalid.
 define thread variable *content* = #f;
 
+// Tell Koala how to parse the wiki config element.
+//
+define method process-config-element
+    (node :: <xml-element>, name == #"wiki")
+  let cdir = get-attr(node, #"content-directory");
+  if (~cdir)
+    log-warning("Wiki - No content-directory specified.  Will use ./content/");
+    cdir := "./content";
+  end;
+  *database-directory* := as(<directory-locator>, cdir);
+  log-info("Wiki content directory = %s", as(<string>, *database-directory*));
+end;
+
 define taglib wiki ()
 end;
 
@@ -158,12 +171,6 @@ define method respond-to-post
       end;
     end;
   end;
-end;
-
-// This could just be a static html page instead.
-define page markup-page (<wiki-page>)
-    (url: "/wiki/markup.dsp",
-     source: "wiki/markup.dsp")
 end;
 
 // Not sure this is even needed.
