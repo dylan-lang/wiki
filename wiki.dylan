@@ -5,7 +5,7 @@ Copyright: This code is in the public domain.
 
 
 define variable *database-directory* :: <locator>
-  = as(<directory-locator>, "/home/cgay/wiki/content");
+  = as(<directory-locator>, "/home/andreas/fd-build/www/wiki/content");
 
 define variable *results-per-page* :: <integer> = 20;  // NYI
 
@@ -18,7 +18,7 @@ define thread variable *content* = #f;
 
 // Tell Koala how to parse the wiki config element.
 //
-define method process-config-element
+define sideways method process-config-element
     (node :: <xml-element>, name == #"wiki")
   let cdir = get-attr(node, #"content-directory");
   if (~cdir)
@@ -36,8 +36,10 @@ define class <wiki-page> (<dylan-server-page>)
 end;
 
 define method make-wiki-locator
-    (filename :: <string>) => (loc :: <file-locator>)
-  merge-locators(as(<file-locator>, filename), *database-directory*)
+    (title :: <string>, version :: <integer>) => (loc :: <file-locator>)
+  merge-locators(as(<file-locator>, 
+                    format-to-string("%s.%d", base64-encode(title), version)), 
+                 *database-directory*)
 end;
 
 // Lookup the editable wiki content of the given page based
@@ -58,7 +60,7 @@ define method save-page
     (title :: <string>, content :: <string>)
   let version = newest-version-number(title) + 1;
   // TODO: compare with previous version and don't save if no changes.
-  let loc = make-wiki-locator(format-to-string("%s.%d", title, version));
+  let loc = make-wiki-locator(title, version);
   with-open-file(out = loc,
                  element-type: <character>,
                  direction: #"output",
@@ -71,7 +73,7 @@ end method save-page;
 define method load-page
     (title :: <string>) => (raw-text :: false-or(<string>))
   let version = newest-version-number(title);
-  file-contents(make-wiki-locator(format-to-string("%s.%d", title, version)));
+  file-contents(make-wiki-locator(title, version));
 end method load-page;
 
 define method page-exists?
@@ -105,10 +107,11 @@ end function split-version;
 define method newest-version-number
     (title :: <string>) => (version :: <integer>)
   let biggest :: <integer> = 0;
+  let encoded-title = base64-encode(title);
   local method fun (dir-loc, filename, file-type)
           if (file-type = #"file")
             let (base, version) = split-version(filename);
-            if (base = title)
+            if (base = encoded-title)
               biggest := max(biggest, version | biggest);
             end;
           end;

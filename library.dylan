@@ -13,6 +13,7 @@ define library wiki
     import: { dsp };
   use dylan-basics;
   use regular-expressions;
+  use xml-rpc-common;
   //use meta;
   export wiki;
 end;
@@ -30,6 +31,8 @@ define module wiki
   use dsp;
   use regular-expressions,
     import: { regexp-position };
+  use xml-rpc-common,
+    import: { base64-encode };
 end;
 
 
