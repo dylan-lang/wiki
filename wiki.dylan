@@ -396,6 +396,23 @@ define tag show-content in wiki
         | *content* | "");
 end;
 
+define tag show-revisions in wiki
+    (page :: <wiki-page>, response :: <response>)
+    ()
+  // TODO
+end;
+
+define page recent-changes-page (<wiki-page>)
+    (url: "/wiki/recent.dsp",
+     source: "wiki/recent.dsp")
+end;
+
+define named-method gen-recent-changes
+    (page :: <recent-changes-page>)
+  // TODO
+  #()
+end;
+
 // Tell Koala how to parse the wiki config element.
 //
 define sideways method process-config-element
