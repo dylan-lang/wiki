@@ -5,7 +5,7 @@ Copyright: This code is in the public domain.
 
 
 define variable *database-directory* :: <locator>
-  = as(<directory-locator>, "c:/dylan/trunk/libraries/koala/www/wiki/pages");
+  = as(<directory-locator>, "/home/cgay/wiki/content");
 
 define variable *results-per-page* :: <integer> = 20;  // NYI
 

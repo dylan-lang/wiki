@@ -4,6 +4,8 @@ Author: Carl Gay
 Copyright: This code is in the public domain.
 
 
+// TODO: Make wiki markup tags case insensitive.
+
 define variable *wiki-link-url* = "/wiki/view.dsp?title=";
 
 // Each element of $matchers is a vector of two elements.  The first element
@@ -95,7 +97,7 @@ end;
 // Markup: [[...]]
 // HTML:   <A HREF="...">...</A>
 //
-define wiki-markup link
+define wiki-markup internal-link
     regex: "\\[\\[\\s*(.*)\\s*]]";
     (stream, entire-match, wiki-title)
   format(stream, "<A HREF=\"%s%s\">%s%s</A>",
@@ -105,7 +107,18 @@ define wiki-markup link
          wiki-title);
 end;
 
-// Blank links generate <P> tags.
+// TODO:
+define wiki-markup external-link
+    regex: "\\[\\s*(.*)\\s*]";
+    (stream, entire-match, wiki-title)
+  format(stream, "<A HREF=\"%s%s\">%s%s</A>",
+         *wiki-link-url*,
+         wiki-title,
+         if (page-exists?(wiki-title)) "" else "[?]" end,
+         wiki-title);
+end;
+
+// Blank lines generate <P> tags.
 define wiki-markup paragraph
     regex: "\n\\s*(\n|$)";
     (stream, entire-match, ignore)
@@ -163,3 +176,26 @@ define method generate-list
   end;
 end method generate-list;
 
+define wiki-markup horizontal-line
+    regex: "\n----\\s*";
+    (stream, entire-match, #rest ignore)
+  write(stream, "<HR>\n");
+end;
+
+define wiki-markup nowiki
+    regex: "<nowiki>((.|\n)*)</nowiki>";
+    (stream, entire-match, #rest ignore)
+  // The regexp matcher is greedy, so we have to find the nearest
+  // </nowiki> by hand.
+  // TODO: implement nested <nowiki>s and make the tags case insensitive.
+  let close = subsequence-position(entire-match, "</nowiki>");
+  let epos = close | (entire-match.size - "</nowiki>".size);
+  write(stream, copy-sequence(entire-match, start: size("<nowiki>"), end: epos));
+  epos
+end;
+
+define wiki-markup raw-url
+    regex: "\\s+((http|ftp|gopher|mailto|news|nntp|telnet|wais|file|prospero)://\\S+)";
+    (stream, entire-match, url, #rest ignore)
+  format(stream, "<A HREF=\"%s\">%s</A>", url, url);
+end;
