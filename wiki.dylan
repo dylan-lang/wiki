@@ -138,7 +138,7 @@ end method newest-version-number;
 define page view-page (<wiki-page>)
     (url: "/wiki/view.dsp",
      source: "wiki/view.dsp",
-     alias: #("/wiki/", "/wiki"))
+     alias: #("/wiki/", "/wiki", "/"))
 end;
 
 define method respond-to-get
@@ -428,7 +428,11 @@ end;
 
 define function main
     () => ()
-  start-server();
+  let config-file =
+    if(application-arguments().size > 0)
+      application-arguments()[0]
+    end;
+  start-server(config-file: config-file);
 end;
 
 begin
