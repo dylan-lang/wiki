@@ -50,7 +50,8 @@ define method page-content
   if (raw-text)
     select (format)
       #"raw" => raw-text;
-      #"html" => wiki-markup-to-html(raw-text);
+      // HACK HACK HACK.  Prepend a newline so the start-of-line context applies.
+      #"html" => wiki-markup-to-html(concatenate("\n", raw-text));
       otherwise => error("Invalid format (%=) requested.", format);
     end
   end
@@ -136,7 +137,8 @@ end method newest-version-number;
 
 define page view-page (<wiki-page>)
     (url: "/wiki/view.dsp",
-     source: "wiki/view.dsp")
+     source: "wiki/view.dsp",
+     alias: #("/wiki/", "/wiki"))
 end;
 
 define method respond-to-get
@@ -266,13 +268,15 @@ define method do-search
             let (weight, summary) = search-file(loc, words);
             if (weight > 0)
               let (base, version) = split-version(file-name);
-              let summary = 
-              matches[base] := add!(element(matches, base, default: list()),
-                                    make(<search-result>,
-                                         title: base64-decode(base),
-                                         version: version,
-                                         weight: weight,
-                                         summary: summary));
+              let title = ignore-errors(base64-decode(base));
+              if (title)
+                matches[base] := add!(element(matches, base, default: list()),
+                                      make(<search-result>,
+                                           title: title,
+                                           version: version,
+                                           weight: weight,
+                                           summary: summary));
+              end;
             end;
           end;
         end method find-matches;

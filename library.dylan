@@ -14,6 +14,7 @@ define library wiki
   use dylan-basics;
   use regular-expressions;
   use xml-rpc-common;
+  use strings;
   //use meta;
   export wiki;
 end;
@@ -33,6 +34,7 @@ define module wiki
     import: { regexp-position };
   use xml-rpc-common,
     import: { base64-encode, base64-decode };
+  use strings, import: { index-of, case-insensitive-equal? };
 end;
 
 
