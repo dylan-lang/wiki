@@ -69,6 +69,7 @@ define method save-page
                  if-does-not-exist: #"create")
     write(out, content);
   end;
+  newest-version-table[base64-encode(title)] := version;
 end method save-page;
 
 define method load-page
@@ -116,23 +117,15 @@ define function split-version
   end
 end function split-version;
 
+define constant newest-version-table :: <string-table> =
+ make(<string-table>);
+
 // Title is the page title without any version number suffixed to it.
 // Returns the largest (newest) version number of the file with that title.
 // If no files with this title exist, returns 0.
 define method newest-version-number
     (title :: <string>) => (version :: <integer>)
-  let biggest :: <integer> = 0;
-  let encoded-title = base64-encode(title);
-  local method fun (dir-loc, filename, file-type)
-          if (file-type = #"file")
-            let (base, version) = split-version(filename);
-            if (base = encoded-title)
-              biggest := max(biggest, version | biggest);
-            end;
-          end;
-        end method fun;
-  do-directory(fun, *database-directory*);
-  biggest
+  element(newest-version-table, base64-encode(title), default: 0);
 end method newest-version-number;
 
 define page view-page (<wiki-page>)
@@ -424,7 +417,19 @@ define sideways method process-config-element
   end;
   *database-directory* := as(<directory-locator>, cdir);
   log-info("Wiki content directory = %s", as(<string>, *database-directory*));
+  populate-version-cache();
 end;
+
+define method populate-version-cache() => ()
+  local method fun (dir-loc, filename, file-type)
+          if (file-type = #"file")
+            let (base, version) = split-version(filename);
+            let biggest = element(newest-version-table, base, default: 0);
+            newest-version-table[base] := max(biggest, version | biggest);
+          end;
+        end method fun;
+  do-directory(fun, *database-directory*);
+end method;
 
 define function main
     () => ()
