@@ -238,7 +238,7 @@ define method do-search
               let (base, version) = split-version(file-name);
               matching-files := add!(matching-files,
                                      make(<search-result>,
-                                          title: base,
+                                          title: base64-decode(base),
                                           version: version,
                                           weight: weight));
             end;

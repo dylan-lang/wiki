@@ -32,7 +32,7 @@ define module wiki
   use regular-expressions,
     import: { regexp-position };
   use xml-rpc-common,
-    import: { base64-encode };
+    import: { base64-encode, base64-decode };
 end;
 
 
