@@ -115,7 +115,7 @@ end;
 // HTML:   <A HREF="...">...</A>
 //
 define wiki-markup internal-link
-    regex: "\\[\\[\\s*(.*)\\s*]]";
+    regex: "\\[\\[\\s*([^\\]]*)\\s*]]";
     (stream, entire-match, wiki-title)
   format(stream, "<A HREF=\"%s%s\">%s%s</A>",
          *wiki-link-url*,
