@@ -58,6 +58,7 @@ define method wiki-markup-to-html
     (text :: <string>, #key start = 0)
  => (html :: <string>)
   with-output-to-string (html-stream)
+    write(html-stream, "<p>\n");
     let bpos :: <integer> = start;
     while (bpos < text.size)
       let min-pos :: <integer> = text.size;
@@ -97,6 +98,7 @@ define method wiki-markup-to-html
         bpos := text.size;  // exit while loop
       end;
     end while;
+    write(html-stream, "</p>\n");
   end with-output-to-string
 end method wiki-markup-to-html;
 
@@ -108,7 +110,7 @@ define wiki-markup heading
     // There must be two or more '=' on both sides of the header.
     regex: "(^|\n)\\s*(==+)([^=\n]+)==+\\s*(\n|$)";
     (stream, entire-match, ignore, tag, header, ignore)
-  format(stream, "<h%d>%s</h%d>\n", tag.size, header, tag.size);
+  format(stream, "</p><h%d>%s</h%d><p>\n", tag.size, header, tag.size);
 end;
 
 // Markup: [[...]]
@@ -139,7 +141,7 @@ end;
 define wiki-markup paragraph
     regex: "\n\\s*(\n|$)";
     (stream, entire-match, ignore)
-  format(stream, "<p></p>\n");
+  write(stream, "</p><p>\n");
 end;
 
 // Lines that start with spaces or tabs are preformatted.
@@ -166,6 +168,7 @@ end;
 
 define method generate-list
     (stream, wiki-markup, bullet-char, tag)
+  write(stream, "</p>\n");
   let lines = split(wiki-markup, separator: "\n", trim?: #t);
   let depth :: <integer> = 0;
   let regex = format-to-string("^\\s*([%s]+)", bullet-char);
@@ -191,6 +194,7 @@ define method generate-list
   for (i from 0 below depth)
     format(stream, "</%s>\n", tag);
   end;
+  write(stream, "<p>\n");
 end method generate-list;
 
 define wiki-markup horizontal-line
