@@ -220,3 +220,15 @@ define wiki-markup raw-url
     (stream, entire-match, url, #rest ignore)
   format(stream, "<a href=\"%s\">%s</A>", url, url);
 end;
+
+define wiki-markup escape-less-than
+    regex: "<";
+    (stream, entire-match, #rest ignore)
+  write(stream, "&lt;");
+end;
+
+define wiki-markup escape-ampersand
+    regex: "&";
+    (stream, entire-match, #rest ignore)
+  write(stream, "&amp;");
+end;
