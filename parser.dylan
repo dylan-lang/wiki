@@ -218,7 +218,7 @@ end;
 define wiki-markup raw-url
     regex: "\\s+((http|ftp|gopher|mailto|news|nntp|telnet|wais|file|prospero)://\\S+)";
     (stream, entire-match, url, #rest ignore)
-  format(stream, "<a href=\"%s\">%s</A>", url, url);
+  format(stream, " <a href=\"%s\">%s</a> ", url, url);
 end;
 
 define wiki-markup escape-less-than
