@@ -102,13 +102,13 @@ end method wiki-markup-to-html;
 
 
 // Markup: == heading ==
-// HTML:   <H2>heading</H2>
+// HTML:   <h2>heading</h2>
 //
 define wiki-markup heading
     // There must be two or more '=' on both sides of the header.
     regex: "(^|\n)\\s*(==+)([^=\n]+)==+\\s*(\n|$)";
     (stream, entire-match, ignore, tag, header, ignore)
-  format(stream, "<H%d>%s</H%d>\n", tag.size, header, tag.size);
+  format(stream, "<h%d>%s</h%d>\n", tag.size, header, tag.size);
 end;
 
 // Markup: [[...]]
@@ -117,7 +117,7 @@ end;
 define wiki-markup internal-link
     regex: "\\[\\[\\s*([^\\]]*)\\s*]]";
     (stream, entire-match, wiki-title)
-  format(stream, "<A HREF=\"%s%s\">%s%s</A>",
+  format(stream, "<a href=\"%s%s\">%s%s</a>",
          *wiki-link-url*,
          wiki-title,
          if (page-exists?(wiki-title)) "" else "[?]" end,
@@ -128,7 +128,7 @@ end;
 define wiki-markup external-link
     regex: "\\[\\s*(.*)\\s*]";
     (stream, entire-match, wiki-title)
-  format(stream, "<A HREF=\"%s%s\">%s%s</A>",
+  format(stream, "<a href=\"%s%s\">%s%s</a>",
          *wiki-link-url*,
          wiki-title,
          if (page-exists?(wiki-title)) "" else "[?]" end,
@@ -139,7 +139,7 @@ end;
 define wiki-markup paragraph
     regex: "\n\\s*(\n|$)";
     (stream, entire-match, ignore)
-  format(stream, "<P></P>\n");
+  format(stream, "<p></p>\n");
 end;
 
 // Lines that start with spaces or tabs are preformatted.
@@ -147,21 +147,21 @@ end;
 define wiki-markup preformat
     regex: "(\n([ \t]+\\S.*))+";
     (stream, entire-match, #rest ignore)
-  format(stream, "<PRE>%s</PRE>\n", entire-match);
+  format(stream, "<pre>%s</pre>\n", entire-match);
 end;
 
 define wiki-markup bullet-list
     // Match the entire bulletted list, not just one bullet.
     regex: "((^|\n)\\s*[*].*)+";
     (stream, entire-match, #rest ignore)
-  generate-list(stream, entire-match, '*', "UL");
+  generate-list(stream, entire-match, '*', "ul");
 end;
 
 define wiki-markup numbered-list
     // Match the entire bulletted list, not just one bullet.
     regex: "((^|\n)\\s*#.*)+";
     (stream, entire-match, #rest ignore)
-  generate-list(stream, entire-match, '#', "OL");
+  generate-list(stream, entire-match, '#', "ol");
 end;
 
 define method generate-list
@@ -178,17 +178,17 @@ define method generate-list
       let item-html = wiki-markup-to-html(line, start: bullet-end);
       case
         num-bullets < depth =>
-          format(stream, "</%s>\n<LI>%s</LI>", tag, item-html);
+          format(stream, "</%s>\n<li>%s</li>", tag, item-html);
           dec!(depth);
         num-bullets = depth =>
-          format(stream, "<LI>%s</LI>\n", item-html);
+          format(stream, "<li>%s</li>\n", item-html);
         num-bullets > depth =>
-          format(stream, "<%s>\n<LI>%s</LI>", tag, item-html);
+          format(stream, "<%s>\n<li>%s</li>", tag, item-html);
           inc!(depth);
       end case;
     end if;
   end for;
-  for (i from 0 to depth)
+  for (i from 0 below depth)
     format(stream, "</%s>\n", tag);
   end;
 end method generate-list;
@@ -196,7 +196,7 @@ end method generate-list;
 define wiki-markup horizontal-line
     regex: "\n----\\s*";
     (stream, entire-match, #rest ignore)
-  write(stream, "<HR>\n");
+  write(stream, "<hr/>\n");
 end;
 
 define wiki-markup nowiki
@@ -214,5 +214,5 @@ end;
 define wiki-markup raw-url
     regex: "\\s+((http|ftp|gopher|mailto|news|nntp|telnet|wais|file|prospero)://\\S+)";
     (stream, entire-match, url, #rest ignore)
-  format(stream, "<A HREF=\"%s\">%s</A>", url, url);
+  format(stream, "<a href=\"%s\">%s</A>", url, url);
 end;
