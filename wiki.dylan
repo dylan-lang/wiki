@@ -29,7 +29,7 @@ end;
 define generic page-editable? (page :: <wiki-page>) => (editable? :: <boolean>);
 
 define method  page-editable? (page :: <wiki-page>) => (editable? :: <boolean>)
-  #t
+  #f
 end;
 
 define method make-wiki-locator
@@ -134,6 +134,10 @@ define page view-page (<wiki-page>)
      alias: #("/wiki/", "/wiki", "/"))
 end;
 
+define method page-editable? (page :: <view-page>) => (editable? :: <boolean>)
+  #t
+end;
+
 define method respond-to-get
     (page :: <view-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
@@ -166,7 +170,14 @@ define method respond-to-post
     (page :: <edit-page>, request :: <request>, response :: <response>)
   let title = trim(get-query-value("title") | "");
   let content = get-query-value("page-content") | "";
-  if (title = "")
+  if (~ user-logged-in?(request))
+    note-form-error("You must be logged in to edit a page.");
+    // redisplay edit page.
+    dynamic-bind (*title* = title,
+                  *content* = content)
+      respond-to-get(page, request, response);
+    end;
+  elseif (title = "")
     note-form-error("You must supply a valid page title.",
                     field: "title");
     // redisplay edit page.
@@ -208,6 +219,44 @@ define method respond-to-get
   end;
 end;
 
+define page login-page (<wiki-page>)
+    (url: "/wiki/login.dsp",
+     source: "wiki/login.dsp")
+end;
+
+define method respond-to-post (page :: <login-page>,
+                               request :: <request>,
+                               response :: <response>)
+  let username = get-query-value("username");
+  let password = get-query-value("password");
+  let username-supplied? = username & username ~= "";
+  let password-supplied? = password & password ~= "";
+  if (username-supplied? & password-supplied?)
+    let session = get-session(request);
+    set-attribute(session, #"username", username);
+    set-attribute(session, #"password", password);
+  else
+    note-form-error("You must supply <b>both</b> a username and password.");
+  end;
+  next-method();  // process the DSP template
+end;
+
+define page logout-page (<wiki-page>)
+    (url: "/wiki/logout.dsp",
+     source: "wiki/logout.dsp")
+end;
+
+define method respond-to-get (page :: <logout-page>,
+                              request :: <request>,
+                              response :: <response>)
+  let session = get-session(request);
+  remove-attribute(session, #"username");
+  remove-attribute(session, #"password");
+  next-method();  // Must call this if you want the DSP template to be processed.
+end;
+
+
+
 define page search-page (<wiki-page>)
     (url: "/wiki/search.dsp",
      source: "wiki/search.dsp")
@@ -215,10 +264,6 @@ end;
 
 define thread variable *search-results* = #();
 define thread variable *search-result* = #f;
-
-define method  page-editable? (page :: <search-page>) => (editable? :: <boolean>)
-  #f
-end;
 
 define named-method editable? in wiki
     (page :: <wiki-page>, request :: <request>)
@@ -228,9 +273,13 @@ end;
 
 define named-method logged-in? in wiki
     (page, request)
+  user-logged-in?(request)
+end;
+
+define method user-logged-in? (request :: <request>)
   let session = get-session(request);
   session & get-attribute(session, #"username");
-end;
+end method user-logged-in?;
 
 define method respond-to-get
     (page :: <search-page>, request :: <request>, response :: <response>)
