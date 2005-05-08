@@ -153,7 +153,9 @@ define method respond-to-get
     (page :: <edit-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = *title* | get-query-value("title") | *default-title*,
                 *version* = parse-version(get-query-value("v")),
-                *content* = page-content(*title*, version: *version*, format: #"raw")
+                *content* = page-content(*title*, 
+                                         version: *version*, 
+                                         format: #"raw")
                             | "")
     log-debug("version = %=, content = %=", *version*, *content*);
     next-method();    // process the DSP template
@@ -178,9 +180,11 @@ define method respond-to-post
       // Show the page after editing
       respond-to-get(*view-page*, request, response);
     exception (e :: <file-exists-error>)
-      note-form-error(format-to-string("A page named '%s' already exists.  Please choose a new title.",
-                                       title),
-                      field:, "title");
+      note-form-error
+        (format-to-string
+           ("A page named '%s' already exists.  Please choose a new title.",
+            title),
+         field:, "title");
       // redisplay edit page.
       dynamic-bind (*title* = title,
                     *content* = content)
@@ -218,13 +222,21 @@ end;
 
 define named-method editable? in wiki
     (page :: <wiki-page>, request :: <request>)
-  page-editable?(page)
+  let session = get-session(request);
+  session & get-attribute(session, #"username") & page-editable?(page)
+end;
+
+define named-method logged-in? in wiki
+    (page, request)
+  let session = get-session(request);
+  session & get-attribute(session, #"username");
 end;
 
 define method respond-to-get
     (page :: <search-page>, request :: <request>, response :: <response>)
   let search-string = trim(get-query-value("search-terms") | "");
-  dynamic-bind (*title* = sformat("Search Results for &quot;%s&quot;", search-string))
+  dynamic-bind (*title* = sformat("Search Results for &quot;%s&quot;",
+                                  search-string))
     if (search-string = "")
       note-form-error("You must supply some search terms.",
                       field: "search-terms");
@@ -344,13 +356,15 @@ end;
 define tag sr-version in wiki
     (page :: <search-page>, response :: <response>)
     ()
-  write(output-stream(response), integer-to-string(search-result-version(current-search-result())));
+  write(output-stream(response),
+        integer-to-string(search-result-version(current-search-result())));
 end;
   
 define tag sr-summary in wiki
     (page :: <search-page>, response :: <response>)
     ()
-  write(output-stream(response), search-result-summary(current-search-result()));
+  write(output-stream(response),
+        search-result-summary(current-search-result()));
 end;
   
 define body tag do-versions in wiki
@@ -395,6 +409,14 @@ define tag show-revisions in wiki
   // TODO
 end;
 
+define tag username in wiki
+    (page :: <wiki-page>, response :: <response>)
+    ()
+  let session = get-session(get-request(response));
+  write(output-stream(response),
+        get-attribute(session, #"username"));
+end;  
+
 define page recent-changes-page (<wiki-page>)
     (url: "/wiki/recent.dsp",
      source: "wiki/recent.dsp")
@@ -437,6 +459,7 @@ define function main
     if(application-arguments().size > 0)
       application-arguments()[0]
     end;
+  //register-url("/wiki/wiki.css", maybe-serve-static-file);
   start-server(config-file: config-file);
 end;
 
