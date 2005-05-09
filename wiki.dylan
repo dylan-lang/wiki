@@ -235,6 +235,12 @@ define method respond-to-post (page :: <login-page>,
     let session = ensure-session(request);
     set-attribute(session, #"username", username);
     set-attribute(session, #"password", password);
+    let referer = get-query-value("referer");
+    if (referer & referer ~= "")
+      let headers = response.response-headers;
+      add-header(headers, "Location", referer);
+      see-other-redirect(headers: headers);
+    end if;
   else
     note-form-error("You must supply <b>both</b> a username and password.");
   end;
