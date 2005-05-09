@@ -232,7 +232,7 @@ define method respond-to-post (page :: <login-page>,
   let username-supplied? = username & username ~= "";
   let password-supplied? = password & password ~= "";
   if (username-supplied? & password-supplied?)
-    let session = get-session(request);
+    let session = ensure-session(request);
     set-attribute(session, #"username", username);
     set-attribute(session, #"password", password);
   else
@@ -249,9 +249,7 @@ end;
 define method respond-to-get (page :: <logout-page>,
                               request :: <request>,
                               response :: <response>)
-  let session = get-session(request);
-  remove-attribute(session, #"username");
-  remove-attribute(session, #"password");
+  clear-session(request);
   next-method();  // Must call this if you want the DSP template to be processed.
 end;
 
@@ -462,8 +460,8 @@ define tag username in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
   let session = get-session(get-request(response));
-  write(output-stream(response),
-        get-attribute(session, #"username"));
+  session & write(output-stream(response),
+                  get-attribute(session, #"username"));
 end;  
 
 define page recent-changes-page (<wiki-page>)
