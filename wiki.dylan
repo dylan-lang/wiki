@@ -232,19 +232,94 @@ define method respond-to-post (page :: <login-page>,
   let username-supplied? = username & username ~= "";
   let password-supplied? = password & password ~= "";
   if (username-supplied? & password-supplied?)
-    let session = ensure-session(request);
-    set-attribute(session, #"username", username);
-    set-attribute(session, #"password", password);
-    let referer = get-query-value("referer");
-    if (referer & referer ~= "")
-      let headers = response.response-headers;
-      add-header(headers, "Location", referer);
-      see-other-redirect(headers: headers);
+    //two cases: login or add new user
+    let createuser = get-query-value("adduser");
+    if (createuser & (createuser ~= ""))
+      //try to add user
+      let email = get-query-value("email");
+      let email-supplied? = email & email ~= "";
+      if (email-supplied?)
+        unless (adduser(username, password, email))
+          note-form-error("Sorry, username already in use.");
+        end unless;
+      else
+        note-form-error("You must supply an eMail-address to add a new user.");
+      end if;
+    end if;
+
+    if (valid-user?(username, password))
+      //try to login with specified username and password
+      let session = ensure-session(request);
+      set-attribute(session, #"username", username);
+      set-attribute(session, #"password", password);
+      let referer = get-query-value("referer");
+      if (referer & referer ~= "")
+        let headers = response.response-headers;
+        add-header(headers, "Location", referer);
+        see-other-redirect(headers: headers);
+      end if;
+    else
+      note-form-error("Invalid user or wrong password.");
     end if;
   else
     note-form-error("You must supply <b>both</b> a username and password.");
   end;
   next-method();  // process the DSP template
+end;
+
+define variable *users* = make(<string-table>);
+
+define constant $user-db = "users.txt";
+
+define method adduser (username :: <string>,
+                       password :: <string>,
+                       email :: <string>)
+ => (result :: <boolean>)
+  unless (element(*users*, username, default: #f))
+    #f;
+  end unless;
+  *users*[username] := list(password, email);
+  with-open-file(stream = $user-db,
+                 direction: #"output",
+                 if-exists: #"append")
+    write(stream, concatenate(username, ":", password, ":", email, "\n"));
+  end;
+  #t;
+end;
+
+define method restore-users () => ()
+  with-open-file(stream = $user-db,
+                 direction: #"input",
+                 if-does-not-exist: #"create")
+    until(stream-at-end?(stream))
+      let line = read-line(stream, on-end-of-stream: #f);
+      if (line)
+        let password-start = char-position(':', line, 0, line.size);
+        let email-start = char-position-from-end(':', line, 0, line.size);
+        let user = copy-sequence(line,
+                                 start: 0,
+                                 end: password-start);
+        let password = copy-sequence(line,
+                                     start: password-start + 1,
+                                     end: email-start);
+        let email = copy-sequence(line,
+                                  start: email-start + 1,
+                                  end: line.size);
+        *users*[user] := list(password, email);
+      end if;
+    end until;
+  end;
+end;
+
+define method valid-user? (username :: <string>,
+                           password :: <string>)
+ => (result :: <boolean>)
+  if ((element(*users*, username, default: #f)) &
+        (*users*[username][0] = password))
+    #t;
+  else
+    #f;
+  end if;
 end;
 
 define page logout-page (<wiki-page>)
@@ -513,6 +588,7 @@ define function main
       application-arguments()[0]
     end;
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
+  restore-users();
   start-server(config-file: config-file);
 end;
 
