@@ -531,10 +531,41 @@ define tag show-content in wiki
         | *content* | "");
 end;
 
-define tag show-revisions in wiki
+define body tag show-revisions in wiki
+    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+    (first :: <string>, last :: <string>)
+    let revisions = make(<list>);
+    let last = as(<integer>,last);
+    local method find-revisions (dir-loc, file-name, file-type)
+          if (file-type == #"file")
+            let loc = merge-locators(as(<file-locator>, file-name), dir-loc);
+            let (base, version) = split-version(file-name);
+            let title = ignore-errors(base64-decode(base));
+            if (title & (title = *title*))
+              revisions := add!(revisions, version);
+            end;
+          end;
+    end;
+    do-directory(find-revisions, *database-directory*);
+    log-debug("%=", revisions);
+    let esize = 0;
+        if (size(revisions) <= last) 
+          esize := size(revisions); 
+        else 
+          esize := last; 
+        end; 
+    revisions := copy-sequence (reverse!(sort(revisions)), start: as(<integer>, first), end: esize);
+    for(rev in revisions)
+      dynamic-bind (*search-result* = rev)
+        do-body();
+      end;
+    end;
+end;
+
+define tag version in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
-  // TODO
+  write(output-stream(response), integer-to-string(*search-result*));
 end;
 
 define tag username in wiki

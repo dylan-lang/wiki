@@ -129,7 +129,8 @@ define method parse-header
     (out :: <stream>, markup :: <string>, start :: <integer>)
  => (end-pos :: false-or(<integer>))
   let newline = find(markup, '\n', start: start) | markup.size;
-  let (#rest idxs) = regexp-position(markup, "(==+)([^=\n]+)(==+)\\s*(\n|$)",
+ // let (#rest idxs) = regexp-position(markup, "(==+)([^=\n]+)(==+)\\s*(\n|$)",
+  let (#rest idxs) = regexp-position(markup, "(==+)([^=\n]+)(==+|$)",
                                      start: start, end: newline);
   if (idxs.size > 1)
     let tag = copy-sequence(markup, start: idxs[2], end: idxs[3]);
@@ -146,14 +147,27 @@ define method parse-link
  => (end-pos :: false-or(<integer>))
   // links can't span multiple lines
   let close = find(markup, method (x) x == ']' | x == '\n' end, start: start);
-  if (close & markup[close] == ']')
+  //format(out, "start: %d, close: %d\n", start, close);
+  if (close)
+    if(markup[close] == ']')
+      close := make-link(out, markup, start, close);
+    elseif(markup[close] == '\n')
+      note-form-message("The link %s is invalid wiki markup.",
+        copy-sequence(markup, start: start, end: close));
+      close := make-link(out, markup, start, close);
+      close := close - 1;
+    end if;
+    close;
+  end if;
+end method parse-link;
+
+define method make-link
+      (out :: <stream>, markup :: <string>, start :: <integer>, close :: <integer>)
+  if (close)
     let wiki-link? = (markup[start + 1] == '[');
     if (wiki-link?)
-      close := close + 1;
-      if (markup.size <= close | markup[close] ~== ']')
-        note-form-message("The link %s is invalid wiki markup.",
-                          copy-sequence(markup, start: start, end: close));
-        close := close - 1;
+      if (markup[close] == ']')
+        close := close + 1;
       end;
       let title = copy-sequence(markup, start: start + 2, end: close - 1);
       format(out, "<a href=\"%s%s\">%s%s</a>",
@@ -168,8 +182,8 @@ define method parse-link
       format(out, "<a href=\"%s\">%s</a>", url, label | url);
     end if;
   end if;
-  close + 1
-end method parse-link;
+  close + 1;
+end method make-link;
 
 define method parse-bulleted-list
     (out :: <stream>, markup :: <string>, start :: <integer>)
@@ -192,7 +206,7 @@ define method generate-list
                                   start: start,
                                   end: list-end | markup.size),
                     separator: "\n", trim?: #t);
-  write(stream, "<p>\n");
+//  write(stream, "<p>\n");
   let depth :: <integer> = 0;
   let regex2 = format-to-string("^\\s*([%s]+)", bullet-char);
   for (line in lines)
@@ -202,22 +216,26 @@ define method generate-list
       let bullet-end = indexes[3];
       let num-bullets = bullet-end - bullet-start;
       let item-html = wiki-markup-to-html(line, start: bullet-end);
+      item-html := copy-sequence(item-html, start: 0, end: item-html.size - 1);
       case
+        depth = 0 => 
+          format(stream, "<%s>\n<li>%s", tag, item-html);
+          inc!(depth);
         num-bullets < depth =>
-          format(stream, "</%s>\n<li>%s</li>", tag, item-html);
+          format(stream, "</li>\n</%s></li>\n<li>%s", tag, item-html);
           dec!(depth);
         num-bullets = depth =>
-          format(stream, "<li>%s</li>\n", item-html);
+          format(stream, "</li>\n<li>%s", item-html);
         num-bullets > depth =>
-          format(stream, "<%s>\n<li>%s</li>", tag, item-html);
+          format(stream, "\n<%s>\n<li>%s", tag, item-html);
           inc!(depth);
       end case;
     end if;
   end for;
   for (i from 0 below depth)
-    format(stream, "</%s>\n", tag);
+    format(stream, "</li>\n</%s>\n", tag);
   end;
-  write(stream, "</p>\n");
+//  write(stream, "</p>\n");
   list-end | markup.size
 end method generate-list;
 
