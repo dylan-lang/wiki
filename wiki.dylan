@@ -431,37 +431,54 @@ end method do-search;
 // The first item in 'words' is the entire search string, so it
 // should be weighted more heavily.
 define method search-file
-    (file :: <file-locator>, words)
+    (title :: <string>, file :: <file-locator>, words)
  => (weight :: <integer>, summary :: <string>)
-  let text = file-contents(file);
-  if (~text)
-    values(0, "")
-  else
-    let weight = 0;
-    let longest-match = 0;
-    let summary = "";
-    // TODO: This is hideously expensive.  Optimize it.
-    for (i from 0 below text.size)
-      for (word in words, word-n from 0)
-        if (i + word.size <= text.size)
-          if (string-equal?(word, copy-sequence(text, start: i, end: i + word.size)))
-            inc!(weight, iff(word-n == 0,
-                             10 * word.size,
-                             5 * word.size));
-            if (word.size > longest-match)
-              longest-match := word.size;
-              // For now just take 200 characters centered around the match...
-              summary := copy-sequence(text,
-                                       start: max(0, i - 100),
-                                       end: min(text.size, i + 100));
-            end if;
+  let text = file-contents(file) | "";
+  let (weight, summary) = search-text(title, words);
+  if (weight > 0)
+    weight := weight * 2;
+    summary := copy-sequence(text, start: 0, end: min(text.size, 200));
+  end;
+  let (weight2, summary2) = search-text(text, words);
+  weight := weight + weight2;
+  if (size(summary2) ~= 0)
+    summary := summary2;
+  end;
+  values(weight, summary)
+end method search-file;
+
+// TODO: This is truly awful.  It needs to be rewritten in a way that
+//       * isn't hideously expensive
+//       * properly weights matches of several search terms in order
+//       * renders the wiki markup in the summary text and highlights search terms
+//       * (optionally?) searches the rendered wiki markup, not the raw source
+define method search-text
+    (text :: <string>, words)
+ => (weight :: <integer>, summary :: <string>)
+  let longest-match = 0;
+  let weight = 0;
+  let summary = "";
+  for (i from 0 below text.size)
+    for (word in words,
+         word-n from 0)
+      if (i + word.size <= text.size)
+        if (string-equal?(word, copy-sequence(text, start: i, end: i + word.size)))
+          inc!(weight, iff(word-n == 0,
+                           10 * word.size,
+                           5 * word.size));
+          if (word.size > longest-match)
+            longest-match := word.size;
+            // For now just take 200 characters centered around the match...
+            summary := copy-sequence(text,
+                                     start: max(0, i - 100),
+                                     end: min(text.size, i + 100));
           end if;
         end if;
-      end for;
+      end if;
     end for;
-    values(weight, summary)
-  end if
-end method search-file;
+  end for;
+  values(weight, summary)
+end method search-text;
 
 define named-method gen-search-results in wiki
     (page :: <search-page>)
