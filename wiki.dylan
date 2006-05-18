@@ -398,10 +398,10 @@ define method do-search
   local method find-matches (dir-loc, file-name, file-type)
           if (file-type == #"file")
             let loc = merge-locators(as(<file-locator>, file-name), dir-loc);
-            let (weight, summary) = search-file(loc, words);
+            let (base, version) = split-version(file-name);
+            let title = ignore-errors(base64-decode(base));
+            let (weight, summary) = search-file(title, loc, words);
             if (weight > 0)
-              let (base, version) = split-version(file-name);
-              let title = ignore-errors(base64-decode(base));
               if (title)
                 matches[base] := add!(element(matches, base, default: list()),
                                       make(<search-result>,
