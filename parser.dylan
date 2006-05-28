@@ -173,7 +173,7 @@ define method make-link
       format(out, "<a href=\"%s%s\">%s%s</a>",
              *wiki-link-url*,
              title,
-             if (page-exists?(title)) "" else "[?]" end,
+             if (find-page(title)) "" else "[?]" end,
              title);
     else
       let bar = find(markup, '|', start: start, end: close);
@@ -216,7 +216,7 @@ define method generate-list
       let bullet-end = indexes[3];
       let num-bullets = bullet-end - bullet-start;
       let item-html = wiki-markup-to-html(line, start: bullet-end);
-      item-html := copy-sequence(item-html, start: 0, end: item-html.size - 1);
+      item-html := copy-sequence(item-html, start: 0, end: max(item-html.size - 1, 0));
       case
         depth = 0 => 
           format(stream, "<%s>\n<li>%s", tag, item-html);

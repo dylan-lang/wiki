@@ -9,8 +9,20 @@ Copyright: This code is in the public domain.
 define variable *database-directory* :: <locator>
   = as(<directory-locator>, "www/wiki/content");
 
+define method storage-type (type == <wiki-page-content>) => (res)
+  <string-table>;
+end;
+define variable *pages* = storage(<wiki-page-content>);
+
+
+//XXX: TODO:
+//"__" and "=" markup
+//renaming of wiki pages?
+//delete wiki pages
+//tags
+
 define thread variable *title* = #f;
-define thread variable *version* = #"newest";
+define thread variable *version* = #f;
 define variable *default-title* = "Home";
 
 // This is only used to save the page content across requests when
@@ -32,22 +44,20 @@ define method  page-editable? (page :: <wiki-page>) => (editable? :: <boolean>)
   #f
 end;
 
-define method make-wiki-locator
-    (title :: <string>, version :: <integer>)
- => (loc :: <file-locator>)
-  merge-locators(as(<file-locator>, 
-                    sformat("%s.%d", base64-encode(title), version)), 
-                 *database-directory*)
-end;
-
 // Lookup the editable wiki content of the given page based
 // on the page title.  Page content is HTML.
 //
 define method page-content
-    (title :: <string>, #key format = #"raw", version = #"newest")
+    (title :: <string>, #key format = #"raw", version)
  => (content :: false-or(<string>))
-  let raw-text = load-page(title, version: version);
-  if (raw-text)
+  let page = find-page(title);
+  if (page)
+    let latest = page.revisions.last;
+    let raw-text = if (version & version > 0 & version <= latest.page-version)
+                     page.revisions[version - 1].content;
+                   else
+                     latest.content
+                   end;
     select (format)
       #"raw" => raw-text;
       // HACK HACK HACK.  Prepend a newline so the start-of-line context applies.
@@ -57,76 +67,6 @@ define method page-content
   end
 end;
 
-define method save-page
-    (title :: <string>, content :: <string>)
-  let version = newest-version-number(title) + 1;
-  // TODO: compare with previous version and don't save if no changes.
-  let loc = make-wiki-locator(title, version);
-  with-open-file(out = loc,
-                 element-type: <character>,
-                 direction: #"output",
-                 if-exists: #"signal",
-                 if-does-not-exist: #"create")
-    write(out, content);
-  end;
-  newest-version-table[base64-encode(title)] := version;
-end method save-page;
-
-define method load-page
-    (title :: <string>, #key version = #"newest")
- => (raw-text :: false-or(<string>))
-  let v = ((version == #"newest")
-           & newest-version-number(title)
-           | version);
-  file-contents(make-wiki-locator(title, v));
-end method load-page;
-
-define method page-exists?
-    (title :: <string>) => (exists? :: <boolean>)
-  newest-version-number(title) ~== 0
-end;
-
-define function parse-version
-    (v, #key default) => (v :: <object>)
-  if (~v)
-    default | #"newest"
-  elseif (string-equal?(v, "newest"))
-    #"newest"
-  else
-    ignore-errors(string-to-integer(v)) | default
-  end
-end;
-
-define function split-version
-    (filename :: <string>)
- => (filename :: <string>, version :: false-or(<integer>))
-  let parts = split(filename, separator: ".");
-  if (parts.size < 2)
-    values(filename, #f)
-  else
-    let base = parts[0];
-    if (parts.size > 2)
-      base := join(copy-sequence(parts, end: parts.size - 1), ".");
-    end;
-    values(base,
-           block ()
-             string-to-integer(parts[parts.size - 1])
-           exception (e :: <error>)
-             #f
-           end)
-  end
-end function split-version;
-
-define constant newest-version-table :: <string-table> =
- make(<string-table>);
-
-// Title is the page title without any version number suffixed to it.
-// Returns the largest (newest) version number of the file with that title.
-// If no files with this title exist, returns 0.
-define method newest-version-number
-    (title :: <string>) => (version :: <integer>)
-  element(newest-version-table, base64-encode(title), default: 0);
-end method newest-version-number;
 
 define page view-page (<wiki-page>)
     (url: "/wiki/view.dsp",
@@ -141,7 +81,7 @@ end;
 define method respond-to-get
     (page :: <view-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
-                *version* = parse-version(get-query-value("v"), default: #"newest"),
+                *version* = ignore-errors(string-to-integer(get-query-value("v"))),
                 *content* = page-content(*title*, version: *version*, format: #"html")
                             | "(no content)")
     next-method();    // process the DSP template
@@ -155,13 +95,13 @@ end;
 
 define method respond-to-get
     (page :: <edit-page>, request :: <request>, response :: <response>)
-  dynamic-bind (*title* = *title* | get-query-value("title") | *default-title*,
-                *version* = parse-version(get-query-value("v")),
-                *content* = page-content(*title*, 
-                                         version: *version*, 
-                                         format: #"raw")
-                            | "")
-    log-debug("version = %=, content = %=", *version*, *content*);
+  dynamic-bind (*title* = get-query-value("title"),
+                *content* = if (*title* & find-page(*title*))
+                              latest-text(find-page(*title*));
+                            else
+                              ""
+                            end)
+    log-debug("title = %=, content = %=", *title*, *content*);
     next-method();    // process the DSP template
   end;
 end;
@@ -178,30 +118,16 @@ define method respond-to-post
       respond-to-get(page, request, response);
     end;
   elseif (title = "")
-    note-form-error("You must supply a valid page title.",
-                    field: "title");
+    note-form-error("You must supply a valid page title.", field: "title");
     // redisplay edit page.
     dynamic-bind (*title* = title,
                   *content* = content)
       respond-to-get(page, request, response);
     end;
   else
-    block ()
-      save-page(title, content);
-      // Show the page after editing
-      respond-to-get(*view-page*, request, response);
-    exception (e :: <file-exists-error>)
-      note-form-error
-        (format-to-string
-           ("A page named '%s' already exists.  Please choose a new title.",
-            title),
-         field:, "title");
-      // redisplay edit page.
-      dynamic-bind (*title* = title,
-                    *content* = content)
-        respond-to-get(page, request, response);
-      end;
-    end;
+    save-page(title, content, comment: get-query-value("comment"));
+    // Show the page after editing
+    respond-to-get(*view-page*, request, response);
   end;
 end;
 
@@ -239,19 +165,13 @@ define method respond-to-post (page :: <login-page>,
       let email = get-query-value("email");
       let email-supplied? = email & email ~= "";
       if (email-supplied?)
-        unless (adduser(username, password, email))
-          note-form-error("Sorry, username already in use.");
-        end unless;
+        make(<user>, username: username, password: password, email: email);
       else
         note-form-error("You must supply an eMail-address to add a new user.");
       end if;
     end if;
 
-    if (valid-user?(username, password))
-      //try to login with specified username and password
-      let session = ensure-session(request);
-      set-attribute(session, #"username", username);
-      set-attribute(session, #"password", password);
+    if (login(request))
       let referer = get-query-value("referer");
       if (referer & referer ~= "")
         let headers = response.response-headers;
@@ -267,61 +187,6 @@ define method respond-to-post (page :: <login-page>,
   next-method();  // process the DSP template
 end;
 
-define variable *users* = make(<string-table>);
-
-define constant $user-db = "users.txt";
-
-define method adduser (username :: <string>,
-                       password :: <string>,
-                       email :: <string>)
- => (result :: <boolean>)
-  unless (element(*users*, username, default: #f))
-    #f;
-  end unless;
-  *users*[username] := list(password, email);
-  with-open-file(stream = $user-db,
-                 direction: #"output",
-                 if-exists: #"append")
-    write(stream, concatenate(username, ":", password, ":", email, "\n"));
-  end;
-  #t;
-end;
-
-define method restore-users () => ()
-  with-open-file(stream = $user-db,
-                 direction: #"input",
-                 if-does-not-exist: #"create")
-    until(stream-at-end?(stream))
-      let line = read-line(stream, on-end-of-stream: #f);
-      if (line)
-        let password-start = char-position(':', line, 0, line.size);
-        let email-start = char-position-from-end(':', line, 0, line.size);
-        let user = copy-sequence(line,
-                                 start: 0,
-                                 end: password-start);
-        let password = copy-sequence(line,
-                                     start: password-start + 1,
-                                     end: email-start);
-        let email = copy-sequence(line,
-                                  start: email-start + 1,
-                                  end: line.size);
-        *users*[user] := list(password, email);
-      end if;
-    end until;
-  end;
-end;
-
-define method valid-user? (username :: <string>,
-                           password :: <string>)
- => (result :: <boolean>)
-  if ((element(*users*, username, default: #f)) &
-        (*users*[username][0] = password))
-    #t;
-  else
-    #f;
-  end if;
-end;
-
 define page logout-page (<wiki-page>)
     (url: "/wiki/logout.dsp",
      source: "wiki/logout.dsp")
@@ -335,10 +200,19 @@ define method respond-to-get (page :: <logout-page>,
 end;
 
 
+define page index-page (<wiki-page>)
+    (url: "/wiki/index.dsp",
+     source: "wiki/index.dsp")
+end;
 
 define page search-page (<wiki-page>)
     (url: "/wiki/search.dsp",
      source: "wiki/search.dsp")
+end;
+
+define page backlink-page (<wiki-page>)
+    (url: "/wiki/backlink.dsp",
+     source: "wiki/backlink.dsp")
 end;
 
 define thread variable *search-results* = #();
@@ -353,6 +227,11 @@ end;
 define named-method logged-in? in wiki
     (page, request)
   user-logged-in?(request)
+end;
+
+define named-method admin? in wiki
+    (page, request)
+  login(request) & current-user().access <= 23;
 end;
 
 define method user-logged-in? (request :: <request>)
@@ -392,28 +271,31 @@ end;
 define method do-search
     (search-string :: <collection>, #key include-old-versions?)
  => (results :: <collection>)
-  // TODO: implement include-old-versions? = #f
   let words = concatenate(list(search-string), split(search-string));
   let matches = make(<string-table>);
-  local method find-matches (dir-loc, file-name, file-type)
-          if (file-type == #"file")
-            let loc = merge-locators(as(<file-locator>, file-name), dir-loc);
-            let (base, version) = split-version(file-name);
-            let title = ignore-errors(base64-decode(base));
-            let (weight, summary) = search-file(title, loc, words);
-            if (weight > 0)
-              if (title)
-                matches[base] := add!(element(matches, base, default: list()),
-                                      make(<search-result>,
-                                           title: title,
-                                           version: version,
-                                           weight: weight,
-                                           summary: summary));
-              end;
-            end;
+  local method maybe-add (string, version, title, title-weight)
+          let (weight, summary) = search-text(string, words);
+          weight := weight + title-weight;
+          if (weight > 0)
+            matches[title] := add!(element(matches, title, default: #()),
+                                   make(<search-result>,
+                                        title: title,
+                                        weight: weight,
+                                        version: version,
+                                        summary: summary));
           end;
-        end method find-matches;
-  do-directory(find-matches, *database-directory*);
+        end;
+  for (title in key-sequence(*pages*))
+    let title-weight = search-text(title, words);
+    if (include-old-versions?)
+      map(method(x)
+            maybe-add(x.content, x.page-version, title, title-weight)
+          end, *pages*[title].revisions);
+    else
+      let page = *pages*[title].revisions.last;
+      maybe-add(page.content, page.page-version, title, title-weight);
+    end;
+  end;
   local method sr-> (x, y)
           x.search-result-weight > y.search-result-weight
         end;
@@ -425,27 +307,6 @@ define method do-search
         end;
   sort(table-values(matches), test: srl->)
 end method do-search;
-
-// Search the given file for the given words and return a number
-// indicating how good a match was found.  Bigger is better.
-// The first item in 'words' is the entire search string, so it
-// should be weighted more heavily.
-define method search-file
-    (title :: <string>, file :: <file-locator>, words)
- => (weight :: <integer>, summary :: <string>)
-  let text = file-contents(file) | "";
-  let (weight, summary) = search-text(title, words);
-  if (weight > 0)
-    weight := weight * 2;
-    summary := copy-sequence(text, start: 0, end: min(text.size, 200));
-  end;
-  let (weight2, summary2) = search-text(text, words);
-  weight := weight + weight2;
-  if (size(summary2) ~= 0)
-    summary := summary2;
-  end;
-  values(weight, summary)
-end method search-file;
 
 // TODO: This is truly awful.  It needs to be rewritten in a way that
 //       * isn't hideously expensive
@@ -530,12 +391,15 @@ define tag show-title in wiki
   let out = output-stream(response);
   let title = *title* | "(no title)";
   write(out, title);
-  if (v)
-    // show version, if not newest
-    let newest = newest-version-number(title);
-    log-debug("newest = %=, *version* = %=", newest, *version*);
-    if (*version* ~== #"newest" & *version* ~== newest)
-      format(out, for-url & "&v=%s" | " (version %s)", *version*);
+  if (*title* & v)
+    let wiki-page = find-page(*title*);
+    if (wiki-page)
+      // show version, if not newest
+      let newest = page-version(last(wiki-page.revisions));
+      log-debug("newest = %=, *version* = %=", newest, *version*);
+      if (*version* & *version* < newest)
+        format(out, for-url & "&v=%s" | " (version %s)", *version*);
+      end;
     end;
   end;
 end;
@@ -544,45 +408,45 @@ define tag show-content in wiki
     (page :: <wiki-page>, response :: <response>)
     (format :: <string> = "raw")
   write(output-stream(response),
-        page-content(*title*, version: *version*, format: as(<symbol>, format))
-        | *content* | "");
+        (*title* & page-content(*title*, version: *version*, format: as(<symbol>, format)))
+        | *content*);
 end;
 
 define body tag show-revisions in wiki
     (page :: <wiki-page>, response :: <response>, do-body :: <function>)
-    (first :: <string>, last :: <string>)
-    let revisions = make(<list>);
-    let last = as(<integer>,last);
-    local method find-revisions (dir-loc, file-name, file-type)
-          if (file-type == #"file")
-            let loc = merge-locators(as(<file-locator>, file-name), dir-loc);
-            let (base, version) = split-version(file-name);
-            let title = ignore-errors(base64-decode(base));
-            if (title & (title = *title*))
-              revisions := add!(revisions, version);
-            end;
-          end;
-    end;
-    do-directory(find-revisions, *database-directory*);
-    log-debug("%=", revisions);
-    let esize = 0;
-        if (size(revisions) <= last) 
-          esize := size(revisions); 
-        else 
-          esize := last; 
-        end; 
-    revisions := copy-sequence (reverse!(sort(revisions)), start: as(<integer>, first), end: esize);
-    for(rev in revisions)
-      dynamic-bind (*search-result* = rev)
-        do-body();
+    (count :: <string>)
+    let content = find-page(*title* | "(no title)");
+    if (content)
+      let count = min(as(<integer>, count), *pages*[*title*].revisions.size);
+      let revs = copy-sequence(reverse(*pages*[*title*].revisions), end: count);
+      for(rev in revs)
+        dynamic-bind (*version* = rev.page-version)
+          do-body();
+        end;
       end;
     end;
 end;
 
+define method respond-to-get
+    (page :: <backlink-page>, request :: <request>, response :: <response>)
+  dynamic-bind (*title* = get-query-value("title") | *default-title*)
+    next-method();    // process the DSP template
+  end;
+end;
+
+define body tag show-backlink in wiki
+  (page :: <backlink-page>, response :: <response>, do-body :: <function>)
+  ()
+  for (backlink in find-backlinks(*title*))
+    dynamic-bind (*title* = backlink.page-title)
+      do-body()
+    end;
+  end;
+end;
 define tag version in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
-  write(output-stream(response), integer-to-string(*search-result*));
+  write(output-stream(response), integer-to-string(*version*));
 end;
 
 define tag username in wiki
@@ -593,15 +457,141 @@ define tag username in wiki
                   get-attribute(session, #"username"));
 end;  
 
+define body tag show-index in wiki
+  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+  ()
+  for (key in sort(key-sequence(*pages*)))
+    dynamic-bind(*title* = key)
+      do-body();
+    end;
+  end;
+end;
+
 define page recent-changes-page (<wiki-page>)
     (url: "/wiki/recent.dsp",
      source: "wiki/recent.dsp")
 end;
 
-define named-method gen-recent-changes
-    (page :: <recent-changes-page>)
-  // TODO
-  #()
+define page diff-page (<wiki-page>)
+    (url: "/wiki/diff.dsp",
+    source: "wiki/diff.dsp")
+end;
+
+define thread variable *other-version* = #f;
+
+define method respond-to-get
+    (page :: <diff-page>, request :: <request>, response :: <response>)
+  dynamic-bind (*title* = get-query-value("title"),
+                *version* = string-to-integer(get-query-value("version")),
+                *other-version* = ignore-errors(string-to-integer(get-query-value("otherversion"))) | *version* - 1)
+    next-method();
+  end;
+end;
+
+define method print-diffs (out, diff, source, target)
+  do(rcurry(print-diff, out, source, target), diff);
+end;
+
+define method print-diff (diff :: <insert-entry>, out, source, target)
+  write(out, format-to-string("added lines %d - %d:<br>", diff.source-index, diff.element-count + diff.source-index - 1));
+  for (line in copy-sequence(target, start: diff.source-index, end: diff.source-index + diff.element-count),
+       lineno from diff.source-index)
+    write(out, format-to-string("%d: %s<br>", lineno, line));
+  end;
+end;
+
+define method print-diff (diff :: <delete-entry>, out, source, target)
+  write(out, format-to-string("removed lines %d - %d:<br>", diff.dest-index, diff.element-count + diff.dest-index - 1));
+  for (line in copy-sequence(source, start: diff.dest-index, end: diff.dest-index + diff.element-count),
+       lineno from diff.dest-index)
+    write(out, format-to-string("%d: %s<br>", lineno, line));
+  end;
+end;
+
+define tag show-diff in wiki
+  (page :: <diff-page>, response :: <response>)
+  ()
+  let page = find-page(*title*);
+  let version = *version* - 1;
+  let otherversion = *other-version* - 1;
+  if (version < page.revisions.size & otherversion < page.revisions.size)
+    let target = split(page.revisions[version].content, separator: "\n");
+    let source = if (otherversion = -1) #() else split(page.revisions[otherversion].content, separator: "\n") end;
+    print-diffs(output-stream(response), sequence-diff(source, target), source, target);
+  end;
+end;
+
+define tag otherversion in wiki
+    (page :: <wiki-page>, response :: <response>)
+    ()
+  write(output-stream(response), integer-to-string(*other-version*));
+end;
+
+define thread variable *change* = #f;
+
+define variable *changes* = storage(<wiki-page-diff>);
+define body tag gen-recent-changes in wiki
+    (page :: <recent-changes-page>, response :: <response>, do-body :: <function>)
+    (count)
+  let count = string-to-integer(get-query-value("count") | count);
+  for (i from 0 below count,
+       change in reverse(*changes*))
+    dynamic-bind(*change* = change)
+      do-body()
+    end;
+  end;
+end;
+
+define method print-date (date :: <date>)
+  let $month-names
+    = #["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let (iyear, imonth, iday, ihours, iminutes,
+       iseconds, day-of-week, time-zone-offset)
+    = decode-date(date);
+  local method wrap0 (i :: <integer>) => (string :: <string>)
+          if (i < 10)
+            concatenate("0", integer-to-string(i));
+          else
+            integer-to-string(i)
+          end;
+        end;
+  concatenate(integer-to-string(iday), " ",
+              $month-names[imonth - 1], "  ",
+              integer-to-string(iyear), "  ",
+              wrap0(ihours), ":",
+              wrap0(iminutes), ":",
+              wrap0(iseconds));
+end;
+
+define tag show-change-timestamp in wiki
+    (page :: <recent-changes-page>, response :: <response>)
+    ()
+  write(output-stream(response), print-date(*change*.timestamp));
+end;
+
+define tag show-change-title in wiki
+    (page :: <recent-changes-page>, response :: <response>)
+    ()
+  write(output-stream(response), *change*.wiki-page-content.page-title);
+end;
+
+define tag show-change-version in wiki
+    (page :: <recent-changes-page>, response :: <response>)
+    ()
+  write(output-stream(response), integer-to-string(*change*.page-version));
+end;
+
+define tag show-change-author in wiki
+    (page :: <recent-changes-page>, response :: <response>)
+    ()
+  write(output-stream(response), *change*.author);
+end;
+
+define tag show-change-comment in wiki
+    (page :: <recent-changes-page>, response :: <response>)
+    ()
+  write(output-stream(response), *change*.comment);
 end;
 
 // Tell Koala how to parse the wiki config element.
@@ -615,19 +605,39 @@ define sideways method process-config-element
   end;
   *database-directory* := as(<directory-locator>, cdir);
   log-info("Wiki content directory = %s", as(<string>, *database-directory*));
-  populate-version-cache();
+  import-database();
 end;
 
-define method populate-version-cache() => ()
-  local method fun (dir-loc, filename, file-type)
+define method import-database ()
+  let changelist = make(<string-table>);
+  local method import-file (dir-loc, file-name, file-type)
           if (file-type = #"file")
-            let (base, version) = split-version(filename);
-            let biggest = element(newest-version-table, base, default: 0);
-            newest-version-table[base] := max(biggest, version | biggest);
-          end;
-        end method fun;
-  do-directory(fun, *database-directory*);
-end method;
+            let filename-parts = split(file-name, separator: ".");
+            let title = base64-decode(filename-parts[0]);
+            unless(element(changelist, title, default: #f))
+              changelist[title] := make(<vector>, size: 42);
+            end;
+            let file-loc = merge-locators(as(<file-locator>, file-name), dir-loc);
+            let date = file-property(file-loc, #"creation-date");
+            let index = if (filename-parts.size = 2)
+                          string-to-integer(filename-parts[1])
+                        else
+                          0
+                        end;
+            changelist[title][index] := file-contents(file-loc);
+          end;  
+        end;
+  if (*pages*.size = 0)
+    do-directory(import-file, *database-directory*);
+  end;
+  for (name in key-sequence(changelist))
+    for (ele in changelist[name])
+      if (ele)
+        save-page(name, ele)
+      end;
+    end;
+  end;
+end;
 
 define function main
     () => ()
@@ -636,7 +646,6 @@ define function main
       application-arguments()[0]
     end;
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
-  restore-users();
   start-server(config-file: config-file);
 end;
 

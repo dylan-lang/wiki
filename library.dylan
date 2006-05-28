@@ -8,13 +8,16 @@ define library wiki
   use io,
     import: { streams, format };
   use system,
-    import: { file-system, locators };
+    import: { file-system, locators, date };
   use koala,
     import: { dsp };
   use dylan-basics;
   use regular-expressions;
   use xml-rpc-common;
   use strings;
+  use web-framework;
+  use xml-parser;
+  use collection-extensions, import: { sequence-diff };
   //use meta;
   export wiki;
 end;
@@ -28,6 +31,7 @@ define module wiki
   use file-system;
   use threads;
   use dylan-basics;
+  use date;
   //use meta;
   use dsp;
   use regular-expressions,
@@ -35,6 +39,11 @@ define module wiki
   use xml-rpc-common,
     import: { base64-encode, base64-decode };
   use strings, import: { index-of, case-insensitive-equal? };
+  use web-framework, exclude: { respond-to-get, respond-to-post };
+  use users;
+  use storage;
+  use simple-xml;
+  use sequence-diff;
 end;
 
 
