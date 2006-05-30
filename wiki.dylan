@@ -4,16 +4,9 @@ Synopsis:  Dylan wiki engine
 Copyright: This code is in the public domain.
 
 
-// This can be set to a more appropriate value via the <wiki> element
-// in koala-config.xml.
-define variable *database-directory* :: <locator>
-  = as(<directory-locator>, "www/wiki/content");
-
 define method storage-type (type == <wiki-page-content>) => (res)
   <string-table>;
 end;
-define variable *pages* = storage(<wiki-page-content>);
-
 
 //XXX: TODO:
 //"__" and "=" markup
@@ -285,14 +278,14 @@ define method do-search
                                         summary: summary));
           end;
         end;
-  for (title in key-sequence(*pages*))
+  for (title in key-sequence(storage(<wiki-page-content>)))
     let title-weight = search-text(title, words);
     if (include-old-versions?)
       map(method(x)
             maybe-add(x.content, x.page-version, title, title-weight)
-          end, *pages*[title].revisions);
+          end, storage(<wiki-page-content>)[title].revisions);
     else
-      let page = *pages*[title].revisions.last;
+      let page = storage(<wiki-page-content>)[title].revisions.last;
       maybe-add(page.content, page.page-version, title, title-weight);
     end;
   end;
@@ -417,8 +410,8 @@ define body tag show-revisions in wiki
     (count :: <string>)
     let content = find-page(*title* | "(no title)");
     if (content)
-      let count = min(as(<integer>, count), *pages*[*title*].revisions.size);
-      let revs = copy-sequence(reverse(*pages*[*title*].revisions), end: count);
+      let count = min(as(<integer>, count), storage(<wiki-page-content>)[*title*].revisions.size);
+      let revs = copy-sequence(reverse(storage(<wiki-page-content>)[*title*].revisions), end: count);
       for(rev in revs)
         dynamic-bind (*version* = rev.page-version)
           do-body();
@@ -460,7 +453,7 @@ end;
 define body tag show-index in wiki
   (page :: <wiki-page>, response :: <response>, do-body :: <function>)
   ()
-  for (key in sort(key-sequence(*pages*)))
+  for (key in sort(key-sequence(storage(<wiki-page-content>))))
     dynamic-bind(*title* = key)
       do-body();
     end;
@@ -529,13 +522,12 @@ end;
 
 define thread variable *change* = #f;
 
-define variable *changes* = storage(<wiki-page-diff>);
 define body tag gen-recent-changes in wiki
     (page :: <recent-changes-page>, response :: <response>, do-body :: <function>)
     (count)
   let count = string-to-integer(get-query-value("count") | count);
   for (i from 0 below count,
-       change in reverse(*changes*))
+       change in reverse(storage(<wiki-page-diff>)))
     dynamic-bind(*change* = change)
       do-body()
     end;
@@ -594,51 +586,6 @@ define tag show-change-comment in wiki
   write(output-stream(response), *change*.comment);
 end;
 
-// Tell Koala how to parse the wiki config element.
-//
-define sideways method process-config-element
-    (node :: <xml-element>, name == #"wiki")
-  let cdir = get-attr(node, #"content-directory");
-  if (~cdir)
-    log-warning("Wiki - No content-directory specified.  Will use ./content/");
-    cdir := "./content";
-  end;
-  *database-directory* := as(<directory-locator>, cdir);
-  log-info("Wiki content directory = %s", as(<string>, *database-directory*));
-  import-database();
-end;
-
-define method import-database ()
-  let changelist = make(<string-table>);
-  local method import-file (dir-loc, file-name, file-type)
-          if (file-type = #"file")
-            let filename-parts = split(file-name, separator: ".");
-            let title = base64-decode(filename-parts[0]);
-            unless(element(changelist, title, default: #f))
-              changelist[title] := make(<vector>, size: 42);
-            end;
-            let file-loc = merge-locators(as(<file-locator>, file-name), dir-loc);
-            let date = file-property(file-loc, #"creation-date");
-            let index = if (filename-parts.size = 2)
-                          string-to-integer(filename-parts[1])
-                        else
-                          0
-                        end;
-            changelist[title][index] := file-contents(file-loc);
-          end;  
-        end;
-  if (*pages*.size = 0)
-    do-directory(import-file, *database-directory*);
-  end;
-  for (name in key-sequence(changelist))
-    for (ele in changelist[name])
-      if (ele)
-        save-page(name, ele)
-      end;
-    end;
-  end;
-end;
-
 define function main
     () => ()
   let config-file =
@@ -646,6 +593,7 @@ define function main
       application-arguments()[0]
     end;
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
+  dumper();
   start-server(config-file: config-file);
 end;
 

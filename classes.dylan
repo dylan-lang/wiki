@@ -24,26 +24,26 @@ define method latest-text (page :: <wiki-page-content>) => (text :: <string>)
 end;
 
 define method find-page (title)
-  element(*pages*, title, default: #f);
+  element(storage(<wiki-page-content>), title, default: #f);
 end;
 
 define method find-backlinks (title)
   let res = make(<stretchy-vector>);
-  for (page in sort(key-sequence(*pages*)))
-    if (subsequence-position(latest-text(*pages*[page]), concatenate("[[", title, "]]")))
-      add!(res, *pages*[page])
+  for (page in sort(key-sequence(storage(<wiki-page-content>))))
+    if (subsequence-position(latest-text(storage(<wiki-page-content>)[page]), concatenate("[[", title, "]]")))
+      add!(res, storage(<wiki-page-content>)[page])
     end;
   end;
   res;
 end;
 
 define method remove-page (title)
-  remove-key!(*pages*, title);
+  remove-key!(storage(<wiki-page-content>), title);
 end;
 
 define method rename-page (old-title, new-title)
   let page = find-page(old-title);
-  *pages*[new-title] := page;
+  storage(<wiki-page-content>)[new-title] := page;
   //XXX write a changelog entry
   remove-page(old-title);
 end;
@@ -61,7 +61,7 @@ define method save-page (title, content, #key comment = "")
   let page = find-page(title);
   unless (page)
     page := make(<wiki-page-content>, page-title: title);
-    *pages*[title] := page;
+    storage(<wiki-page-content>)[title] := page;
   end;
   let version = size(page.revisions) + 1;
   unless (version > 1 & content = page.latest-text)
