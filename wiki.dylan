@@ -103,7 +103,7 @@ define method respond-to-post
     (page :: <edit-page>, request :: <request>, response :: <response>)
   let title = trim(get-query-value("title") | "");
   let content = get-query-value("page-content") | "";
-  if (~ user-logged-in?(request))
+  if (~ logged-in(request))
     note-form-error("You must be logged in to edit a page.");
     // redisplay edit page.
     dynamic-bind (*title* = title,
@@ -219,18 +219,13 @@ end;
 
 define named-method logged-in? in wiki
     (page, request)
-  user-logged-in?(request)
+  logged-in(request)
 end;
 
 define named-method admin? in wiki
     (page, request)
-  login(request) & current-user().access <= 23;
+  logged-in(request) & current-user().access <= 23;
 end;
-
-define method user-logged-in? (request :: <request>)
-  let session = get-session(request);
-  session & get-attribute(session, #"username");
-end method user-logged-in?;
 
 define method respond-to-get
     (page :: <search-page>, request :: <request>, response :: <response>)

@@ -77,7 +77,7 @@ end;
 
 define responder worker-responder ("/worker")
  (request, response)
-  if (user-logged-in?(request) & current-user().access <= 23)
+  if (logged-in(request) & current-user().access <= 23)
     let action = as(<symbol>, get-query-value("action"));
     select (action)
       #"undo" => undo(get-query-value("title"));
