@@ -8,22 +8,14 @@ define method storage-type (type == <wiki-page-content>) => (res)
   <string-table>;
 end;
 
-//XXX: TODO:
-//"__" and "=" markup
-//renaming of wiki pages?
-//delete wiki pages
-//tags
-
 define thread variable *title* = #f;
 define thread variable *version* = #f;
+
 define variable *default-title* = "Home";
 
 // This is only used to save the page content across requests when
 // the page title is invalid.
 define thread variable *content* = #f;
-
-define constant sformat = format-to-string;
-
 
 define taglib wiki ()
 end;
@@ -88,7 +80,7 @@ end;
 
 define method respond-to-get
     (page :: <edit-page>, request :: <request>, response :: <response>)
-  dynamic-bind (*title* = get-query-value("title"),
+  dynamic-bind (*title* = *title* | get-query-value("title"),
                 *content* = if (*title* & find-page(*title*))
                               latest-text(find-page(*title*));
                             else
@@ -99,11 +91,16 @@ define method respond-to-get
   end;
 end;
 
+define named-method new-page? in wiki
+  (page :: <wiki-page>, request :: <request>)
+  *title* = ""
+end;
+
 define method respond-to-post
     (page :: <edit-page>, request :: <request>, response :: <response>)
   let title = trim(get-query-value("title") | "");
   let content = get-query-value("page-content") | "";
-  if (~ logged-in(request))
+  if (~ logged-in?(request))
     note-form-error("You must be logged in to edit a page.");
     // redisplay edit page.
     dynamic-bind (*title* = title,
@@ -213,25 +210,23 @@ define thread variable *search-result* = #f;
 
 define named-method editable? in wiki
     (page :: <wiki-page>, request :: <request>)
-  let session = get-session(request);
-  session & get-attribute(session, #"username") & page-editable?(page)
+  logged-in?(request) & page-editable?(page)
 end;
 
-define named-method logged-in? in wiki
-    (page, request)
-  logged-in(request)
+define named-method login? in wiki
+    (page :: <wiki-page>, request :: <request>)
+  logged-in?(request)
 end;
 
 define named-method admin? in wiki
-    (page, request)
-  logged-in(request) & current-user().access <= 23;
+    (page :: <wiki-page>, request :: <request>)
+  logged-in?(request) & current-user().access <= 23;
 end;
 
 define method respond-to-get
     (page :: <search-page>, request :: <request>, response :: <response>)
   let search-string = trim(get-query-value("search-terms") | "");
-  dynamic-bind (*title* = sformat("Search Results for &quot;%s&quot;",
-                                  search-string))
+  dynamic-bind (*title* = concatenate("Search Results for &quot;", search-string, "&quot;"))
     if (search-string = "")
       note-form-error("You must supply some search terms.",
                       field: "search-terms");
@@ -403,16 +398,23 @@ end;
 define body tag show-revisions in wiki
     (page :: <wiki-page>, response :: <response>, do-body :: <function>)
     (count :: <string>)
-    let content = find-page(*title* | "(no title)");
-    if (content)
-      let count = min(as(<integer>, count), storage(<wiki-page-content>)[*title*].revisions.size);
-      let revs = copy-sequence(reverse(storage(<wiki-page-content>)[*title*].revisions), end: count);
-      for(rev in revs)
-        dynamic-bind (*version* = rev.page-version)
-          do-body();
-        end;
+  show-revisions-aux(page, do-body, string-to-integer(count));
+end;
+
+define method show-revisions-aux (page :: <wiki-page>, do-body :: <function>, count :: <integer>)
+end;
+
+define method show-revisions-aux (page :: <view-page>, do-body :: <function>, count :: <integer>)
+  let page = find-page(*title*);
+  if (page)
+    let revs = page.revisions.size;
+    let upper-bound = min(count, revs);
+    for(i from 0 below upper-bound)
+      dynamic-bind (*version* = revs - i)
+        do-body();
       end;
     end;
+  end;
 end;
 
 define method respond-to-get
@@ -431,6 +433,7 @@ define body tag show-backlink in wiki
     end;
   end;
 end;
+
 define tag version in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
@@ -579,6 +582,18 @@ define tag show-change-comment in wiki
     (page :: <recent-changes-page>, response :: <response>)
     ()
   write(output-stream(response), *change*.comment);
+end;
+
+define responder worker-responder ("/worker")
+ (request, response)
+  if (logged-in?(request) & current-user().access <= 23)
+    let action = as(<symbol>, get-query-value("action"));
+    select (action)
+      #"undo" => undo(get-query-value("title"));
+      #"rename" => rename-page(get-query-value("oldtitle"), get-query-value("title"));
+      #"remove" => remove-page(get-query-value("title"));
+    end;
+  end;
 end;
 
 define function main

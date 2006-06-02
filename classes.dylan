@@ -75,15 +75,3 @@ define method save-page (title, content, #key comment = "")
   end;
 end;
 
-define responder worker-responder ("/worker")
- (request, response)
-  if (logged-in(request) & current-user().access <= 23)
-    let action = as(<symbol>, get-query-value("action"));
-    select (action)
-      #"undo" => undo(get-query-value("title"));
-      #"rename" => rename-page(get-query-value("oldtitle"), get-query-value("title"));
-      #"remove" => remove-page(get-query-value("title"))
-    end;
-  end;
-end;
-
