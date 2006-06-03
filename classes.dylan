@@ -37,25 +37,6 @@ define method find-backlinks (title)
   res;
 end;
 
-define method remove-page (title)
-  remove-key!(storage(<wiki-page-content>), title);
-end;
-
-define method rename-page (old-title, new-title)
-  let page = find-page(old-title);
-  storage(<wiki-page-content>)[new-title] := page;
-  //XXX write a changelog entry
-  remove-page(old-title);
-end;
-
-//undo last change
-define method undo (title)
-  let page = find-page(title);
-  if (page)
-    let previous-version = page.revisions[page.revisions.size - 2];
-    save-page(title, previous-version, comment: "revert to previous version");
-  end;
-end;
 
 define method save-page (title, content, #key comment = "")
   let page = find-page(title);
@@ -73,5 +54,9 @@ define method save-page (title, content, #key comment = "")
     add!(page.revisions, revision);
     save(revision);
   end;
+end;
+
+begin
+  main()
 end;
 

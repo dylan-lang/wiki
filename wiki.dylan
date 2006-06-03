@@ -443,9 +443,10 @@ end;
 define tag username in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
-  let session = get-session(get-request(response));
-  session & write(output-stream(response),
-                  get-attribute(session, #"username"));
+  let user = current-user();
+  if (user)
+    write(output-stream(response), user.username);
+  end;
 end;  
 
 define body tag show-index in wiki
@@ -473,7 +474,7 @@ define thread variable *other-version* = #f;
 define method respond-to-get
     (page :: <diff-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = get-query-value("title"),
-                *version* = string-to-integer(get-query-value("version")),
+                *version* = ignore-errors(string-to-integer(get-query-value("version"))),
                 *other-version* = ignore-errors(string-to-integer(get-query-value("otherversion"))) | *version* - 1)
     next-method();
   end;
@@ -502,10 +503,11 @@ end;
 define tag show-diff in wiki
   (page :: <diff-page>, response :: <response>)
   ()
-  let page = find-page(*title*);
-  let version = *version* - 1;
-  let otherversion = *other-version* - 1;
-  if (version < page.revisions.size & otherversion < page.revisions.size)
+  let page = *title* & find-page(*title*);
+  let version = *version* & *version* - 1;
+  let otherversion = *other-version* & *other-version* - 1;
+  //this needs to be refactored
+  if (version & otherversion & page & version < page.revisions.size & otherversion < page.revisions.size & otherversion >= -1)
     let target = split(page.revisions[version].content, separator: "\n");
     let source = if (otherversion = -1) #() else split(page.revisions[otherversion].content, separator: "\n") end;
     print-diffs(output-stream(response), sequence-diff(source, target), source, target);
@@ -521,7 +523,7 @@ end;
 define thread variable *change* = #f;
 
 define body tag gen-recent-changes in wiki
-    (page :: <recent-changes-page>, response :: <response>, do-body :: <function>)
+    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
     (count)
   let count = string-to-integer(get-query-value("count") | count);
   for (i from 0 below count,
@@ -555,45 +557,38 @@ define method print-date (date :: <date>)
 end;
 
 define tag show-change-timestamp in wiki
-    (page :: <recent-changes-page>, response :: <response>)
+    (page :: <wiki-page>, response :: <response>)
     ()
   write(output-stream(response), print-date(*change*.timestamp));
 end;
 
 define tag show-change-title in wiki
-    (page :: <recent-changes-page>, response :: <response>)
+    (page :: <wiki-page>, response :: <response>)
     ()
   write(output-stream(response), *change*.wiki-page-content.page-title);
 end;
 
 define tag show-change-version in wiki
-    (page :: <recent-changes-page>, response :: <response>)
+    (page :: <wiki-page>, response :: <response>)
     ()
   write(output-stream(response), integer-to-string(*change*.page-version));
 end;
 
 define tag show-change-author in wiki
-    (page :: <recent-changes-page>, response :: <response>)
+    (page :: <wiki-page>, response :: <response>)
     ()
   write(output-stream(response), *change*.author);
 end;
 
 define tag show-change-comment in wiki
-    (page :: <recent-changes-page>, response :: <response>)
+    (page :: <wiki-page>, response :: <response>)
     ()
   write(output-stream(response), *change*.comment);
 end;
 
-define responder worker-responder ("/worker")
- (request, response)
-  if (logged-in?(request) & current-user().access <= 23)
-    let action = as(<symbol>, get-query-value("action"));
-    select (action)
-      #"undo" => undo(get-query-value("title"));
-      #"rename" => rename-page(get-query-value("oldtitle"), get-query-value("title"));
-      #"remove" => remove-page(get-query-value("title"));
-    end;
-  end;
+define page admin-page (<wiki-page>)
+    (url: "/wiki/admin.dsp",
+    source: "wiki/admin.dsp")
 end;
 
 define function main
@@ -607,7 +602,4 @@ define function main
   start-server(config-file: config-file);
 end;
 
-begin
-  main()
-end;
 
