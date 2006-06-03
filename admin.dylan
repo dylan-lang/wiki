@@ -22,11 +22,11 @@ define method change-privileges ()
     for (privilege in $privileges)
       let was = any?(method(x) x = privilege end, user.access);
       let should-be = get-query-value(concatenate(user.username, ":", as(<string>, privilege)));
-      if (should-be & ~was)
+      if (should-be & was = #f)
         user.access := pair(privilege, user.access);
       end;
-      if (~should-be & was)
-        remove!(user.access, privilege);
+      if (was & should-be = #f)
+        user.access := remove!(user.access, privilege);
       end;
     end;
   end;
