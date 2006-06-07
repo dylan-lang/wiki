@@ -3,7 +3,11 @@ module: wiki
 
 define web-class <wiki-page-diff> (<object>)
   data content :: <string>;
-  data author :: <string> = if (current-user()) current-user().username else "foobar" end; //XXX: use IP here
+  data author :: <string> = if (current-user())
+                              current-user().username
+                            else
+                              "foobar"  //XXX: use IP here
+                            end;
   data page-version :: <integer>;
   data timestamp :: <date> = current-date();
   data comment :: <string>;
@@ -30,7 +34,8 @@ end;
 define method find-backlinks (title)
   let res = make(<stretchy-vector>);
   for (page in sort(key-sequence(storage(<wiki-page-content>))))
-    if (subsequence-position(latest-text(storage(<wiki-page-content>)[page]), concatenate("[[", title, "]]")))
+    if (subsequence-position(latest-text(storage(<wiki-page-content>)[page]),
+                             concatenate("[[", title, "]]")))
       add!(res, storage(<wiki-page-content>)[page])
     end;
   end;

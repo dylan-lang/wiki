@@ -21,6 +21,7 @@ define taglib wiki ()
 end;
 
 define class <wiki-page> (<dylan-server-page>)
+  slot page-title :: false-or(<string>) = #f, init-keyword: page-title:;
 end;
 
 define generic page-editable? (page :: <wiki-page>) => (editable? :: <boolean>);
@@ -68,7 +69,7 @@ define method respond-to-get
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
                 *version* = ignore-errors(string-to-integer(get-query-value("v"))),
                 *content* = page-content(*title*, version: *version*, format: #"html")
-                            | "(no content)")
+                              | "(no content)")
     next-method();    // process the DSP template
   end;
 end;
@@ -125,6 +126,7 @@ end;
 define page new-page (<wiki-page>)
     (url: "/wiki/new.dsp",
      source: "wiki/edit.dsp")
+  keyword page-title:, init-value: "(new page)";
 end;
 
 define method respond-to-get
@@ -138,6 +140,7 @@ end;
 define page login-page (<wiki-page>)
     (url: "/wiki/login.dsp",
      source: "wiki/login.dsp")
+  keyword page-title:, init-value: "Login";
 end;
 
 define method respond-to-post (page :: <login-page>,
@@ -372,7 +375,7 @@ define tag show-title in wiki
     (page :: <wiki-page>, response :: <response>)
     (v :: <boolean>, for-url :: <boolean>)
   let out = output-stream(response);
-  let title = *title* | "(no title)";
+  let title = *title* | page-title(page) | "(no title)";
   write(out, title);
   if (*title* & v)
     let wiki-page = find-page(*title*);

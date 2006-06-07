@@ -40,10 +40,9 @@ define module wiki
   use xml-rpc-common,
     import: { base64-encode, base64-decode };
   use strings, import: { index-of, case-insensitive-equal? };
-  use web-framework, exclude: { respond-to-get, respond-to-post };
+  use web-framework, exclude: { respond-to-get, respond-to-post, slot-type };
   use users;
   use storage;
-  use simple-xml;
   use sequence-diff;
   use substring-search;
 end;
