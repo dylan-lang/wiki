@@ -594,6 +594,7 @@ define page admin-page (<wiki-page>)
     source: "wiki/admin.dsp")
 end;
 
+define variable *xmpp-bot* = #f;
 define function main
     () => ()
   let config-file =
@@ -602,6 +603,7 @@ define function main
     end;
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
   dumper();
+  *xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/here", password: "fnord");
   start-server(config-file: config-file);
 end;
 

@@ -19,6 +19,7 @@ define library wiki
   use xml-parser;
   use collection-extensions, import: { sequence-diff };
   use string-extensions, import: { substring-search };
+  use xmpp-bot;
   //use meta;
   export wiki;
 end;
@@ -45,6 +46,7 @@ define module wiki
   use storage;
   use sequence-diff;
   use substring-search;
+  use xmpp-bot;
 end;
 
 

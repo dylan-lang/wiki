@@ -42,6 +42,13 @@ define method find-backlinks (title)
   res;
 end;
 
+define method save (diff :: <wiki-page-diff>) => ()
+  next-method();
+  let text = concatenate(diff.wiki-page-content.page-title, " (http://wiki.opendylan.org/wiki/view.dsp?title=", diff.wiki-page-content.page-title, ")",
+                         " [version ", integer-to-string(diff.page-version), "] ",
+                         "was changed by ", diff.author, " comment was ", diff.comment);
+  broadcast-message(*xmpp-bot*, text);
+end;
 
 define method save-page (title, content, #key comment = "")
   let page = find-page(title);
