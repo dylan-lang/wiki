@@ -594,6 +594,30 @@ define page admin-page (<wiki-page>)
     source: "wiki/admin.dsp")
 end;
 
+define page version-page (<wiki-page>)
+    (url: "/wiki/version.dsp",
+     source: "wiki/version.dsp")
+end;
+
+define body tag show-versions in wiki
+    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+    ()
+  for (version in reverse(find-page(*title*).revisions))
+    dynamic-bind (*change* = version)
+      do-body();
+    end;
+  end;
+end;
+
+define method respond-to-get
+    (page :: <version-page>, request :: <request>, response :: <response>)
+  dynamic-bind (*title* = get-query-value("title"))
+    next-method();
+  end;
+end;
+
+
+
 define variable *xmpp-bot* = #f;
 define function main
     () => ()
@@ -604,6 +628,7 @@ define function main
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
   dumper();
   *xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/here", password: "fnord");
+  sleep(5);
   start-server(config-file: config-file);
 end;
 

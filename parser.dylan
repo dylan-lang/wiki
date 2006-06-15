@@ -86,8 +86,9 @@ define method parse-newline
       // Find next line with no leading whitespace...
       let (epos, #rest xs) = regexp-position(markup, "\n\\S", start: start + 1) | markup.size;
       write(out, "<pre>");
-      //XXX escape <, > and & here!
-      write(out, markup, start: start, end: epos);
+      //XXX more speed
+      let raw-text = copy-sequence(markup, start: start, end: epos);
+      write(out, escape-xml(raw-text));
       write(out, "</pre>");
       epos
     end

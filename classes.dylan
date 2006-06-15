@@ -44,10 +44,23 @@ end;
 
 define method save (diff :: <wiki-page-diff>) => ()
   next-method();
-  let text = concatenate(diff.wiki-page-content.page-title, " (http://wiki.opendylan.org/wiki/view.dsp?title=", diff.wiki-page-content.page-title, ")",
-                         " [version ", integer-to-string(diff.page-version), "] ",
-                         "was changed by ", diff.author, " comment was ", diff.comment);
-  broadcast-message(*xmpp-bot*, text);
+  if (*xmpp-bot*)
+    block()
+      let com = if (diff.comment = "")
+                  "empty"
+                else
+                  diff.comment
+                end;
+      let text = concatenate(diff.wiki-page-content.page-title,
+                             " (\"http://wiki.opendylan.org/wiki/view.dsp?title=",
+                             diff.wiki-page-content.page-title, "\")",
+                             " [version ", integer-to-string(diff.page-version),
+                             "] was changed by ", diff.author,
+                             " comment was ", com);
+      broadcast-message(*xmpp-bot*, text);
+    exception (e :: <condition>)
+    end;
+  end;
 end;
 
 define method save-page (title, content, #key comment = "")

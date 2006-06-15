@@ -45,6 +45,7 @@ define module wiki
   use users;
   use storage;
   use sequence-diff;
+  use simple-xml, import: { escape-xml };
   use substring-search;
   use xmpp-bot;
 end;
