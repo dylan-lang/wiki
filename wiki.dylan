@@ -36,20 +36,23 @@ end;
 define method page-content
     (title :: <string>, #key format = #"raw", version)
  => (content :: false-or(<string>))
-  let page = find-page(title);
-  if (page)
-    let latest = page.revisions.last;
-    let raw-text = if (version & version > 0 & version <= latest.page-version)
-                     page.revisions[version - 1].content;
-                   else
-                     latest.content
-                   end;
-    select (format)
-      #"raw" => raw-text;
-      // HACK HACK HACK.  Prepend a newline so the start-of-line context applies.
-      #"html" => wiki-markup-to-html(concatenate("\n", raw-text));
-      otherwise => error("Invalid format (%=) requested.", format);
-    end
+  let text = *content*;
+  unless (text)
+    let page = find-page(title);
+    if (page)
+      let latest = page.revisions.last;
+      text := if (version & version > 0 & version <= latest.page-version)
+                page.revisions[version - 1].content;
+              else
+                latest.content
+              end;
+    end;
+  end;
+  select (format)
+    #"raw" => text;
+    // HACK HACK HACK.  Prepend a newline so the start-of-line context applies.
+    #"html" => wiki-markup-to-html(concatenate("\n", text));
+    otherwise => error("Invalid format (%=) requested.", format);
   end
 end;
 
@@ -68,8 +71,7 @@ define method respond-to-get
     (page :: <view-page>, request :: <request>, response :: <response>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
                 *version* = ignore-errors(string-to-integer(get-query-value("v"))),
-                *content* = page-content(*title*, version: *version*, format: #"html")
-                              | "(no content)")
+                *content* = page-content(*title*, version: *version*) | "(no content)")
     next-method();    // process the DSP template
   end;
 end;
@@ -81,7 +83,7 @@ end;
 
 define method respond-to-get
     (page :: <edit-page>, request :: <request>, response :: <response>)
-  dynamic-bind (*title* = *title* | get-query-value("title"),
+  dynamic-bind (*title* = get-query-value("title"),
                 *content* = if (*title* & find-page(*title*))
                               latest-text(find-page(*title*));
                             else
@@ -94,46 +96,57 @@ end;
 
 define named-method new-page? in wiki
   (page :: <wiki-page>, request :: <request>)
-  *title* = ""
+  *title* = "new"
 end;
 
 define method respond-to-post
     (page :: <edit-page>, request :: <request>, response :: <response>)
-  let title = trim(get-query-value("title") | "");
-  let content = get-query-value("page-content") | "";
-  if (~ logged-in?(request))
-    note-form-error("You must be logged in to edit a page.");
-    // redisplay edit page.
-    dynamic-bind (*title* = title,
-                  *content* = content)
-      respond-to-get(page, request, response);
-    end;
-  elseif (title = "")
-    note-form-error("You must supply a valid page title.", field: "title");
-    // redisplay edit page.
-    dynamic-bind (*title* = title,
-                  *content* = content)
-      respond-to-get(page, request, response);
-    end;
+  if (get-query-value("preview"))
+    respond-to-get(*preview-page*, request, response)
   else
-    save-page(title, content, comment: get-query-value("comment"));
-    // Show the page after editing
-    respond-to-get(*view-page*, request, response);
+    let title = trim(get-query-value("title") | "");
+    let content = get-query-value("page-content") | "";
+    if (~ logged-in?(request))
+      note-form-error("You must be logged in to edit a page.");
+      // redisplay edit page.
+      dynamic-bind (*title* = title,
+                    *content* = content)
+        respond-to-get(page, request, response);
+      end;
+    elseif (title = "")
+      note-form-error("You must supply a valid page title.", field: "title");
+      // redisplay edit page.
+      dynamic-bind (*title* = title,
+                    *content* = content)
+        respond-to-get(page, request, response);
+      end;
+    else
+      save-page(title, content, comment: get-query-value("comment"));
+      // Show the page after editing
+      respond-to-get(*view-page*, request, response);
+    end;
   end;
 end;
 
-// Not sure this is even needed.
-define page new-page (<wiki-page>)
-    (url: "/wiki/new.dsp",
-     source: "wiki/edit.dsp")
-  keyword page-title:, init-value: "(new page)";
+define page preview-page (<wiki-page>)
+  (url: "/wiki/preview.dsp",
+   source: "wiki/preview.dsp")
+end;
+
+define thread variable *comment* = #f;
+
+define tag show-comment in wiki
+  (page :: <wiki-page>, response :: <response>)
+  ()
+  write(output-stream(response), *comment*);
 end;
 
 define method respond-to-get
-    (page :: <new-page>, request :: <request>, response :: <response>)
-  dynamic-bind (*title* = "",
-                *content* = "")
-    respond-to-get(*edit-page*, request, response);
+    (page :: <preview-page>, request :: <request>, response :: <response>)
+  dynamic-bind (*title* = get-query-value("title") | "",
+                *content* = get-query-value("page-content") | "",
+                *comment* = get-query-value("comment") | "")
+    next-method();
   end;
 end;
 
@@ -394,8 +407,7 @@ define tag show-content in wiki
     (page :: <wiki-page>, response :: <response>)
     (format :: <string> = "raw")
   write(output-stream(response),
-        (*title* & page-content(*title*, version: *version*, format: as(<symbol>, format)))
-        | *content*);
+        page-content(*title*, version: *version*, format: as(<symbol>, format)));
 end;
 
 define body tag show-revisions in wiki
@@ -580,13 +592,13 @@ end;
 define tag show-change-author in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
-  write(output-stream(response), *change*.author);
+  write(output-stream(response), escape-xml(*change*.author));
 end;
 
 define tag show-change-comment in wiki
     (page :: <wiki-page>, response :: <response>)
     ()
-  write(output-stream(response), *change*.comment);
+  write(output-stream(response), escape-xml(*change*.comment));
 end;
 
 define page admin-page (<wiki-page>)
