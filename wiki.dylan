@@ -638,9 +638,9 @@ define function main
       application-arguments()[0]
     end;
   //register-url("/wiki/wiki.css", maybe-serve-static-file);
-  dumper();
-  *xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/here", password: "fnord");
-  sleep(5);
+  //dumper();
+  //*xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/here", password: "fnord");
+  //sleep(5);
   start-server(config-file: config-file);
 end;
 

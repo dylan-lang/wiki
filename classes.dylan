@@ -67,7 +67,9 @@ define method save-page (title, content, #key comment = "")
   let page = find-page(title);
   unless (page)
     page := make(<wiki-page-content>, page-title: title);
-    storage(<wiki-page-content>)[title] := page;
+    with-storage (pages = <wiki-page-content>)
+      pages[title] := page;
+    end;
   end;
   let version = size(page.revisions) + 1;
   unless (version > 1 & content = page.latest-text)
@@ -75,8 +77,10 @@ define method save-page (title, content, #key comment = "")
                         content: content,
                         page-version: version,
                         wiki-page-content: page,
-                        comment: comment);
-    add!(page.revisions, revision);
+                          comment: comment);
+    with-storage (pages = <wiki-page-content>)
+      add!(page.revisions, revision);
+    end;
     save(revision);
   end;
 end;
