@@ -60,7 +60,7 @@ end;
 define page view-page (<wiki-page>)
     (url: "/wiki/view.dsp",
      source: "wiki/view.dsp",
-     alias: #("/wiki/", "/wiki", "/"))
+     alias: #("/wiki/", "/"))
 end;
 
 define method page-editable? (page :: <view-page>) => (editable? :: <boolean>)
@@ -177,7 +177,7 @@ define method respond-to-post (page :: <login-page>,
       end if;
     end if;
 
-    if (login(request))
+    if (login(request, username, password))
       let referer = get-query-value("referer");
       if (referer & referer ~= "")
         let headers = response.response-headers;
