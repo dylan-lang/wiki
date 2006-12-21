@@ -10,12 +10,16 @@ define method respond-to-post
         #"rename" => rename-page(get-query-value("oldtitle"), get-query-value("title"));
         #"remove" => remove-page(get-query-value("title"));
         #"change-privileges" => change-privileges();
+        #"remove-user" => remove-user(get-query-value("username"));
       end;
     end;
   end;
   respond-to-get(page, request, response);
 end;
 
+define method remove-user (username)
+  remove-key!(storage(<user>), username);
+end;
 define method change-privileges ()
   //this is evil and should be done better!
   for (user in storage(<user>))
@@ -88,7 +92,7 @@ define named-method privilege? in wiki
   *user* & *privilege* & any?(method(x) x = *privilege* end, *user*.access)
 end;
 
-define constant $privileges = #(#"remove", #"rename", #"undo", #"change-privileges");
+define constant $privileges = #(#"remove", #"rename", #"undo", #"change-privileges", #"remove-user");
 
 define thread variable *privilege* = #f;
 
@@ -114,8 +118,8 @@ end;
 define body tag show-users in wiki
   (page :: <wiki-page>, response :: <response>, do-body :: <function>)
   ()
-  for (user in storage(<user>))
-    dynamic-bind(*user* = user)
+  for (user in sort(key-sequence(storage(<user>))))
+    dynamic-bind(*user* = storage(<user>)[user])
       do-body()
     end;
   end;

@@ -42,24 +42,31 @@ define method find-backlinks (title)
   res;
 end;
 
+define function xmpp-worker ()
+  block()
+    *xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/serva", password: "fnord");
+    sleep(3); //this is for safety reasons, xml-parser is not thread-safe!
+  exception (e :: <condition>)
+    *xmpp-bot* := #f
+  end;
+end;
 define method save (diff :: <wiki-page-diff>) => ()
   next-method();
-  if (*xmpp-bot*)
-    block()
-      let com = if (diff.comment = "")
-                  "empty"
-                else
-                  diff.comment
-                end;
-      let text = concatenate(diff.wiki-page-content.page-title,
-                             " (\"http://wiki.opendylan.org/wiki/view.dsp?title=",
-                             diff.wiki-page-content.page-title, "\")",
-                             " [version ", integer-to-string(diff.page-version),
-                             "] was changed by ", diff.author,
-                             " comment was ", com);
-      broadcast-message(*xmpp-bot*, text);
-    exception (e :: <condition>)
-    end;
+  block()
+    let com = if (diff.comment = "")
+                "empty"
+              else
+                diff.comment
+              end;
+    let text = concatenate(diff.wiki-page-content.page-title,
+                           " (\"http://wiki.opendylan.org/wiki/view.dsp?title=",
+                           diff.wiki-page-content.page-title, "\")",
+                           " [version ", integer-to-string(diff.page-version),
+                           "] was changed by ", diff.author,
+                           " comment was ", com);
+    broadcast-message(*xmpp-bot*, text);
+  exception (e :: <condition>)
+    xmpp-worker();
   end;
 end;
 
@@ -82,6 +89,7 @@ define method save-page (title, content, #key comment = "")
     save(revision);
     //need to store dependency (page, because page.revisions was updated)
     save(page);
+    dump-data();
   end;
 end;
 

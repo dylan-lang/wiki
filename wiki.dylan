@@ -170,7 +170,11 @@ define method respond-to-post (page :: <login-page>,
       //try to add user
       let email = get-query-value("email");
       let email-supplied? = email & email ~= "";
-      if (email-supplied?)
+      if (member?(' ', username))
+        note-form-error("Invalid username");
+      elseif (member?('@', username))
+        note-form-error("Invalid username");
+      elseif (email-supplied?)
         make(<user>, username: username, password: password, email: email);
       else
         note-form-error("You must supply an eMail-address to add a new user.");
@@ -637,10 +641,8 @@ define function main
     if(application-arguments().size > 0)
       application-arguments()[0]
     end;
-  //register-url("/wiki/wiki.css", maybe-serve-static-file);
-  //dumper();
-  //*xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/here", password: "fnord");
-  //sleep(5);
+  register-url("/wiki/wiki.css", maybe-serve-static-file);
+  xmpp-worker();
   start-server(config-file: config-file);
 end;
 
