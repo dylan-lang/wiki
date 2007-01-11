@@ -635,15 +635,3 @@ end;
 
 
 define variable *xmpp-bot* = #f;
-define function main
-    () => ()
-  let config-file =
-    if(application-arguments().size > 0)
-      application-arguments()[0]
-    end;
-  register-url("/wiki/wiki.css", maybe-serve-static-file);
-  xmpp-worker();
-  start-server(config-file: config-file);
-end;
-
-

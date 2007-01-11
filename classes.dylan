@@ -43,13 +43,18 @@ define method find-backlinks (title)
 end;
 
 define function xmpp-worker ()
-  block()
-    *xmpp-bot* := make(<xmpp-bot>, jid: "dylanbot@jabber.berlin.ccc.de/serva", password: "fnord");
-    sleep(3); //this is for safety reasons, xml-parser is not thread-safe!
-  exception (e :: <condition>)
-    *xmpp-bot* := #f
-  end;
+  if (option-value-by-long-name(*argument-list-parser*, "xmpp"))
+    block()
+      *xmpp-bot* := make(<xmpp-bot>,
+                         jid: "dylanbot@jabber.berlin.ccc.de/serva",
+                         password: "fnord");
+      sleep(3); //this is for safety reasons, xml-parser is not thread-safe!
+    exception (e :: <condition>)
+      *xmpp-bot* := #f
+    end block;
+  end if;
 end;
+
 define method save (diff :: <wiki-page-diff>) => ()
   next-method();
   block()
@@ -94,6 +99,11 @@ define method save-page (title, content, #key comment = "")
 end;
 
 begin
-  main()
+  add-option-parser-by-type(*argument-list-parser*,
+                            <simple-option-parser>,
+                            description: "Whether to enable the XMPP bot",
+                            long-options: #("xmpp"));
+  register-url("/wiki/wiki.css", maybe-serve-static-file);
+  register-init-function(xmpp-worker);
+  koala-main();
 end;
-
