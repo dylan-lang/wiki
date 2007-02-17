@@ -75,7 +75,7 @@ define constant $wiki-productions
      production internal-link :: xml$<element> => [LBRACKET LBRACKET wiki-page-name PIPE description RBRACKET RBRACKET] (data)
        with-xml() a(description, href => concatenate($base-url, wiki-page-name)) end;
 
-     production header :: xml$<element> => [EQUALS wiki-text EQUALS], action:
+     production header :: xml$<element> => [EQUALS more-wiki-text EQUALS], action:
        method (p :: <simple-parser>, data, s, e)
          let left = p[0];
          let right = p[2];
@@ -117,28 +117,30 @@ define constant $wiki-productions
      production wiki-text :: <collection> => [external-link more-wiki-text] (data)
        add!(more-wiki-text, external-link);
 
-     production more-wiki-text :: <collection> => [wiki-text more-wiki-text] (data)
-       add!(more-wiki-text, wiki-text);
+     production more-wiki-text :: <collection> => [wiki-text] (data)
+       wiki-text;
 
      production more-wiki-text :: <collection> => [] (data)
        #();
 
-     production line :: <collection> => [wiki-text NEWLINE] (data)
+     production line :: <collection> => [wiki-text] (data)
        wiki-text;
 
-     production line :: xml$<element> => [NEWLINE] (data)
-       with-xml() p end;
+     production line :: <collection> => [header] (data)
+       list(header);
 
-     production line :: xml$<element> => [header NEWLINE] (data)
-       header;
+     production line :: <collection> => [unnumbered-list] (data)
+       list(unnumbered-list);
 
-     production line :: xml$<element> => [unnumbered-list] (data)
-       unnumbered-list;
 
      production lines => [] (data)
 
-     production lines => [line lines] (data)
-       data.my-real-data := add!(data.my-real-data, line);
+     production lines => [line NEWLINE NEWLINE lines] (data)
+       add!(data.my-real-data, with-xml() p end);
+       do(curry(add!, data.my-real-data), line);
+
+     production lines => [line NEWLINE lines] (data)
+       do(curry(add!, data.my-real-data), line);
 end;
 
 define constant $wiki-parser-automaton
@@ -165,7 +167,7 @@ define function consume-token
 end function;
 
 define sealed class <my-data> (<object>)
-  slot my-real-data = #();
+  slot my-real-data = make(<stretchy-vector>);
 end;
 
 define function parse-wiki-markup (input :: <string>)
@@ -185,8 +187,8 @@ define function parse-wiki-markup (input :: <string>)
                     consumer-data: data);
   format-out("before scan-tokens, input: %s\n", input);
   scan-tokens(scanner,
-              //simple-parser-consume-token,
-              consume-token,
+              simple-parser-consume-token,
+              //consume-token,
               parser,
               input,
               end: input.size,
@@ -195,9 +197,12 @@ define function parse-wiki-markup (input :: <string>)
   format-out("before consuming EOF at %d\n", end-position);
   simple-parser-consume-token(parser, 0, #"EOF", parser, end-position, end-position);
   format-out("data (%d) is %=\n", data.my-real-data.size, data.my-real-data);
-  data.my-real-data;
+  reduce1(concatenate, (map(curry(as, <string>), reverse(data.my-real-data))));
 end;
 
 begin
+  parse-wiki-markup("foo\n\nbar\n");
+  parse-wiki-markup("[[f]]\n");
+  parse-wiki-markup("==foo==\n");
   parse-wiki-markup("==foo==\nfoo[[bar]]");
 end;

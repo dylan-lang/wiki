@@ -4,24 +4,24 @@ define variable *markup-method* = parse-wiki-markup;
 
 
 define test newline ()
-  check-equal("Newline inserts paragraph", "foo<p/>bar", *markup-method*("foo\n\nbar\n"));
+  check-equal("Newline inserts paragraph", "foo<P/>bar", *markup-method*("foo\n\nbar\n"));
 end;
 
 define test internal-link ()
-  check-equal("Internal link to unknown page",
-              "<a href=\"/wiki/view.dsp?title=foo\">[?]foo</a>",
+  check-equal("Internal link",
+              "<A href=\"/wiki/view.dsp?title=foo\">foo</A>",
               *markup-method*("[[foo]]"));
 end;
 
 define test external-link ()
   check-equal("External link",
-              "<a href=\"http://www.ccc.de\">http://www.ccc.de</a>",
+              "<A href=\"http://www.ccc.de\">http://www.ccc.de</A>",
               *markup-method*("[http://www.ccc.de]"));
 end;
 
 define test external-link-with-label ()
   check-equal("External Link with label",
-              "<a href=\"http://www.ccc.de\">foobar</a>",
+              "<A href=\"http://www.ccc.de\">foobar</A>",
               *markup-method*("[http://www.ccc.de foobar]"));
 end;
 
@@ -34,15 +34,15 @@ define test heading3 ()
 end;
 
 define test heading4 ()
-  check-equal("Heading 4", "<h4> foooo </h4>", *markup-method*("==== foooo ===="));
+  check-equal("Heading 4", "<h4>foooo</h4>", *markup-method*("==== foooo ===="));
 end;
 
 define test heading5 ()
-  check-equal("Heading 5", "<h5> fooooo </h5>", *markup-method*("===== fooooo ====="));
+  check-equal("Heading 5", "<h5>fooooo</h5>", *markup-method*("===== fooooo ====="));
 end;
 
 define test heading54 ()
-  check-equal("Heading 54", "<h5> fooooo </h5>", *markup-method*("===== fooooo ===="));
+  check-equal("Heading 54", "<h5>fooooo</h5>", *markup-method*("===== fooooo ===="));
 end;
 
 define test unnumbered-list ()
