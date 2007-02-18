@@ -91,11 +91,11 @@ define suite parser-suite ()
   test heading5;
   test heading54;
   test unnumbered-list;
-  //test numbered-list;
-  //test nested-list;
-  //test horizontal-line;
+  test numbered-list;
+  test nested-list;
+  test horizontal-line;
   //test nowiki-markup;
-  //test pre-formatted;
+  test pre-formatted;
 end;
 
 begin

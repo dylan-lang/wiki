@@ -36,15 +36,22 @@ define constant $wiki-tokens
       token STAR = "*";
       token MINUS = "-";
 
+      token FOUR-DASHES = "----";
+      token FOUR-TILDE = "~~~~";
+
       token PIPE = "\\|";
 
       token SMALLER = "<";
       token GREATER = ">";
 
+      token CLIST = "(\n|\r|\r\n)(\\*|#)", priority: 3;
+      //token PREFORMATTED = "(\r|\n|\r\n) ", priority: 3;
+      //token SPACE = " ", priority: 3;
       token NEWLINE = "(\n|\r|\r\n)";
       //todo: ignore spaces?!
 
       token TEXT = "[a-zA-Z_0-9\\.]+",
+        //priority: -1,
         semantic-value-function: extract-action;
 
       token URL = "(http|ftp|https)://",
@@ -90,23 +97,29 @@ define constant $wiki-productions
 
      production unnumbered-list :: xml$<element> => [STAR list-elements] (data)
        format-out("Hit unnumbered-list %=\n", list-elements);
-       with-xml () ul { list-elements } end;
+       make(xml$<element>, name: "ul", children: list-elements);
 
-     production list-elements :: <collection> => [list-element NEWLINE more-list-elements] (data)
+     production numbered-list :: xml$<element> => [HASHMARK list-elements] (data)
+       make(xml$<element>, name: "ol", children: list-elements);
+
+     production list-elements :: <collection> => [list-element more-list-elements] (data)
        format-out("Hit list-elements\n");
        add!(more-list-elements, list-element);
 
-     production more-list-elements :: <collection> => [STAR list-element more-list-elements] (data)
+//     production list-elements :: <collection> => [list-element] (data)
+//       list(with-xml() li { list-element } end);
+
+     production more-list-elements :: <collection> => [CLIST list-element more-list-elements] (data)
        format-out("Hit more-list-elements\n");
        add!(more-list-elements | #(), list-element);
 
-//     production more-list-elements :: <collection> => [] (data)
-//       format-out("Hit more-list-elements, empty\n");
-//       #();
+     production more-list-elements :: <collection> => [] (data)
+       format-out("Hit more-list-elements, empty\n");
+       #();
 
      production list-element :: xml$<element> => [wiki-text] (data)
        format-out("Hit list-element %=\n", wiki-text);
-       wiki-text;
+       make(xml$<element>, name: "li", children: wiki-text);
 
      production wiki-text :: <collection> => [TEXT more-wiki-text] (data)
        add!(more-wiki-text, with-xml() text(TEXT) end);
@@ -123,6 +136,24 @@ define constant $wiki-productions
      production more-wiki-text :: <collection> => [] (data)
        #();
 
+     production horizontal-line :: xml$<element> => [FOUR-DASHES] (data)
+       with-xml() hr end;
+
+//     production preformatted :: xml$<element> => [SPACE preformat] (data)
+//       make(xml$<element>, name: "pre", children: preformat);
+
+//     production preformat :: <collection> => [wiki-text more-preformat] (data)
+//       concatenate(more-preformat, wiki-text);
+
+//     production more-preformat :: <collection> => [PREFORMATTED preformat] (data)
+//       preformat;
+
+//     production more-preformat :: <collection> => [] (data)
+//       #();
+
+//     production line :: <collection> => [preformatted] (data)
+//       list(preformatted);
+
      production line :: <collection> => [wiki-text] (data)
        wiki-text;
 
@@ -132,6 +163,11 @@ define constant $wiki-productions
      production line :: <collection> => [unnumbered-list] (data)
        list(unnumbered-list);
 
+     production line :: <collection> => [numbered-list] (data)
+       list(numbered-list);
+
+     production line :: <collection> => [horizontal-line] (data)
+       list(horizontal-line);
 
      production lines => [] (data)
 
@@ -201,8 +237,5 @@ define function parse-wiki-markup (input :: <string>)
 end;
 
 begin
-  parse-wiki-markup("foo\n\nbar\n");
-  parse-wiki-markup("[[f]]\n");
-  parse-wiki-markup("==foo==\n");
-  parse-wiki-markup("==foo==\nfoo[[bar]]");
+  parse-wiki-markup("*one\n*two\n*three");
 end;
