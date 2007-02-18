@@ -80,6 +80,28 @@ define test pre-formatted ()
 
 end;
 
+define test bold ()
+  check-equal("Bold text",
+              "<b>foo</b>",
+              *markup-method*("'''foo'''"));
+end;
+define test bold-italic ()
+  check-equal("Bold-italic text",
+              "<b><i>foo</i></b>",
+              *markup-method*("'''''foo'''''"));
+end;
+define test italic ()
+  check-equal("Italic text",
+              "<i>foo</i>",
+              *markup-method*("''foo''"));
+end;
+define test unknown-ticks ()
+  check-equal("Unknown ticks",
+              "foo",
+              *markup-method*("''''foo'''"));
+end;
+
+
 define suite parser-suite ()
   test newline;
   test internal-link;
@@ -96,6 +118,10 @@ define suite parser-suite ()
   test horizontal-line;
   //test nowiki-markup;
   test pre-formatted;
+  test bold;
+  test italic;
+  test bold-italic;
+  test unknown-ticks;
 end;
 
 begin

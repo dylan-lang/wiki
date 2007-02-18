@@ -31,6 +31,9 @@ define constant $wiki-tokens
         semantic-value-function: count-chars;
       token TILDES = "(~)+",
         semantic-value-function: count-chars;
+      token TICKS = "(')+",
+        semantic-value-function: count-chars;
+
       token AMPERSAND = "&";
 
       token HASHMARK = "#";
@@ -82,14 +85,13 @@ define constant $wiki-productions
 
      production header :: xml$<element> => [EQUALS more-wiki-text EQUALS], action:
        method (p :: <simple-parser>, data, s, e)
-         let left = p[0];
-         let right = p[2];
-         unless (left = right)
+         let heading = max(p[0], p[2]);
+         unless (p[0] = p[2])
            format-out("Unbalanced number of '=' in header %s, left: %d right: %d, using %d\n",
-                      p[1], left, right, max(left, right));
+                      p[1], p[0], p[2], heading);
          end;
          make(xml$<element>,
-              name: concatenate("h", integer-to-string(max(left, right))),
+              name: concatenate("h", integer-to-string(heading)),
               children: p[1]);
        end;
 
@@ -116,6 +118,26 @@ define constant $wiki-productions
        format-out("Hit list-element %=\n", wiki-text);
        make(xml$<element>, name: "li", children: wiki-text);
 
+     production simple-format :: xml$<xml> => [TICKS TEXT TICKS], action:
+       method (p :: <simple-parser>, data, s, e)
+         let ticks = max(p[0], p[2]);
+         unless (p[0] = p[2])
+           format-out("Unbalanced number of ' in TICKS %s, left: %d right: %d, using %d\n",
+                      p[1], p[0], p[2], ticks);
+         end;
+         let str = list(make(xml$<char-string>, text: p[1]));
+         if (ticks = 5)
+           make(xml$<element>, name: "b", children: list(make(xml$<element>, name: "i", children: str)));
+         else
+           let ele-name = if (ticks = 2) "i" elseif (ticks = 3) "b" end;
+           if (ele-name)
+             make(xml$<element>, name: ele-name, children: str);
+           else
+             str[0]
+           end;
+         end;
+       end;
+
      production wiki-text :: <collection> => [TEXT more-wiki-text] (data)
        add!(more-wiki-text, with-xml() text(TEXT) end);
 
@@ -124,6 +146,9 @@ define constant $wiki-productions
 
      production wiki-text :: <collection> => [external-link more-wiki-text] (data)
        add!(more-wiki-text, external-link);
+
+     production wiki-text :: <collection> => [simple-format more-wiki-text] (data)
+       add!(more-wiki-text, simple-format);
 
      production more-wiki-text :: <collection> => [wiki-text] (data)
        wiki-text;
@@ -135,10 +160,10 @@ define constant $wiki-productions
        with-xml() hr end;
 
      production preformat :: xml$<element> => [PREFORMATTED TEXT more-preformat] (data)
+        let pre-string = concatenate("\n ", TEXT, more-preformat);
         make(xml$<element>,
              name: "pre",
-             children: list(make(xml$<char-string>,
-                                 text: concatenate("\n ", TEXT, more-preformat))));
+             children: list(make(xml$<char-string>, text: pre-string)));
 
      production more-preformat :: <string> => [TEXT more-preformat] (data)
        concatenate(" ", TEXT, more-preformat);
