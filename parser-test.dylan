@@ -75,7 +75,7 @@ end;
 
 define test pre-formatted ()
   check-equal("Pre-formatted text",
-              "<pre> this is pre-text\n and another line</pre>",
+              "<pre>\n this is pre-text\n and another line\n</pre>",
               *markup-method*(" this is pre-text\n and another line"));
 
 end;

@@ -29,15 +29,14 @@ define constant $wiki-tokens
 
       token EQUALS = "(=)+",
         semantic-value-function: count-chars;
-
+      token TILDES = "(~)+",
+        semantic-value-function: count-chars;
       token AMPERSAND = "&";
 
       token HASHMARK = "#";
       token STAR = "*";
-      token MINUS = "-";
 
-      token FOUR-DASHES = "----";
-      token FOUR-TILDE = "~~~~";
+      token FOUR-DASHES = "----", priority: 3;
 
       token PIPE = "\\|";
 
@@ -45,13 +44,12 @@ define constant $wiki-tokens
       token GREATER = ">";
 
       token CLIST = "(\n|\r|\r\n)(\\*|#)", priority: 3;
-      //token PREFORMATTED = "(\r|\n|\r\n) ", priority: 3;
-      //token SPACE = " ", priority: 3;
+      token PREFORMATTED = "(\r|\n|\r\n) ", priority: 3;
+
       token NEWLINE = "(\n|\r|\r\n)";
       //todo: ignore spaces?!
 
-      token TEXT = "[a-zA-Z_0-9\\.]+",
-        //priority: -1,
+      token TEXT = "[a-zA-Z_-0-9\\.]+",
         semantic-value-function: extract-action;
 
       token URL = "(http|ftp|https)://",
@@ -106,9 +104,6 @@ define constant $wiki-productions
        format-out("Hit list-elements\n");
        add!(more-list-elements, list-element);
 
-//     production list-elements :: <collection> => [list-element] (data)
-//       list(with-xml() li { list-element } end);
-
      production more-list-elements :: <collection> => [CLIST list-element more-list-elements] (data)
        format-out("Hit more-list-elements\n");
        add!(more-list-elements | #(), list-element);
@@ -139,20 +134,20 @@ define constant $wiki-productions
      production horizontal-line :: xml$<element> => [FOUR-DASHES] (data)
        with-xml() hr end;
 
-//     production preformatted :: xml$<element> => [SPACE preformat] (data)
-//       make(xml$<element>, name: "pre", children: preformat);
+     production preformat :: xml$<element> => [PREFORMATTED TEXT more-preformat] (data)
+        make(xml$<element>,
+             name: "pre",
+             children: list(make(xml$<char-string>,
+                                 text: concatenate("\n ", TEXT, more-preformat))));
 
-//     production preformat :: <collection> => [wiki-text more-preformat] (data)
-//       concatenate(more-preformat, wiki-text);
+     production more-preformat :: <string> => [TEXT more-preformat] (data)
+       concatenate(" ", TEXT, more-preformat);
 
-//     production more-preformat :: <collection> => [PREFORMATTED preformat] (data)
-//       preformat;
+     production more-preformat :: <string> => [PREFORMATTED more-preformat] (data)
+       concatenate("\n", more-preformat);
 
-//     production more-preformat :: <collection> => [] (data)
-//       #();
-
-//     production line :: <collection> => [preformatted] (data)
-//       list(preformatted);
+     production more-preformat :: <string> => [NEWLINE] (data)
+       "\n";
 
      production line :: <collection> => [wiki-text] (data)
        wiki-text;
@@ -170,6 +165,9 @@ define constant $wiki-productions
        list(horizontal-line);
 
      production lines => [] (data)
+
+     production lines => [preformat lines] (data)
+       add!(data.my-real-data, preformat);
 
      production lines => [line NEWLINE NEWLINE lines] (data)
        add!(data.my-real-data, with-xml() p end);
@@ -209,6 +207,9 @@ end;
 define function parse-wiki-markup (input :: <string>)
   let rangemap = make(<source-location-rangemap>);
   rangemap-add-line(rangemap, 0, 1);
+  if(input[0] = ' ')
+    input := concatenate("\n", input);
+  end;
   unless(input[input.size - 1] = '\n')
     input := add!(input, '\n')
   end;
@@ -237,5 +238,6 @@ define function parse-wiki-markup (input :: <string>)
 end;
 
 begin
-  parse-wiki-markup("*one\n*two\n*three");
+  parse-wiki-markup(" one\n two\n three\n foo");
+  parse-wiki-markup(" this is pre-text\n and another line");
 end;
