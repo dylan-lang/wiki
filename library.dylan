@@ -20,7 +20,7 @@ define library wiki
   use collection-extensions, import: { sequence-diff };
   use string-extensions, import: { substring-search };
   use xmpp-bot;
-  use getopt;
+  use command-line-parser;
 
   export wiki;
 end;
@@ -49,7 +49,7 @@ define module wiki
   use simple-xml, import: { escape-xml };
   use substring-search;
   use xmpp-bot;
-  use getopt;
+  use command-line-parser;
 end;
 
 
