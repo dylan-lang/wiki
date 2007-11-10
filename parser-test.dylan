@@ -4,7 +4,7 @@ define variable *markup-method* = parse-wiki-markup;
 
 
 define test newline ()
-  check-equal("Newline inserts paragraph", "foo<P/>bar", *markup-method*("foo\n\nbar\n"));
+  check-equal("Newline inserts paragraph", "foo<p/>bar", *markup-method*("foo\n\nbar\n"));
 end;
 
 define test internal-link ()
@@ -34,15 +34,15 @@ define test heading3 ()
 end;
 
 define test heading4 ()
-  check-equal("Heading 4", "<h4>foooo</h4>", *markup-method*("==== foooo ===="));
+  check-equal("Heading 4", "<h4>foooo </h4>", *markup-method*("==== foooo ===="));
 end;
 
 define test heading5 ()
-  check-equal("Heading 5", "<h5>fooooo</h5>", *markup-method*("===== fooooo ====="));
+  check-equal("Heading 5", "<h5>fooooo </h5>", *markup-method*("===== fooooo ====="));
 end;
 
 define test heading54 ()
-  check-equal("Heading 54", "<h5>fooooo</h5>", *markup-method*("===== fooooo ===="));
+  check-equal("Heading 54", "<h5>fooooo </h5>", *markup-method*("===== fooooo ===="));
 end;
 
 define test unnumbered-list ()

@@ -15,29 +15,33 @@ define function count-chars
    tstart :: <integer>,
    tend :: <integer>)
  => (res :: <integer>)
- tend - tstart
+ let res = tend - tstart;
+ if (string[tend - 1] = ' ')
+   res := res - 1;
+ end;
+ res;
 end;
 define constant $base-url = "/wiki/view.dsp?title=";
 define constant $wiki-tokens
   = simple-lexical-definition
       token EOF;
 
-      inert "([ ])+";
+      inert "([ \t\r])+";
 
       token LBRACKET = "\\[";
       token RBRACKET = "\\]";
 
-      token EQUALS = "(=)+",
+      token EQUALS = "(=)+[ ]?",
         semantic-value-function: count-chars;
-      token TILDES = "(~)+",
+      token TILDES = "(~)+[ ]?",
         semantic-value-function: count-chars;
       token TICKS = "(')+",
         semantic-value-function: count-chars;
 
       token AMPERSAND = "&";
 
-      token HASHMARK = "#";
-      token STAR = "*";
+      token HASHMARK = "#[ ]?";
+      token STAR = "*[ ]?";
 
       token FOUR-DASHES = "----", priority: 3;
 
@@ -46,16 +50,19 @@ define constant $wiki-tokens
       token SMALLER = "<";
       token GREATER = ">";
 
-      token CLIST = "(\n|\r|\r\n)(\\*|#)", priority: 3;
-      token PREFORMATTED = "(\r|\n|\r\n) ", priority: 3;
+      token WHITESPACE = " ", priority: 3;
 
-      token NEWLINE = "(\n|\r|\r\n)";
+      //token LIST-ITEM = "(\\*|#)", priority: 3;
+      //token PREFORMATTED = "\n ", priority: 3;
+      token NEWLINENEWLINE = "\n\n", priority: 3;
+
+      token NEWLINE = "\n";
       //todo: ignore spaces?!
 
-      token TEXT = "[a-zA-Z_-0-9\\.]+",
+      token TEXT = "[a-zA-Z_-0-9\\.][a-zA-Z_-0-9\\. ]*",
         semantic-value-function: extract-action;
 
-      token URL = "(http|ftp|https)://",
+      token URL = "(http|ftp|https)://[a-zA-Z_-0-9\\.:]+",
         semantic-value-function: extract-action;
 end;
 
@@ -63,18 +70,18 @@ define constant $wiki-productions
   = simple-grammar-productions
 
      production description :: false-or(<string>) => [TEXT] (data)
-       if (TEXT.size = 0) #f else TEXT end;
+       TEXT;
 
      production wiki-page-name :: <string> => [TEXT] (data)
        TEXT;
 
-     production myurl :: <string> => [URL TEXT] (data)
-       concatenate(URL, TEXT);
+     production myurl :: <string> => [URL] (data)
+       URL;
 
      production external-link :: xml$<element> => [LBRACKET myurl RBRACKET] (data)
        with-xml() a(myurl, href => myurl) end;
 
-     production external-link :: xml$<element> => [LBRACKET myurl description RBRACKET] (data)
+     production external-link :: xml$<element> => [LBRACKET myurl WHITESPACE description RBRACKET] (data)
        with-xml() a(description, href => myurl) end;
 
      production internal-link :: xml$<element> => [LBRACKET LBRACKET wiki-page-name RBRACKET RBRACKET] (data)
@@ -83,7 +90,7 @@ define constant $wiki-productions
      production internal-link :: xml$<element> => [LBRACKET LBRACKET wiki-page-name PIPE description RBRACKET RBRACKET] (data)
        with-xml() a(description, href => concatenate($base-url, wiki-page-name)) end;
 
-     production header :: xml$<element> => [EQUALS more-wiki-text EQUALS], action:
+     production header :: xml$<element> => [EQUALS wiki-text EQUALS], action:
        method (p :: <simple-parser>, data, s, e)
          let heading = max(p[0], p[2]);
          unless (p[0] = p[2])
@@ -95,28 +102,11 @@ define constant $wiki-productions
               children: p[1]);
        end;
 
-     production unnumbered-list :: xml$<element> => [STAR list-elements] (data)
-       format-out("Hit unnumbered-list %=\n", list-elements);
-       make(xml$<element>, name: "ul", children: list-elements);
+     production unnumbered-list :: <list-node> => [STAR line] (data)
+       make(<list-node>, kind: #"unnumbered", data: line);
 
-     production numbered-list :: xml$<element> => [HASHMARK list-elements] (data)
-       make(xml$<element>, name: "ol", children: list-elements);
-
-     production list-elements :: <collection> => [list-element more-list-elements] (data)
-       format-out("Hit list-elements\n");
-       add!(more-list-elements, list-element);
-
-     production more-list-elements :: <collection> => [CLIST list-element more-list-elements] (data)
-       format-out("Hit more-list-elements\n");
-       add!(more-list-elements | #(), list-element);
-
-     production more-list-elements :: <collection> => [] (data)
-       format-out("Hit more-list-elements, empty\n");
-       #();
-
-     production list-element :: xml$<element> => [wiki-text] (data)
-       format-out("Hit list-element %=\n", wiki-text);
-       make(xml$<element>, name: "li", children: wiki-text);
+     production numbered-list :: <list-node> => [HASHMARK line] (data)
+       make(<list-node>, kind: #"numbered", data: line);
 
      production simple-format :: xml$<xml> => [TICKS TEXT TICKS], action:
        method (p :: <simple-parser>, data, s, e)
@@ -159,20 +149,8 @@ define constant $wiki-productions
      production horizontal-line :: xml$<element> => [FOUR-DASHES] (data)
        with-xml() hr end;
 
-     production preformat :: xml$<element> => [PREFORMATTED TEXT more-preformat] (data)
-        let pre-string = concatenate("\n ", TEXT, more-preformat);
-        make(xml$<element>,
-             name: "pre",
-             children: list(make(xml$<char-string>, text: pre-string)));
-
-     production more-preformat :: <string> => [TEXT more-preformat] (data)
-       concatenate(" ", TEXT, more-preformat);
-
-     production more-preformat :: <string> => [PREFORMATTED more-preformat] (data)
-       concatenate("\n", more-preformat);
-
-     production more-preformat :: <string> => [NEWLINE] (data)
-       "\n";
+     production preformat :: <pre-node> => [WHITESPACE TEXT] (data)
+        make(<pre-node>, data: concatenate(" ", TEXT));
 
      production line :: <collection> => [wiki-text] (data)
        wiki-text;
@@ -190,12 +168,17 @@ define constant $wiki-productions
        list(horizontal-line);
 
      production lines => [] (data)
+       //format-out("empty!\n");
 
-     production lines => [preformat lines] (data)
+     production lines => [preformat NEWLINE lines] (data)
        add!(data.my-real-data, preformat);
 
-     production lines => [line NEWLINE NEWLINE lines] (data)
-       add!(data.my-real-data, with-xml() p end);
+     production lines => [preformat NEWLINENEWLINE lines] (data)
+       add!(data.my-real-data, make(xml$<element>, name: "p"));
+       add!(data.my-real-data, preformat);
+
+     production lines => [line NEWLINENEWLINE lines] (data)
+       add!(data.my-real-data, make(xml$<element>, name: "p"));
        do(curry(add!, data.my-real-data), line);
 
      production lines => [line NEWLINE lines] (data)
@@ -232,11 +215,8 @@ end;
 define function parse-wiki-markup (input :: <string>)
   let rangemap = make(<source-location-rangemap>);
   rangemap-add-line(rangemap, 0, 1);
-  if(input[0] = ' ')
-    input := concatenate("\n", input);
-  end;
-  unless(input[input.size - 1] = '\n')
-    input := add!(input, '\n')
+  if (input[input.size - 1] ~= '\n')
+    input := add!(input, '\n');
   end;
   let scanner = make(<simple-lexical-scanner>,
                      definition: $wiki-tokens,
@@ -256,13 +236,85 @@ define function parse-wiki-markup (input :: <string>)
               end: input.size,
               partial?: #f);
   let end-position = scanner.scanner-source-position;
-  format-out("before consuming EOF at %d\n", end-position);
+  //format-out("before consuming EOF at %d\n", end-position);
   simple-parser-consume-token(parser, 0, #"EOF", parser, end-position, end-position);
-  format-out("data (%d) is %=\n", data.my-real-data.size, data.my-real-data);
-  reduce1(concatenate, (map(curry(as, <string>), reverse(data.my-real-data))));
+  //format-out("data (%d) is %=\n", data.my-real-data.size, data.my-real-data);
+  let result = reverse(data.my-real-data);
+  let res = make(<stretchy-vector>);
+  let i :: <integer> = 0;
+  while (i < result.size)
+    let (value, next) = process-node(result[i], i, result);
+    add!(res, value);
+    i := i + next;
+  end;
+  reduce1(concatenate, (map(curry(as, <string>), res)));
 end;
 
+define class <parsed-node> (<object>)
+  slot data, init-keyword: data:;
+end;
+
+define method as (class == <string>, object :: <parsed-node>) => (res :: <string>)
+  as(<string>, object.data);
+end;
+define class <list-node> (<parsed-node>)
+  slot list-kind :: one-of(#"numbered", #"unnumbered"), required-init-keyword: kind:;
+end;
+define method as (class == <string>, object :: <list-node>) => (res :: <string>)
+  as(<string>, object.data[0]);
+end;
+define class <pre-node> (<parsed-node>)
+end;
+
+define method process-node (node :: <parsed-node>, index :: <integer>, rest-data :: <collection>) => (res :: xml$<element>, next :: <integer>)
+  format-out("This should never happen\n");
+end;
+
+define method process-node (node :: <list-node>, index :: <integer>, rest-data :: <collection>) => (res :: xml$<element>, next :: <integer>)
+  let list-nodes = make(<stretchy-vector>);
+  let kind = node.list-kind;
+  block(ret)
+    for (i from index below rest-data.size)
+      if (instance?(rest-data[i], <list-node>))
+        if (kind == rest-data[i].list-kind)
+          add!(list-nodes, rest-data[i])
+        end;
+      end;
+      ret;
+    end;
+  end;
+
+  let child = map(method(x)
+                    make(xml$<element>, name: "li", children: data(x))
+                  end, list-nodes);
+  values(make(xml$<element>,
+              name: if (kind == #"numbered") "ol" else "ul" end,
+              children: child),
+         list-nodes.size);
+end;
+
+define method process-node (node :: <pre-node>, index :: <integer>, rest-data :: <collection>) => (res :: xml$<element>, next :: <integer>)
+  let pre-nodes = make(<stretchy-vector>);
+  block(ret)
+    for (i from index below rest-data.size)
+      if (instance?(rest-data[i], <pre-node>))
+        add!(pre-nodes, rest-data[i]);
+      else
+        ret;
+      end;
+    end;
+  end;
+  let child = reduce1(method(a, b) concatenate(a, "\n", b) end,
+                      map(data, pre-nodes));
+  let node = make(xml$<element>, name: "pre", children: list(with-xml() text(concatenate("\n", child, "\n")) end));
+  values(node, size(pre-nodes));
+end;
+
+define method process-node (node :: xml$<xml>, index :: <integer>, rest-data :: <collection>) => (res :: xml$<xml>, next :: <integer>)
+  values(node, 1);
+end;
 begin
-  parse-wiki-markup(" one\n two\n three\n foo");
+  parse-wiki-markup(" one\n two\n three\nfoo\n");
   parse-wiki-markup(" this is pre-text\n and another line");
+  format-out("RES %s\n", parse-wiki-markup("foo bar  fnord\n fooo bar   ffff\n\n* one\n* '''ttt'''"))
 end;
