@@ -27,7 +27,7 @@ end;
 
 define module wiki
   use common-dylan,
-    exclude: { split, format-to-string };
+    exclude: { format-to-string };
   use locators;
   use streams;
   use format;
