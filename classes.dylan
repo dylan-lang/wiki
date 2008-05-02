@@ -87,7 +87,7 @@ define method save-page (title, content, #key comment = "")
                         content: content,
                         page-version: version,
                         wiki-page-content: page,
-                          comment: comment);
+                        comment: comment);
     with-storage (pages = <wiki-page-content>)
       add!(page.revisions, revision);
     end;

@@ -207,7 +207,7 @@ define method generate-list
   let lines = split(copy-sequence(markup,
                                   start: start,
                                   end: list-end | markup.size),
-                    separator: "\n", trim?: #t);
+                    '\n' /*, trim?: #t */);
 //  write(stream, "<p>\n");
   let depth :: <integer> = 0;
   let regex2 = format-to-string("^\\s*([%s]+)", bullet-char);

@@ -57,18 +57,15 @@ define method page-content
 end;
 
 
-define page view-page (<wiki-page>)
-    (url: "/wiki/view.dsp",
-     source: "wiki/view.dsp",
-     alias: #("/wiki/", "/"))
-end;
+define class <view-page> (<wiki-page>) end;
+define variable *view-page* = make(<view-page>, source: "wiki/view.dsp");
 
 define method page-editable? (page :: <view-page>) => (editable? :: <boolean>)
   #t
 end;
 
 define method respond-to-get
-    (page :: <view-page>, request :: <request>, response :: <response>)
+    (page :: <view-page>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*,
                 *version* = ignore-errors(string-to-integer(get-query-value("v"))),
                 *content* = page-content(*title*, version: *version*) | "(no content)")
@@ -76,13 +73,11 @@ define method respond-to-get
   end;
 end;
 
-define page edit-page (<wiki-page>)
-    (url: "/wiki/edit.dsp",
-     source: "wiki/edit.dsp")
-end;
+define class <edit-page> (<wiki-page>) end;
+define variable *edit-page* = make(<edit-page>, source: "wiki/edit.dsp");
 
 define method respond-to-get
-    (page :: <edit-page>, request :: <request>, response :: <response>)
+    (page :: <edit-page>)
   dynamic-bind (*title* = get-query-value("title"),
                 *content* = if (*title* & find-page(*title*))
                               latest-text(find-page(*title*));
@@ -99,50 +94,54 @@ define named-method new-page? in wiki
   *title* = "new"
 end;
 
+// temp
+define method logged-in?
+    (request :: <request>)
+  authenticated-user() ~= #f
+end;
+
 define method respond-to-post
-    (page :: <edit-page>, request :: <request>, response :: <response>)
+    (page :: <edit-page>)
   if (get-query-value("preview"))
-    respond-to-get(*preview-page*, request, response)
+    respond-to-get(*preview-page*)
   else
     let title = trim(get-query-value("title") | "");
     let content = get-query-value("page-content") | "";
-    if (~ logged-in?(request))
+    if (~ logged-in?(current-request()))
       note-form-error("You must be logged in to edit a page.");
       // redisplay edit page.
       dynamic-bind (*title* = title,
                     *content* = content)
-        respond-to-get(page, request, response);
+        respond-to-get(page);
       end;
     elseif (title = "")
       note-form-error("You must supply a valid page title.", field: "title");
       // redisplay edit page.
       dynamic-bind (*title* = title,
                     *content* = content)
-        respond-to-get(page, request, response);
+        respond-to-get(page);
       end;
     else
       save-page(title, content, comment: get-query-value("comment"));
       // Show the page after editing
-      respond-to-get(*view-page*, request, response);
+      respond-to-get(*view-page*);
     end;
   end;
 end;
 
-define page preview-page (<wiki-page>)
-  (url: "/wiki/preview.dsp",
-   source: "wiki/preview.dsp")
-end;
+define class <preview-page> (<wiki-page>) end;
+define variable *preview-page* = make(<preview-page>, source: "wiki/preview.dsp");
 
 define thread variable *comment* = #f;
 
 define tag show-comment in wiki
-  (page :: <wiki-page>, response :: <response>)
+  (page :: <wiki-page>)
   ()
-  write(output-stream(response), *comment*);
+  output(*comment*);
 end;
 
 define method respond-to-get
-    (page :: <preview-page>, request :: <request>, response :: <response>)
+    (page :: <preview-page>)
   dynamic-bind (*title* = get-query-value("title") | "",
                 *content* = get-query-value("page-content") | "",
                 *comment* = get-query-value("comment") | "")
@@ -150,15 +149,12 @@ define method respond-to-get
   end;
 end;
 
-define page login-page (<wiki-page>)
-    (url: "/wiki/login.dsp",
-     source: "wiki/login.dsp")
-  keyword page-title:, init-value: "Login";
-end;
+define class <login-page> (<wiki-page>) end;
+define variable *login-page* = make(<login-page>,
+                                    source: "wiki/login.dsp",
+                                    title: "Login");
 
-define method respond-to-post (page :: <login-page>,
-                               request :: <request>,
-                               response :: <response>)
+define method respond-to-post (page :: <login-page>)
   let username = get-query-value("username");
   let password = get-query-value("password");
   let username-supplied? = username & username ~= "";
@@ -181,10 +177,10 @@ define method respond-to-post (page :: <login-page>,
       end if;
     end if;
 
-    if (login(request, username, password))
+    if (login(current-request(), username, password))
       let referer = get-query-value("referer");
       if (referer & referer ~= "")
-        let headers = response.response-headers;
+        let headers = response-headers(current-response());
         add-header(headers, "Location", referer);
         see-other-redirect(headers: headers);
       end if;
@@ -197,33 +193,23 @@ define method respond-to-post (page :: <login-page>,
   next-method();  // process the DSP template
 end;
 
-define page logout-page (<wiki-page>)
-    (url: "/wiki/logout.dsp",
-     source: "wiki/logout.dsp")
-end;
+define class <logout-page> (<wiki-page>) end;
+define variable *logout-page* = make(<logout-page>, source: "wiki/logout.dsp");
 
-define method respond-to-get (page :: <logout-page>,
-                              request :: <request>,
-                              response :: <response>)
-  clear-session(request);
+define method respond-to-get (page :: <logout-page>)
+  clear-session(current-request());
   next-method();  // Must call this if you want the DSP template to be processed.
 end;
 
 
-define page index-page (<wiki-page>)
-    (url: "/wiki/index.dsp",
-     source: "wiki/index.dsp")
-end;
+define class <index-page> (<wiki-page>) end;
+define variable *index-page* = make(<index-page>, source: "wiki/index.dsp");
 
-define page search-page (<wiki-page>)
-    (url: "/wiki/search.dsp",
-     source: "wiki/search.dsp")
-end;
+define class <search-page> (<wiki-page>) end;
+define variable *search-page* = make(<search-page>, source: "wiki/search.dsp");
 
-define page backlink-page (<wiki-page>)
-    (url: "/wiki/backlink.dsp",
-     source: "wiki/backlink.dsp")
-end;
+define class <backlink-page> (<wiki-page>) end;
+define variable *backlink-page* = make(<backlink-page>, source: "wiki/backlink.dsp");
 
 define thread variable *search-results* = #();
 define thread variable *search-result* = #f;
@@ -240,11 +226,11 @@ end;
 
 define named-method admin? in wiki
     (page :: <wiki-page>, request :: <request>)
-  logged-in?(request) & current-user().access <= 23;
+  logged-in?(request) & authenticated-user().access <= 23;
 end;
 
 define method respond-to-get
-    (page :: <search-page>, request :: <request>, response :: <response>)
+    (page :: <search-page>)
   let search-string = trim(get-query-value("search-terms") | "");
   dynamic-bind (*title* = concatenate("Search Results for &quot;", search-string, "&quot;"))
     if (search-string = "")
@@ -357,27 +343,25 @@ define function current-search-result ()
 end;
 
 define tag sr-title in wiki
-    (page :: <search-page>, response :: <response>)
+    (page :: <search-page>)
     ()
-  write(output-stream(response), search-result-title(current-search-result()));
+  output(search-result-title(current-search-result()));
 end;
 
 define tag sr-version in wiki
-    (page :: <search-page>, response :: <response>)
+    (page :: <search-page>)
     ()
-  write(output-stream(response),
-        integer-to-string(search-result-version(current-search-result())));
+  output(integer-to-string(search-result-version(current-search-result())));
 end;
   
 define tag sr-summary in wiki
-    (page :: <search-page>, response :: <response>)
+    (page :: <search-page>)
     ()
-  write(output-stream(response),
-        search-result-summary(current-search-result()));
+  output(search-result-summary(current-search-result()));
 end;
   
 define body tag do-versions in wiki
-    (page :: <search-page>, response :: <response>, do-body :: <function>)
+    (page :: <search-page>, do-body :: <function>)
     ()
   for (sr in copy-sequence(current-row(), start: 1))
     dynamic-bind (*search-result* = sr)
@@ -389,11 +373,10 @@ end;
 // Show the page title.  If v is true, show the version number if it's not
 // the newest version of the page.
 define tag show-title in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     (v :: <boolean>, for-url :: <boolean>)
-  let out = output-stream(response);
   let title = *title* | page-title(page) | "(no title)";
-  write(out, title);
+  output(title);
   if (*title* & v)
     let wiki-page = find-page(*title*);
     if (wiki-page)
@@ -401,21 +384,20 @@ define tag show-title in wiki
       let newest = page-version(last(wiki-page.revisions));
       log-debug("newest = %=, *version* = %=", newest, *version*);
       if (*version* & *version* < newest)
-        format(out, for-url & "&v=%s" | " (version %s)", *version*);
+        output(for-url & "&v=%s" | " (version %s)", *version*);
       end;
     end;
   end;
 end;
 
 define tag show-content in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     (format :: <string> = "raw")
-  write(output-stream(response),
-        page-content(*title*, version: *version*, format: as(<symbol>, format)));
+  output(page-content(*title*, version: *version*, format: as(<symbol>, format)));
 end;
 
 define body tag show-revisions in wiki
-    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+    (page :: <wiki-page>, do-body :: <function>)
     (count :: <string>)
   show-revisions-aux(page, do-body, string-to-integer(count));
 end;
@@ -437,14 +419,14 @@ define method show-revisions-aux (page :: <view-page>, do-body :: <function>, co
 end;
 
 define method respond-to-get
-    (page :: <backlink-page>, request :: <request>, response :: <response>)
+    (page :: <backlink-page>)
   dynamic-bind (*title* = get-query-value("title") | *default-title*)
     next-method();    // process the DSP template
   end;
 end;
 
 define body tag show-backlink in wiki
-  (page :: <backlink-page>, response :: <response>, do-body :: <function>)
+  (page :: <backlink-page>, do-body :: <function>)
   ()
   for (backlink in find-backlinks(*title*))
     dynamic-bind (*title* = backlink.page-title)
@@ -454,22 +436,22 @@ define body tag show-backlink in wiki
 end;
 
 define tag version in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), integer-to-string(*version*));
+  output(integer-to-string(*version*));
 end;
 
 define tag username in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  let user = current-user();
+  let user = authenticated-user();
   if (user)
-    write(output-stream(response), user.username);
+    output(user.username);
   end;
 end;  
 
 define body tag show-index in wiki
-  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+  (page :: <wiki-page>, do-body :: <function>)
   ()
   for (key in sort(key-sequence(storage(<wiki-page-content>))))
     dynamic-bind(*title* = key)
@@ -478,20 +460,17 @@ define body tag show-index in wiki
   end;
 end;
 
-define page recent-changes-page (<wiki-page>)
-    (url: "/wiki/recent.dsp",
-     source: "wiki/recent.dsp")
-end;
+define class <recent-changes-page> (<wiki-page>) end;
+define variable *recent-changes-page*
+  = make(<recent-changes-page>, source: "wiki/recent.dsp");
 
-define page diff-page (<wiki-page>)
-    (url: "/wiki/diff.dsp",
-    source: "wiki/diff.dsp")
-end;
+define class <diff-page> (<wiki-page>) end;
+define variable *diff-page* = make(<diff-page>, source: "wiki/diff.dsp");
 
 define thread variable *other-version* = #f;
 
 define method respond-to-get
-    (page :: <diff-page>, request :: <request>, response :: <response>)
+    (page :: <diff-page>)
   dynamic-bind (*title* = get-query-value("title"),
                 *version* = ignore-errors(string-to-integer(get-query-value("version"))),
                 *other-version* = ignore-errors(string-to-integer(get-query-value("otherversion"))) | *version* - 1)
@@ -520,29 +499,39 @@ define method print-diff (diff :: <delete-entry>, out, source, target)
 end;
 
 define tag show-diff in wiki
-  (page :: <diff-page>, response :: <response>)
+  (page :: <diff-page>)
   ()
   let page = *title* & find-page(*title*);
   let version = *version* & *version* - 1;
   let otherversion = *other-version* & *other-version* - 1;
   //this needs to be refactored
-  if (version & otherversion & page & version < page.revisions.size & otherversion < page.revisions.size & otherversion >= -1)
-    let target = split(page.revisions[version].content, separator: "\n");
-    let source = if (otherversion = -1) #() else split(page.revisions[otherversion].content, separator: "\n") end;
-    print-diffs(output-stream(response), sequence-diff(source, target), source, target);
+  if (version
+      & otherversion
+      & page
+      & version < page.revisions.size
+      & otherversion < page.revisions.size
+      & otherversion >= -1)
+    let target = split(page.revisions[version].content, '\n');
+    let source = if (otherversion = -1)
+                   #()
+                 else
+                   split(page.revisions[otherversion].content, '\n')
+                 end;
+    print-diffs(output-stream(current-response()), sequence-diff(source, target),
+                source, target);
   end;
 end;
 
 define tag otherversion in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), integer-to-string(*other-version*));
+  output(integer-to-string(*other-version*));
 end;
 
 define thread variable *change* = #f;
 
 define body tag gen-recent-changes in wiki
-    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+    (page :: <wiki-page>, do-body :: <function>)
     (count)
   let count = string-to-integer(get-query-value("count") | count);
   for (i from 0 below count,
@@ -576,47 +565,43 @@ define method print-date (date :: <date>)
 end;
 
 define tag show-change-timestamp in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), print-date(*change*.timestamp));
+  output(print-date(*change*.timestamp));
 end;
 
 define tag show-change-title in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), *change*.wiki-page-content.page-title);
+  output(*change*.wiki-page-content.page-title);
 end;
 
 define tag show-change-version in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), integer-to-string(*change*.page-version));
+  output(integer-to-string(*change*.page-version));
 end;
 
 define tag show-change-author in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), escape-xml(*change*.author));
+  output(escape-xml(*change*.author));
 end;
 
 define tag show-change-comment in wiki
-    (page :: <wiki-page>, response :: <response>)
+    (page :: <wiki-page>)
     ()
-  write(output-stream(response), escape-xml(*change*.comment));
+  output(escape-xml(*change*.comment));
 end;
 
-define page admin-page (<wiki-page>)
-    (url: "/wiki/admin.dsp",
-    source: "wiki/admin.dsp")
-end;
+define class <admin-page> (<wiki-page>) end;
+define variable *admin-page* = make(<admin-page>, source: "wiki/admin.dsp");
 
-define page version-page (<wiki-page>)
-    (url: "/wiki/version.dsp",
-     source: "wiki/version.dsp")
-end;
+define class <version-page> (<wiki-page>) end;
+define variable *version-page* = make(<version-page>, source: "wiki/version.dsp");
 
 define body tag show-versions in wiki
-    (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+    (page :: <wiki-page>, do-body :: <function>)
     ()
   for (version in reverse(find-page(*title*).revisions))
     dynamic-bind (*change* = version)
@@ -626,7 +611,7 @@ define body tag show-versions in wiki
 end;
 
 define method respond-to-get
-    (page :: <version-page>, request :: <request>, response :: <response>)
+    (page :: <version-page>)
   dynamic-bind (*title* = get-query-value("title"))
     next-method();
   end;

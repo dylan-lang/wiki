@@ -1,8 +1,14 @@
 module: wiki
 
+// temp
+define method current-user
+    ()
+  authenticated-user()
+end;
+
 define method respond-to-post
- (page :: <admin-page>, request :: <request>, response :: <response>)
-  if (logged-in?(request))
+    (page :: <admin-page>)
+  if (logged-in?(current-request()))
     let action = as(<symbol>, get-query-value("action"));
     if (any?(method(x) action = x end, current-user().access))
       select (action)
@@ -14,7 +20,7 @@ define method respond-to-post
       end;
     end;
   end;
-  respond-to-get(page, request, response);
+  respond-to-get(page);
 end;
 
 define method remove-user (username)
@@ -78,7 +84,7 @@ define method undo (title)
 end;
 
 define body tag privilege in wiki
-  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+  (page :: <wiki-page>, do-body :: <function>)
   (value :: <string>)
   let user = *user* | current-user();
   if (user & any?(method(x) x = as(<symbol>, value) end, user.access))
@@ -88,7 +94,7 @@ end;
 
 
 define named-method privilege? in wiki
-  (page :: <wiki-page>, request :: <request>)
+    (page :: <wiki-page>, request :: <request>)
   *user* & *privilege* & any?(method(x) x = *privilege* end, *user*.access)
 end;
 
@@ -97,7 +103,7 @@ define constant $privileges = #(#"remove", #"rename", #"undo", #"change-privileg
 define thread variable *privilege* = #f;
 
 define body tag show-privileges in wiki
-  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
+  (page :: <wiki-page>, do-body :: <function>)
   ()
   for (privilege in $privileges)
     dynamic-bind(*privilege* = privilege)
@@ -109,15 +115,15 @@ end;
 define thread variable *user* = #f;
 
 define tag show-privilege in wiki
-  (page :: <wiki-page>, response :: <response>)
-  ()
-  write(output-stream(response), as(<string>, *privilege*));
+    (page :: <wiki-page>)
+    ()
+  output(as(<string>, *privilege*));
 end;
 
 
 define body tag show-users in wiki
-  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
-  ()
+    (page :: <wiki-page>, do-body :: <function>)
+    ()
   for (user in sort(key-sequence(storage(<user>))))
     dynamic-bind(*user* = storage(<user>)[user])
       do-body()
@@ -126,14 +132,14 @@ define body tag show-users in wiki
 end;
 
 define tag show-user in wiki
-  (page :: <wiki-page>, response :: <response>)
-  ()
-  write(output-stream(response), *user*.username);
+    (page :: <wiki-page>)
+    ()
+  output(*user*.username);
 end;
 
 define body tag show-recent-changes in wiki
-  (page :: <wiki-page>, response :: <response>, do-body :: <function>)
-  (count :: <string>)
+    (page :: <wiki-page>, do-body :: <function>)
+    (count :: <string>)
   let count = string-to-integer(count);
   let done = make(<list>);
   block(ret)

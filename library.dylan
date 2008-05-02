@@ -28,7 +28,8 @@ end;
 define module wiki
   use common-dylan,
     exclude: { format-to-string };
-  use locators;
+  use locators,
+    exclude: { <http-server> };  // badly named
   use streams;
   use format;
   use file-system;
