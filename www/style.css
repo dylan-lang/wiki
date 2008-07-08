@@ -1,0 +1,361 @@
+body {
+  font-size: 0.8em;
+  font-family: "Lucida Grande", Verdana, Arial, sans-serif;
+  color: #666;
+  line-height: 1.5em;
+  padding: 1em;
+}
+
+h1, h2, h3, h4 {
+  color: #555;
+}
+
+h2 em {
+  font-style: italic;
+}
+
+fieldset {
+  border: none;
+  padding: 1em 0;
+}
+
+#header {
+  display: inline;
+  float: left;
+  margin-bottom: 0.8em;  
+  color: transparent;
+  width: 230px;
+  position: relative;
+  padding: 45px 0 0 0;
+  overflow: hidden;
+  background: url(dylan-logo.png) no-repeat;
+  height: 0px !important;
+  height /**/:45px;
+}
+
+#search-user {
+  float: right;
+}
+
+#search-user form {
+  margin: 0;
+}
+
+#search-user form::before {
+  content: url(search.png);
+}
+
+#search-user span {
+  margin-top: 1em;
+  position: absolute;
+  right: 3em;
+}
+
+#search-user a {
+ border: none;
+}
+
+#search-user span.user-info::before {
+  content: url(user.png);
+}
+
+#content {
+  clear: both;
+  padding-top: 1em;
+}
+
+#navigation {
+  float: left;
+  margin: 1em;
+}
+
+#body {
+  padding-left: 16em;
+}
+
+hr {
+  clear: right;
+}
+
+#content > ul {
+  padding: 0;
+}
+
+#navigation li {
+  font-weight: bold;
+}
+
+#navigation li li {
+  font-weight: normal;
+}
+
+#content > ul ul, #content > ul ul ul {
+  padding-left: 1em;
+}
+
+#navigation > li {
+  margin-bottom: 2em;
+}
+
+#navigation > li ul {
+  padding-top: 0.2em;
+}
+
+#navigation {
+  list-style-type: none;
+}
+
+#navigation ul {
+  list-style-type: square;
+  list-style-position: inside;
+} 
+
+#navigation ul ul {
+  padding-top: 0.3em;
+  padding-bottom: 1em;
+  list-style-type: circle;
+  list-style-position: inside;
+}
+
+#footer {
+  font-size: 0.8em;
+  margin-top: 1em; 
+  clear: both;
+}
+
+blockquote p::before {
+  content: "\00BB";
+}
+
+blockquote p::after {
+  content: "\00AB";
+}
+
+blockquote {
+  line-height: 2em;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  word-spacing: 0.2em;
+  letter-spacing: 1pt;
+  font-style: italic;
+  margin-left: 1em;
+}
+
+blockquote + cite {
+  float: right;
+  margin: -1em 5em 2em 0;
+}
+
+blockquote + cite + hr {
+  visibility: hidden;
+}
+
+#footer {
+  text-align: center;
+}
+
+a {
+  color: #58a;
+  text-decoration: none;
+  padding-bottom: 0px;
+  border-bottom: 1px dotted #58a;
+}
+
+a:visited {
+  color: #58a;
+  text-decoration: none;
+  padding-bottom: 0px;
+  border-bottom: 1px dotted #58a;
+}
+
+a:hover {
+  color:#58a;
+  text-decoration: none;
+  padding-bottom: 0px;
+  border-bottom: 1px dotted black;
+}
+
+h2 {
+  font-size: 1.5em;
+  padding-top: 2em;
+  margin-bottom: 1em;
+}
+
+h2:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+body hr {
+  border: none;
+  margin: 2em 0 0 0;
+  padding: 0;
+  border: 0;
+  line-height: 0px;
+  height: 1px;
+  display: block;
+}
+
+h2, #content, body hr {
+  border-top: 0.1em dashed #ccc;
+}
+
+h3 {
+  font-size: 1.2em;
+  margin-bottom: 0.2em;
+  padding-bottom: 0.1em;
+}
+
+h2 a {
+  text-decoration: underline;
+}
+
+small.date {
+  font-style: italic;
+  margin-left: 0.5em;
+}
+
+#menu {
+  float: right;
+  background-color: #8bd;
+  color: white;
+  height: 2em;
+  color: white;
+  font-weight: bold;
+  display: block;
+  text-align: center;
+  margin: 0 0 1em 0;
+}
+
+#menu ul {
+  margin: 0;
+  padding: 0;
+}
+
+#menu span {
+  display: block;
+  font-size: 1em;
+  margin: 0.3em 0.5em;
+  display: block;
+}
+
+#menu li {
+  color: white;
+  display: none;
+  padding: 0 0.4em;
+  margin: 0;
+  font-size: 0.8em;
+}
+
+#menu a {
+  color: white;
+  border-bottom-color: white;
+}
+
+#menu:hover {
+  width: auto;
+  height: inherit;
+}
+
+#menu:hover span {
+  text-align: center; 
+/*  display: none; */
+}
+
+#menu:hover li {
+  display: block;
+}
+
+label {
+  display: block;
+  font-weight: bold; 
+  margin: 0 -1em;
+}
+
+form table {
+  text-align: center;
+}
+
+input[type=checkbox], input[type=radio] {
+  margin: 0 1em 0 0;
+  display: inline;
+}
+
+input + label {
+  display: inline;
+}
+
+
+fieldset ol {
+  list-style-type: none;
+  padding: 0 2em;
+}
+
+fieldset li {
+  margin: 0 0 2em 0;
+}
+
+ul.striped li:nth-child(odd) {
+  background-color: #fcfcfc;
+}
+
+ul.big li {
+  padding: 0.3em;
+  margin: 0;
+}
+
+ul.big {
+  list-style-type: square;
+}
+
+span.version {
+  line-height: 0;
+}
+
+span.version a {
+  border: none;
+}
+
+#changes dd {
+  font-style: italic;
+}
+
+p.hint {
+  margin: 0 1.5em ;
+  padding: 1em;
+}
+
+.hint::before {
+  content: url(info.png);
+}
+
+#diff {
+  width: 100%;
+}
+
+span.object {
+  line-height: 2em;
+  font-weight: bold;
+}
+
+.page,
+.user {
+  padding-left: 0.2em,
+}
+
+.page::before {
+  content: url(page.png);
+}
+
+.user::before {
+  content: url(user.png);
+}
+
+
+#search-form,
+#search-form fieldset,
+#search-form ol,
+#search-form li {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<koala>
+  <debug-server value="off" />
+  <log type="debug" location="debug.log" level="debug" max-size="20000000" />
+  <log type="activity" location="activity.log" max-size="20000000" />
+  <log type="error" location="error.log" max-size="20000000" />
+  <server-root location="/home/turbo24prg/work/cel/trunk/wiki" />
+  <document-root location="www" />
+  <dsp-root location="dsp"/>
+<!-- <port value="8000" /> -->
+<!-- <listen-ip value="192.168.42.23" /> -->
+  <mime-type-map location="/home/turbo24prg/Open-Dylan/config/mime-type-map.xml" />
+  <xml-rpc url="/RPC2" enable="yes" internal-error-fault-code="0" debug="no" />
+  <web-framework content-directory = "/home/turbo24prg/storage" />
+</koala>
