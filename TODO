@@ -1,0 +1,27 @@
+- tag cloud
+- inline svg
+ * connection graph
+ * tags at bottom of page
+- document code
+- advanced search
+- microformats!
+ * users
+- menu for user
+- hints in lists
+- icon for groups
+- icon for files
+- clean-up page menu
+- renaming users (?)
+- atom feed
+- group authorization
+ * macro
+ * groups-read/-write
+ * users-read/-write
+- file upload
+- user page: edited pages
+ * each page: list of versions
+- page: authors
+ * each user: list of versions  
+- 304 (not modified)
+  * compare request etag with
+    page version timestamp

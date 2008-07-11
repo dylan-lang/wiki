@@ -1,56 +1,73 @@
-Module:    dylan-user
-Author:    Carl Gay
-Copyright: This code is in the public domain.
+module: dylan-user
+author: turbo24prg
 
 define library wiki
+  use dylan;
   use common-dylan,
-    import: { common-dylan, threads };
-  use io,
-    import: { streams, format };
+    import: { common-extensions };
+  use io;
   use system,
-    import: { file-system, locators, date };
+    import: { locators, threads, date, file-system };
+  use network;
+  use collections;
+  use strings;
+  use string-extensions;
+  use regular-expressions;
   use koala,
     import: { dsp };
-  use dylan-basics;
-  use regular-expressions;
-  use xml-rpc-common;
-  use strings;
   use web-framework;
   use xml-parser;
-  use collection-extensions, import: { sequence-diff };
-  use string-extensions, import: { substring-search };
-  use xmpp-bot;
-  use command-line-parser;
+  use xml-rpc-client;
+  use uri;
 
-  export wiki;
+  use source-location;
+  use grammar;
+  use simple-parser;
+  use regular;
+
+  use graphviz-renderer;
 end;
 
 define module wiki
-  use common-dylan,
+  use dylan;
+  use threads;
+  use common-extensions,
     exclude: { format-to-string };
   use locators,
-    exclude: { <http-server> };  // badly named
-  use streams;
-  use format;
+    import: { <file-locator>,
+              merge-locators };
   use file-system;
-  use threads;
-  use dylan-basics;
   use date;
-  //use meta;
-  use dsp;
-  use regular-expressions,
-    import: { regex-position };
-  use xml-rpc-common,
-    import: { base64-encode, base64-decode };
-  use strings, import: { index-of, case-insensitive-equal? };
-  use web-framework, exclude: { respond-to-get, respond-to-post, slot-type };
+  use format;
+  use format-out;
+  use table-extensions;
+  use streams;
+  use substring-search;
+  use strings,
+    import: { index-of };
+  use regular-expressions;
+  use dsp,
+    exclude: { remove-attribute };
+  use web-framework,
+    exclude: { slot-type };
   use users;
   use storage;
-  use sequence-diff;
-  use simple-xml, import: { escape-xml };
-  use substring-search;
-  use xmpp-bot;
-  use command-line-parser;
-end;
+  use changes,
+    exclude: { <uri> };
+  use permission;
+  use xml-parser,
+    prefix: "xml/";
+  use simple-xml;
+  use xml-rpc-client;
+  use uri;
 
+  use simple-parser;
+  use source-location;
+  use source-location-rangemap;
+  use grammar;
+  use simple-lexical-scanner;
+
+  use graphviz-renderer,
+    prefix: "gvr/";
+end module wiki;
 
