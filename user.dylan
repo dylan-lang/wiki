@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 define thread variable *user-username* = #f;
 
@@ -37,9 +37,8 @@ define method permanent-link (user :: <wiki-user>, #key escaped?, full?)
 end;
 
 define method user-permanent-link (username :: <string>) => (url :: <url>);
-  let location = parse-url("/users/");
-  last(location.uri-path) := username;
-  transform-uris(*wiki-url*, location, as: <url>);
+  let location = parse-url(format-to-string("/users/%s", username));
+  transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
 define method redirect-to (user :: <wiki-user>)
@@ -66,15 +65,15 @@ define method save-user
 			      email: user-email);
     action := #"add";
   end;
-  save-change(<wiki-user-change>, user-username, action,
-				  comment, authors: if (authenticated-user())
-				      list(authenticated-user().username)
-				    else
-				      list(user-username)
-                                    end if);
+  save-change(<wiki-user-change>, user-username, action, comment,
+              authors: if (authenticated-user())
+                         list(authenticated-user().username)
+                       else
+                         list(user-username)
+                       end if);
   save(user);
   dump-data();
-end;
+end method save-user;
 
 define generic rename-user
     (user :: <object>, new-name :: <string>, #key comment :: false-or(<string>))
@@ -133,30 +132,23 @@ define variable *non-existing-user-page* =
 
 // actions
 
-define method do-users ()
-  case
-    get-query-value("go") =>
-      redirect-to(user-permanent-link(get-query-value("query")));
-    otherwise =>
-      process-page(*list-users-page*);
-  end;
-end;
-
 define method bind-user (#key username)
   *user* := find-user(percent-decode(username));
 end;
 
 define method show-user (#key username)
-  dynamic-bind (*user-username* = percent-decode(username))
+  dynamic-bind (*user-username* = percent-decode(username),
+                *user* = find-user(*user-username*))
     respond-to(#"get", case
-	                 *user* => *view-user-page*;
-			 otherwise => *edit-user-page*;
-                       end case);
+                         *user* => *view-user-page*;
+                         otherwise => *edit-user-page*;
+                       end);
   end;
 end method show-user;
 
 define method show-edit-user (#key username)
-  dynamic-bind (*user-username* = percent-decode(username))
+  dynamic-bind (*user-username* = percent-decode(username),
+                *user* = find-user(*user-username*))
     respond-to(#"get", case
 	                 *user* => *edit-user-page*;
 			 otherwise => *non-existing-user-page*;
@@ -173,15 +165,18 @@ define method do-save-user (#key username)
   let comment = get-query-value("comment");
   let errors = #();
   
-  if (~ instance?(username, <string>) | username = "" |
-      (new-username & (~ instance?(new-username, <string>) | new-username = "")))
+  if (~instance?(username, <string>)
+      | username = ""
+      | ~instance?(new-username, <string>)
+      | new-username = "")
     errors := add!(errors, #"username");
   end if;
 
   if (user)
-     if (password = "")
-       password := #f;
-     end if; 
+    // No password needed if user already logged in.
+    if (password = "")
+      password := #f;
+    end if;
   else
     if (~ instance?(password, <string>) | password = "")
       errors := add!(errors, #"password");
@@ -196,7 +191,6 @@ define method do-save-user (#key username)
     if (find-user(new-username))
       errors := add!(errors, #"exists");
     else
-      rename-user(user, new-username, comment: comment);
       username := new-username;
     end if;
   end if;
@@ -206,7 +200,8 @@ define method do-save-user (#key username)
     redirect-to(find-user(username));
   else
     current-request().request-query-values["password"] := "";
-    dynamic-bind (*errors* = errors, *form* = current-request().request-query-values)
+    dynamic-bind (*errors* = errors,
+                  *form* = current-request().request-query-values)
       respond-to(#"get", *edit-user-page*);
     end;
   end if;
@@ -226,34 +221,38 @@ define method redirect-to-user-or (page :: <page>, #key username)
   end if;
 end;
 
-define constant show-remove-user =
-  curry(redirect-to-user-or, *remove-user-page*);
+define constant show-remove-user
+  = curry(redirect-to-user-or, *remove-user-page*);
 
 
 // tags
 
 define tag show-user-username in wiki (page :: <wiki-dsp>)
- ()
+    ()
   output("%s", if (*user*)
-      escape-xml(*user*.username)
-    elseif (*form* & element(*form*, "username", default: #f))
-      escape-xml(*form*["username"])
-    elseif (*user-username*)
-      *user-username*
-    else "" end if);
+                 escape-xml(*user*.username)
+               elseif (*form* & element(*form*, "username", default: #f))
+                 escape-xml(*form*["username"])
+               elseif (*user-username*)
+                 *user-username*
+               else
+                 ""
+               end if);
 end;
 
 define tag show-user-email in wiki (page :: <wiki-dsp>)
- ()
+    ()
   output("%s", if (*user*)
-    escape-xml(*user*.email);
-  elseif (*form* & element(*form*, "email", default: #f))
-    escape-xml(*form*["email"]);
-  else "" end if);
+                 escape-xml(*user*.email);
+               elseif (*form* & element(*form*, "email", default: #f))
+                 escape-xml(*form*["email"]);
+               else
+                 ""
+               end if);
 end;
 
 define tag show-user-permanent-link in wiki (page :: <wiki-dsp>)
- (use-change :: <boolean>)
+    (use-change :: <boolean>)
   output("%s", if (use-change)
       user-permanent-link(*change*.title);
     elseif (*user*)
@@ -265,26 +264,32 @@ end;
 // body tags
 
 define body tag list-users in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
-  for (user in storage(<wiki-user>))
-    dynamic-bind(*user* = user)
-      do-body();
-    end;
-  end for;
-end;
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
+  let users = storage(<wiki-user>);
+  if (users.size == 0)
+    // todo -- quick hack.  replace wiki:list-users with dsp:do
+    output("<li>No users</li>");
+  else
+    for (user in users)
+      dynamic-bind(*user* = user)
+        do-body();
+      end;
+    end for;
+  end;
+end tag list-users;
 
 define body tag with-authenticated-user in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   dynamic-bind(*user* = authenticated-user())
     do-body();
   end;
 end;
 
 define body tag with-change-author in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*change*)
     let user = find-user(*change*.authors[0]);
     if (user)

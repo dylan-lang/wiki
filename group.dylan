@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 define thread variable *group-name* = #f;
 
@@ -88,7 +88,7 @@ define method group-permanent-link
  => (url :: <url>);
   let location = parse-url("/groups/");
   last(location.uri-path) := name;
-  transform-uris(*wiki-url*, location, as: <url>);
+  transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
 define method redirect-to (group :: <wiki-group>)

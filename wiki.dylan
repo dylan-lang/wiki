@@ -1,11 +1,8 @@
-module: wiki
+module: wiki-internal
 
-// generator
+// generator  (nice comment!  i bet this generates something...)
 define constant $generator :: <generator> =
   make(<generator>, text: "wiki", version: "0.1", uri: "");
-
-define variable *wiki-url* :: <url> =
-  parse-url("http://turbolent.com:8080/");
 
 define variable *change-verbs* = make(<table>);
 
@@ -41,10 +38,23 @@ end;
 
 define class <wiki-group-change> (<wiki-change>) end;
 
+// If authors: is not provided then the current authenticate user is used
+// or an error is signalled if there is no authenticated user.
+//
 define method save-change
     (class :: <class>, title :: <string>, action :: <symbol>, comment :: <string>,
-     #key authors = list(authenticated-user().username))
- => ();
+     #key authors)
+ => ()
+  if (~authors)
+    let auth-user = authenticated-user();
+    if (auth-user)
+      authors := list(auth-user.username);
+    else
+      signal(<not-authorized-error>,
+             format-string: "You are not authorized to make this change.")
+    end;
+  end;
+    
   let change = make(class, title: title, action: action, authors: authors);
   change.comments[0] := make(<comment>, name: as(<string>, action), authors: authors,
                                         content: make(<raw-content>, content: comment));

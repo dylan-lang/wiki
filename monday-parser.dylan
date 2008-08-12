@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 author: Hannes Mehnert <hannes@mehnert.org>
 synopsis: markup definition for dylan wiki
 

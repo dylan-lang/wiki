@@ -28,7 +28,7 @@ fieldset {
   position: relative;
   padding: 45px 0 0 0;
   overflow: hidden;
-  background: url(dylan-logo.png) no-repeat;
+  background: url(images/dylan-logo.png) no-repeat;
   height: 0px !important;
   height /**/:45px;
 }
@@ -42,7 +42,7 @@ fieldset {
 }
 
 #search-user form::before {
-  content: url(search.png);
+  content: url(images/search.png);
 }
 
 #search-user span {
@@ -56,7 +56,7 @@ fieldset {
 }
 
 #search-user span.user-info::before {
-  content: url(user.png);
+  content: url(images/user.png);
 }
 
 #content {
@@ -325,7 +325,7 @@ p.hint {
 }
 
 .hint::before {
-  content: url(info.png);
+  content: url(images/info.png);
 }
 
 #diff {
@@ -343,11 +343,11 @@ span.object {
 }
 
 .page::before {
-  content: url(page.png);
+  content: url(images/page.png);
 }
 
 .user::before {
-  content: url(user.png);
+  content: url(images/user.png);
 }
 
 

@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 define method do-feed ()
   let changes = sort(wiki-changes(), test: method (first, second)

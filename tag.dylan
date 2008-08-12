@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 define object-test (tag) in wiki end;
 

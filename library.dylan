@@ -26,9 +26,12 @@ define library wiki
   use regular;
 
   use graphviz-renderer;
-end;
 
-define module wiki
+  // for the test suite
+  export wiki-internal;
+end library wiki;
+
+define module wiki-internal
   use dylan;
   use threads;
   use common-extensions,
@@ -69,5 +72,5 @@ define module wiki
 
   use graphviz-renderer,
     prefix: "gvr/";
-end module wiki;
+end module wiki-internal;
 

@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 
 define function sort-table
@@ -11,6 +11,14 @@ define function sort-table
     end);
 end function sort-table;
 
+// It's unintuitive for the user to have to set a content directory for
+// "web-framework" instead of "wiki".
+//
+define sideways method process-config-element
+    (server :: <http-server>, node :: xml/<element>, name == #"wiki")
+  process-config-element(server, node, #"web-framework")
+end method process-config-element;
+
 define constant $wiki-http-server = make(<http-server>);
 
 define url-map on $wiki-http-server
@@ -19,12 +27,17 @@ define url-map on $wiki-http-server
     action get ("^feed/?$") => do-feed;
 
   url "/users"
-    action get () => do-users,
+    action get () =>
+      *list-users-page*,
+    action post () =>
+      method ()
+        redirect-to(user-permanent-link(get-query-value("query")))
+      end,
     action get ("^(?P<username>[^/]+)/?$") =>
-      (bind-user, show-user),
+      show-user,
     action get ("^(?P<username>[^/]+)/edit$") =>
       (bind-user, show-edit-user),
-    action (post, put) ("^(?P<username>[^/]+)(/(edit)?)?$") =>
+    action (post, put) ("^(?P<username>[^/]+)$") =>
       do-save-user,
     action get ("^(?P<username>[^/]+)/remove$") =>
       (bind-user, show-remove-user),
@@ -91,3 +104,4 @@ begin
   koala-main(server: $wiki-http-server,
              description: "Dylan wiki")
 end;
+

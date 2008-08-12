@@ -1,4 +1,4 @@
-module: wiki
+module: wiki-internal
 
 define thread variable *page-title* = #f;
 
@@ -63,7 +63,7 @@ define method page-permanent-link
  => (url :: <url>);
   let location = parse-url("/pages/");
   last(location.uri-path) := title;
-  transform-uris(*wiki-url*, location, as: <url>);
+  transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
 define method redirect-to (page :: <wiki-page>)
