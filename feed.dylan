@@ -22,7 +22,7 @@ define method do-feed ()
   feed.identifier := url;
   feed.links["self"] := make(<link>, rel: "self", href: url);
 
-  set-content-type(current-response(), "application/atom+xml");
+  add-header(current-response(), "Content-Type", "application/atom+xml");
   output("%s", generate-atom(feed, entries: changes));
 end method do-feed;
 

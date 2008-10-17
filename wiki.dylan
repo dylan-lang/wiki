@@ -50,8 +50,7 @@ define method save-change
     if (auth-user)
       authors := list(auth-user.username);
     else
-      signal(<not-authorized-error>,
-             format-string: "You are not authorized to make this change.")
+      unauthorized-error();
     end;
   end;
     

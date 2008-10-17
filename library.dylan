@@ -2,23 +2,24 @@ module: dylan-user
 author: turbo24prg
 
 define library wiki
-  use dylan;
+  use collections;
   use common-dylan,
     import: { common-extensions };
+  use dylan;
+  use http-common;
   use io;
-  use system,
-    import: { locators, threads, date, file-system };
-  use network;
-  use collections;
-  use strings;
-  use string-extensions;
-  use regular-expressions;
   use koala,
     import: { dsp };
+  use network;
+  use strings;
+  use string-extensions;
+  use system,
+    import: { locators, threads, date, file-system };
+  use regular-expressions;
+  use uri;
   use web-framework;
   use xml-parser;
   use xml-rpc-client;
-  use uri;
 
   use source-location;
   use grammar;
@@ -32,38 +33,40 @@ define library wiki
 end library wiki;
 
 define module wiki-internal
-  use dylan;
-  use threads;
+  use changes,
+    exclude: { <uri> };
   use common-extensions,
     exclude: { format-to-string };
+  use date;
+  use dsp;
+  use dylan;
+  use file-system;
+  use format;
+  use format-out;
+  use http-common,
+    exclude: { remove-attribute };
   use locators,
     import: { <file-locator>,
               merge-locators };
-  use file-system;
-  use date;
-  use format;
-  use format-out;
-  use table-extensions;
+  use permission;
+  use simple-xml;
+  use storage;
   use streams;
-  use substring-search;
   use strings,
     import: { index-of };
+  use substring-search;
+  use table-extensions;
+  use threads;
   use regular-expressions;
-  use dsp,
-    exclude: { remove-attribute };
+  use uri;
+  use users;
   use web-framework,
     exclude: { slot-type };
-  use users;
-  use storage;
-  use changes,
-    exclude: { <uri> };
-  use permission;
   use xml-parser,
     prefix: "xml/";
-  use simple-xml;
   use xml-rpc-client;
-  use uri;
 
+  // for the parser
   use simple-parser;
   use source-location;
   use source-location-rangemap;
