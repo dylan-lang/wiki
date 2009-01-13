@@ -11,6 +11,3 @@ define suite wiki-test-suite ()
   suite storage-test-suite;
 end suite wiki-test-suite;
 
-begin
-  run-test-application(wiki-test-suite)
-end;
