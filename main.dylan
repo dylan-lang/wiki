@@ -100,8 +100,16 @@ define url-map on $wiki-http-server
     action get () => *main-page*;
 end url-map;
 
+define function main
+    ()
+  let filename = locator-name(as(<file-locator>, application-name()));
+  if (split(filename, ".")[0] = "wiki")
+    koala-main(server: $wiki-http-server,
+               description: "Dylan wiki")
+  end;
+end;
+
 begin
-  koala-main(server: $wiki-http-server,
-             description: "Dylan wiki")
+  main();
 end;
 

@@ -47,6 +47,7 @@ define module wiki-internal
     exclude: { remove-attribute };
   use locators,
     import: { <file-locator>,
+              locator-name,
               merge-locators };
   use permission;
   use simple-xml;
