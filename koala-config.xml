@@ -1,15 +1,16 @@
 <?xml version="1.0"?>
 <koala>
-  <debug-server value="off" />
-  <log type="debug" location="debug.log" level="debug" max-size="20000000" />
-  <log type="activity" location="activity.log" max-size="20000000" />
-  <log type="error" location="error.log" max-size="20000000" />
-  <server-root location="/home/turbo24prg/work/cel/trunk/wiki" />
-  <document-root location="www" />
-  <dsp-root location="dsp"/>
-<!-- <port value="8000" /> -->
-<!-- <listen-ip value="192.168.42.23" /> -->
-  <mime-type-map location="/home/turbo24prg/Open-Dylan/config/mime-type-map.xml" />
-  <xml-rpc url="/RPC2" enable="yes" internal-error-fault-code="0" debug="no" />
-  <web-framework content-directory = "/home/turbo24prg/storage" />
+  <listener address="0.0.0.0" port="8000"/>
+  <debug-server value="on" />
+
+  <!-- dev mode makes DSP check for modified templates and reparse them. -->
+  <development-mode enabled="on" />
+
+  <server-root location="c:/cgay/dylan/trunk/libraries/network/wiki"/>
+
+  <!-- For now we set the document root and dsp root explicitly.
+       They are not relative to server root due to the way the wiki is
+       started up. -->
+  <document-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www"/>
+  <dsp-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www/dsp"/>
 </koala>

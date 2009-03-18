@@ -7,7 +7,7 @@
       <li><a href="/pages/Implementations">Implementations</a>
         <ul>
           <li><a href="/pages/Gwydion%20Dylan">Gwydion Dylan</a></li>
-          <li><a href="/pages/DylanWorks">DylanWorks</a></li>
+          <li><a href="/pages/OpenDylan">OpenDylan</a></li>
         </ul>
       </li>
       <li><a href="/pages/Current%20Projects">Current Projects</a></li>
@@ -19,7 +19,7 @@
   <li>Developer Resources
     <ul>
       <li><a href="/pages/Repository">Repository</a></li>
-      <li><a href="http://bugs.open-dylan-project.org/">Bug Tracker</a></li>
+      <li><a href="http://www.opendylan.org/bugs/">Bug Tracker</a></li>
       <li><a href="/pages/Development%20Tools">Development Tools</a></li>
     </ul>
   </li>
