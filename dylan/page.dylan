@@ -5,25 +5,23 @@ define thread variable *page-title* = #f;
 
 // class
 
-define class <wiki-page>
- (<versioned-object>, <entry>) 
+define class <wiki-page> (<versioned-object>, <entry>)
   slot allowed-editors :: type-union(<boolean>, <sequence>) = #t,
     init-keyword: allowed-editors:;
 end;
 
-define object-tests
- (page, version, other-version,
-  diff-version, diff-other-version)
+define wf/object-tests
+    (page, version, other-version, diff-version, diff-other-version)
 in wiki end;
 
 /*
-define action-tests
+define wf/action-tests
  (view-page, edit-page,
   remove-page, view-versions)
 in wiki end;
 */
 
-define error-test (title) in wiki end;
+define wf/error-test (title) in wiki end;
 
 
 // verbs
@@ -354,8 +352,9 @@ define method do-save-page (#key title)
 
   let errors = #();
 
-  if (~ instance?(title, <string>) | title = "" |
-      (new-title & (~ instance?(new-title, <string>) | new-title = "")))
+  if (~ instance?(title, <string>)
+        | title = ""
+        | (new-title & (~ instance?(new-title, <string>) | new-title = "")))
     errors := add!(errors, #"title");
   end if;
 
@@ -372,7 +371,8 @@ define method do-save-page (#key title)
     save-page(title, content | "", comment: comment, tags: tags);
     redirect-to(find-page(title));
   else
-    dynamic-bind (*errors* = errors, *form* = current-request().request-query-values)
+    dynamic-bind (wf/*errors* = errors,
+                  wf/*form* = current-request().request-query-values)
       respond-to(#"get", *edit-page-page*);
     end;
   end if;
@@ -404,9 +404,9 @@ end method show-page;
 define method show-edit-page (#key title)
   dynamic-bind (*page-title* = percent-decode(title))
     respond-to(#"get", case
-              authenticated-user() => *edit-page-page*;
-              otherwise => *non-existing-page-page*;
-            end case); 
+                         authenticated-user() => *edit-page-page*;
+                         otherwise => *non-existing-page-page*;
+                       end case); 
   end;
 end method show-edit-page;
 
@@ -416,14 +416,18 @@ define method show-page-versions-differences (#key title, a, b)
         element(*page*.versions, string-to-integer(a) - 1, default: #f);
       end;
     exception (<error>) #f end;
-  let other-version :: false-or(<wiki-page-version>) = block ()
-      if (version & instance?(b, <string>))
-        element(*page*.versions, string-to-integer(b) - 1, default: #f);
-      elseif (version)
-        element(*page*.versions, version.version-number - 2, default: #f);
+  let other-version :: false-or(<wiki-page-version>)
+    = block ()
+        if (version & instance?(b, <string>))
+          element(*page*.versions, string-to-integer(b) - 1, default: #f);
+        elseif (version)
+          element(*page*.versions, version.version-number - 2, default: #f);
+        end;
+      exception (<error>)
+        #f
       end;
-    exception (<error>) #f end;
-  dynamic-bind(*version* = version, *other-version* = other-version)
+  dynamic-bind(*version* = version,
+               *other-version* = other-version)
     respond-to(#"get", *view-diff-page*);
   end;
 end method show-page-versions-differences;
@@ -462,59 +466,69 @@ define tag show-page-permanent-link in wiki
       page-permanent-link(*change*.title)
     elseif (*page*)
       permanent-link(*page*)
-    else "" end if);
+    else
+      ""
+    end if);
 end;
 
 define tag show-page-page-permanent-link in wiki 
  (page :: <wiki-dsp>)
  ()
-  output("%s",
-    if (*page* & discussion?(*page*)) 
-      let link = permanent-link(*page*);
-      last(link.uri-path) := 
-        regex-replace(last(link.uri-path), "^Discussion: ", "");
-      link;
-    else "" end if);
+  output("%s", if (*page* & discussion?(*page*)) 
+                 let link = permanent-link(*page*);
+                 last(link.uri-path)
+                   := regex-replace(last(link.uri-path), "^Discussion: ", "");
+                 link;
+               else
+                 ""
+               end if);
 end;
 
 define tag show-page-discussion-permanent-link in wiki
  (page :: <wiki-dsp>)
  ()
-  output("%s",
-    if (*page*) 
-      let link = permanent-link(*page*);
-      last(link.uri-path) := concatenate("Discussion: ", last(link.uri-path));
-      link;
-    else "" end if);                          
+  output("%s", if (*page*) 
+                 let link = permanent-link(*page*);
+                 last(link.uri-path) := concatenate("Discussion: ", last(link.uri-path));
+                 link;
+               else
+                 ""
+               end if);                        
 end;
 
 define tag show-page-title in wiki
- (page :: <wiki-dsp>)
- ()
+    (page :: <wiki-dsp>)
+    ()
   output("%s", escape-xml(if (*page*)
-    *page*.title
-  elseif (*page-title*)
-    *page-title*
-  else "" end if));
+                            *page*.title
+                          elseif (*page-title*)
+                            *page-title*
+                          else
+                            ""
+                          end if));
 end;
 
 define tag show-page-content in wiki 
- (page :: <wiki-dsp>)
- (content-format :: false-or(<string>))
+    (page :: <wiki-dsp>)
+    (content-format :: false-or(<string>))
   output("%s", if (*page*)
-      let content = (*version* | *page*.versions.last).content.content;
-      case
-        content-format = "xhtml" => parse-wiki-markup(content); //wiki-markup-to-html(content);
-        otherwise => content; 
-      end case;
-    elseif (*form* & element(*form*, "content", default: #f))
-      *form*["content"];
-    else "" end if);
+                 let content = (*version* | *page*.versions.last).content.content;
+                 case
+                   content-format = "xhtml"
+                     => parse-wiki-markup(content); //wiki-markup-to-html(content);
+                   otherwise
+                     => content; 
+                 end case;
+               elseif (wf/*form* & element(wf/*form*, "content", default: #f))
+                 wf/*form*["content"];
+               else
+                 ""
+               end if);
 end;
 
 define tag show-version in wiki
- (page :: <wiki-dsp>)
- ()
+    (page :: <wiki-dsp>)
+    ()
   output("%s", *version* | "");
 end;
 
@@ -522,8 +536,8 @@ end;
 // body tags 
 
 define body tag list-page-backlinks in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     for (backlink in find-backlinks(*page*))
       dynamic-bind (*page* = backlink)
@@ -534,22 +548,22 @@ define body tag list-page-backlinks in wiki
 end;
 
 define body tag list-page-tags in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     for (tag in latest-tags(*page*))
       dynamic-bind(*tag* = tag)
         do-body();
       end;
     end for;
-  elseif (*form* & element(*form*, "tags", default: #f))
-    output("%s", escape-xml(*form*["tags"]));
+  elseif (wf/*form* & element(wf/*form*, "tags", default: #f))
+    output("%s", escape-xml(wf/*form*["tags"]));
   end if;
 end;
 
 define body tag list-page-versions in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     for (version in reverse(*page*.versions))
       dynamic-bind(*version* = version)
@@ -560,10 +574,8 @@ define body tag list-page-versions in wiki
 end;
 
 define body tag list-pages in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- (tags :: false-or(<string>),
-  sort :: false-or(<string>),
-  use-query-tags :: <boolean>)
+    (page :: <wiki-dsp>, do-body :: <function>)
+    (tags :: false-or(<string>), sort :: false-or(<string>), use-query-tags :: <boolean>)
    let tagged = get-query-value("tagged");
    tags := if (use-query-tags & instance?(tagged, <string>))
              extract-tags(tagged);
@@ -571,19 +583,22 @@ define body tag list-pages in wiki
              extract-tags(tags);
            end if;
    let pages = if (sort)
-       sort-table(storage(<wiki-page>), select (sort by \=)
-				         "published" => published
-			               end);
-     else
-       map-as(<vector>, identity, storage(<wiki-page>));
-     end if;
+                 sort-table(storage(<wiki-page>), select (sort by \=)
+                                                    "published" => published
+                                                  end);
+               else
+                 map-as(<vector>, identity, storage(<wiki-page>));
+               end if;
    let tagged-pages = if (tags)
-       choose(method (page)
-           every?(rcurry(member?, page.versions.last.categories, #"test", \=), tags)
-         end, pages);
-     else
-       pages
-     end if;
+                        choose(method (page)
+                                 every?(rcurry(member?, page.versions.last.categories,
+                                               test:, \=),
+                                        tags)
+                               end,
+                               pages);
+                      else
+                        pages
+                      end if;
   for (page in tagged-pages)
     dynamic-bind(*page* = page)
       do-body();
@@ -592,8 +607,8 @@ define body tag list-pages in wiki
 end;
 
 define body tag with-other-version in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     dynamic-bind(*version* = *other-version*)
       do-body();
@@ -602,8 +617,8 @@ define body tag with-other-version in wiki
 end;
 
 define body tag with-diff in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     diff(*other-version*, *version*);
     dynamic-bind(*diff-version* = #f, *diff-other-version* = #f)
@@ -613,8 +628,8 @@ define body tag with-diff in wiki
 end;
 
 define body tag list-page-authors in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*page*)
     for (author in *page*.authors)
       dynamic-bind(*user* = author)
@@ -628,21 +643,22 @@ end;
 // named methods
 
 define named-method page-discussion? in wiki
- (page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   *page* & discussion?(*page*);
 end;
 
 define named-method latest-page-version? in wiki
- (page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   if (*page*)
     if (*version*) 
      *page*.versions.last = *version*
-    else #t 
+    else
+      #t
     end if;
   end if;
 end;
 
 define named-method page-changed? in wiki
- (page :: <wiki-dsp>)
-  instance?(*change*, <wiki-page-change>);
+    (page :: <wiki-dsp>)
+  instance?(*change*, <wiki-page-change>)
 end;

@@ -1,6 +1,6 @@
 module: wiki-internal
 
-define object-test (tag) in wiki end;
+define wf/object-test (tag) in wiki end;
 
 define function extract-tags
     (tag-string :: <string>)

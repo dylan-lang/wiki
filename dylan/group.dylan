@@ -14,16 +14,16 @@ define class <wiki-group> (<object>)
     init-keyword: authorization:;
 end;
 
-define object-test (group) in wiki end;
+define wf/object-test (group) in wiki end;
 
 /*
-define action-tests
+define wf/action-tests
  (view-page, edit-page,
   remove-page, view-versions)
 in wiki end;
 */
 
-define error-test (name) in wiki end;
+define wf/error-test (name) in wiki end;
 
 /*
 define group-authorizations
@@ -316,7 +316,8 @@ define method do-save-group (#key name)
     save-group(name, comment: comment);
     redirect-to(find-group(name));
   else
-    dynamic-bind (*errors* = errors, *form* = current-request().request-query-values)
+    dynamic-bind (wf/*errors* = errors,
+                  wf/*form* = current-request().request-query-values)
       respond-to(#"get", *edit-group-page*);
     end;
   end if;

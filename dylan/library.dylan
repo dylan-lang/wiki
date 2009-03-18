@@ -62,6 +62,7 @@ define module wiki-internal
   use uri;
   use users;
   use web-framework,
+    prefix: "wf/",
     exclude: { slot-type };
   use xml-parser,
     prefix: "xml/";

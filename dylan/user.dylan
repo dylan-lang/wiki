@@ -8,15 +8,15 @@ define thread variable *user-username* = #f;
 define class <wiki-user> (<user>)
 end;
 
-define object-test (user) in wiki end;
+define wf/object-test (user) in wiki end;
 
 /*
-define action-tests
+define wf/action-tests
  (add-user, edit-user, remove-user, list-users)
 in wiki end;
 */
 
-define error-tests
+define wf/error-tests
  (username, password, email)
 in wiki end;
 
@@ -105,7 +105,7 @@ end method rename-user;
 define method remove-user
     (user :: <wiki-user>,
      #key comment :: <string> = "")
- => ();
+ => ()
   save-change(<wiki-user-change>, user.username, #"removal", comment);
   remove-key!(storage(<wiki-user>), user.username);
   dump-data();
@@ -200,8 +200,8 @@ define method do-save-user (#key username)
     redirect-to(find-user(username));
   else
     current-request().request-query-values["password"] := "";
-    dynamic-bind (*errors* = errors,
-                  *form* = current-request().request-query-values)
+    dynamic-bind (wf/*errors* = errors,
+                  wf/*form* = current-request().request-query-values)
       respond-to(#"get", *edit-user-page*);
     end;
   end if;
@@ -231,8 +231,8 @@ define tag show-user-username in wiki (page :: <wiki-dsp>)
     ()
   output("%s", if (*user*)
                  escape-xml(*user*.username)
-               elseif (*form* & element(*form*, "username", default: #f))
-                 escape-xml(*form*["username"])
+               elseif (wf/*form* & element(wf/*form*, "username", default: #f))
+                 escape-xml(wf/*form*["username"])
                elseif (*user-username*)
                  *user-username*
                else
@@ -244,8 +244,8 @@ define tag show-user-email in wiki (page :: <wiki-dsp>)
     ()
   output("%s", if (*user*)
                  escape-xml(*user*.email);
-               elseif (*form* & element(*form*, "email", default: #f))
-                 escape-xml(*form*["email"]);
+               elseif (wf/*form* & element(wf/*form*, "email", default: #f))
+                 escape-xml(wf/*form*["email"]);
                else
                  ""
                end if);
@@ -254,10 +254,12 @@ end;
 define tag show-user-permanent-link in wiki (page :: <wiki-dsp>)
     (use-change :: <boolean>)
   output("%s", if (use-change)
-      user-permanent-link(*change*.title);
-    elseif (*user*)
-      permanent-link(*user*)
-    else "" end if);
+                 user-permanent-link(*change*.title);
+               elseif (*user*)
+                 permanent-link(*user*)
+               else
+                 ""
+               end if);
 end;
 
 

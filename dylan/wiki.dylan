@@ -6,9 +6,9 @@ define constant $generator :: <generator> =
 
 define variable *change-verbs* = make(<table>);
 
-define object-tests (day, change) in wiki end;
+define wf/object-tests (day, change) in wiki end;
 
-define error-test (exists) in wiki end;
+define wf/error-test (exists) in wiki end;
 
 define class <wiki-page-version> (<entry>)
   slot version-number :: <integer>,
