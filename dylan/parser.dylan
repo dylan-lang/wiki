@@ -1,4 +1,4 @@
-Module: wiki
+Module: wiki-internal
 Synopsis: An ad-hoc parser for wiki markup
 Author: Carl Gay
 Copyright: This code is in the public domain.
@@ -84,7 +84,7 @@ define method parse-newline
     elseif (start + 1 < markup.size & markup[start + 1] == ' ')
       // lines preceded by space are preformatted...
       // Find next line with no leading whitespace...
-      let (epos, #rest xs) = regexp-position(markup, "\n\\S", start: start + 1) | markup.size;
+      let (epos, #rest xs) = regex-position("\n\\S", markup, start: start + 1) | markup.size;
       write(out, "<pre>");
       //XXX more speed
       let raw-text = copy-sequence(markup, start: start, end: epos);
@@ -131,9 +131,9 @@ define method parse-header
     (out :: <stream>, markup :: <string>, start :: <integer>)
  => (end-pos :: false-or(<integer>))
   let newline = find(markup, '\n', start: start) | markup.size;
- // let (#rest idxs) = regexp-position(markup, "(==+)([^=\n]+)(==+)\\s*(\n|$)",
-  let (#rest idxs) = regexp-position(markup, "(==+)([^=\n]+)(==+|$)",
-                                     start: start, end: newline);
+  // let (#rest idxs) = regex-position("(==+)([^=\n]+)(==+)\\s*(\n|$)", markup,
+  let (#rest idxs) = regex-position("(==+)([^=\n]+)(==+|$)", markup,
+                                    start: start, end: newline);
   if (idxs.size > 1)
     let tag = copy-sequence(markup, start: idxs[2], end: idxs[3]);
     let header = copy-sequence(markup, start: idxs[4], end: idxs[5]);
@@ -203,7 +203,7 @@ define method generate-list
     (stream, markup, start, bullet-char, tag)
  => (end-pos :: false-or(<integer>))
   let regex1 = format-to-string("\n\\s*[^%s]", bullet-char);
-  let (list-end, #rest xs) = regexp-position(markup, regex1, start: start);
+  let (list-end, #rest xs) = regex-position(regex1, markup, start: start);
   let lines = split(copy-sequence(markup,
                                   start: start,
                                   end: list-end | markup.size),
@@ -212,7 +212,7 @@ define method generate-list
   let depth :: <integer> = 0;
   let regex2 = format-to-string("^\\s*([%s]+)", bullet-char);
   for (line in lines)
-    let (#rest indexes) = regexp-position(line, regex2);
+    let (#rest indexes) = regex-position(regex2, line);
     if (indexes.size > 1)
       let bullet-start = indexes[2];
       let bullet-end = indexes[3];
@@ -257,8 +257,8 @@ define method parse-less-than
   // don't search past newline...
   let close = find(markup, method (c) c == '>' | c == '\n' end, start: start);
   if (close & markup[close] == '>')
-    let word = copy-sequence(markup, start: start + 1, end: close);
-    select (word by case-insensitive-equal?)
+    let word = as-lowercase(copy-sequence(markup, start: start + 1, end: close));
+    select (word by \=)
       "br", "br/"
         => write(out, "<br/>");
            close + 1;
@@ -271,9 +271,10 @@ define method parse-less-than
            close + 1;
       "nowiki"
         // TODO: allow nested nowiki elements.
-        => let epos = index-of(markup, "</nowiki>",
-                               test: case-insensitive-equal?,
-                               start: close) | markup.size;
+        => let epos = regex-position("</nowiki>", markup,
+                                     case-sensitive: #f,
+                                     start: close)
+                        | markup.size;
            write(out, markup, start: start + "<nowiki>".size, end: epos);
            epos + "</nowiki>".size;
       otherwise

@@ -17,7 +17,7 @@
           </p>
         </dsp:else>
       </dsp:if>
-      <form action="" method="post">
+      <form method="post">
         <fieldset id="general" class="splitted">
           <ol>
             <dsp:when test="user?">

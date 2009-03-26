@@ -1,5 +1,5 @@
 <%dsp:taglib name="wiki"/>
-<%dsp:taglib name="web-framework"/>
+<%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
   <title>Dylan: <wiki:show-group-name/></title>
@@ -14,7 +14,7 @@
       <p class="hint">
         This group doesn't exist.
 	<a href="/register">Register</a> or
-	<a href="<web-framework:show-login-url redirect="true" current="true"/>">login</a>
+	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
 	to create it.
       </p>
     </div>

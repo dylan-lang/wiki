@@ -34,7 +34,7 @@
         </p>
         <p>Please feel free to <a href="/pages/Community">join us</a>!</p> 
         <h2>News</h2>
-                                <wiki:list-pages tags="news" sort="published">
+                                <wiki:list-pages tags="news" order-by="published">
                                         <h3 class="news summary"><a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h3>
                                         <small class="date"><wiki:show-page-published formatted="%d. %B %Y %H:%M"/></small>
                                         <wiki:show-page-content format="markup"/>

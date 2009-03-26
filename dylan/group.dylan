@@ -41,12 +41,12 @@ define method default-group-authorization ()
 end;
 
 define named-method group-authorization-pages-write? in wiki
- (page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   *group* & *group*.group-authorization[#"pages-write"]
 end;
 
 define named-method group-authorization-pages-read? in wiki
- (page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   *group* & *group*.group-authorization[#"pages-read"]
 end;
 
@@ -64,10 +64,12 @@ end;
 
 define method storage-type
     (type == <wiki-group>)
- => (type :: <type>);
+ => (type :: <type>)
   <string-table>;
 end;
 
+// Tells web-framework under what unique (I assume) key to store this object.
+//
 define inline-only method key
     (group :: <wiki-group>)
  => (res :: <string>);
@@ -86,8 +88,7 @@ end;
 define method group-permanent-link
     (name :: <string>)
  => (url :: <url>);
-  let location = parse-url("/groups/");
-  last(location.uri-path) := name;
+  let location = wiki-url("/groups/%s", name);
   transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
@@ -118,7 +119,7 @@ end;
 define method rename-group
     (name :: <string>, new-name :: <string>,
      #key comment :: <string> = "")
- => ();
+ => ()
   let group = find-group(name);
   if (group)
     rename-group(group, new-name, comment: comment)
@@ -128,7 +129,7 @@ end;
 define method rename-group 
     (group :: <wiki-group>, name :: <string>,
      #key comment :: <string> = "")
- => ();
+ => ()
   let comment = concatenate("was: ", group.group-name, ". ", comment);
   remove-key!(storage(<wiki-group>), group.group-name);
   group.group-name := name;
@@ -141,7 +142,7 @@ end;
 define method save-group
     (name :: <string>,
      #key comment :: <string> = "")
- => ();
+ => ()
   let group :: false-or(<wiki-group>) = find-group(name);
   let action :: <symbol> = #"edit";
   if (~group)
@@ -156,7 +157,7 @@ end;
 define method add-member
     (user :: <wiki-user>, group :: <wiki-group>,
      #key comment :: <string> = "")
- => ();
+ => ()
   add!(group.group-members, user);
   let comment = concatenate("added ", user.username, ". ", comment);
   save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
@@ -167,7 +168,7 @@ end;
 define method remove-member
     (user :: <wiki-user>, group :: <wiki-group>,
      #key comment :: <string> = "")
- => ();
+ => ()
   remove!(group.group-members, user);
   let comment = concatenate("removed ", user.username, ". ", comment);
   save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
@@ -178,7 +179,7 @@ end;
 define method remove-group
     (group :: <wiki-group>,
      #key comment :: <string> = "")
- => ();
+ => ()
   save-change(<wiki-group-change>, group.group-name, #"removal", comment);
   remove-key!(storage(<wiki-group>), group.group-name);
   dump-data();

@@ -1,5 +1,5 @@
 <%dsp:taglib name="wiki"/>
-<%dsp:taglib name="web-framework"/>
+<%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
   <title>Dylan</title>
@@ -32,7 +32,7 @@
     </dsp:when>
     <div id="body">
       <h2>Error</h2>
-      <p>You have to <a href="<web-framework:show-login-url redirect="#t" current="#t"/>">login</a> to go on.</p>
+      <p>You have to <a href="<wf:show-login-url redirect="yes" current="yes"/>">login</a> to go on.</p>
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>

@@ -13,4 +13,6 @@
        started up. -->
   <document-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www"/>
   <dsp-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www/dsp"/>
+
+  <wiki content-directory = "c:/cgay/dylan/trunk/libraries/network/wiki/storage" />
 </koala>

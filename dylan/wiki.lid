@@ -1,11 +1,11 @@
 library: wiki
 files: library
-  monday-parser
+  parser
   dsp
   wiki
-  feed
   tag
   page
-  group
   user
+  group
+  feed
   main

@@ -2,13 +2,13 @@ module: wiki-internal
 
 
 define function sort-table
-    (the-table :: <table>, getter :: <function>,
-     #key order :: <function> = \>)
- => (entries :: <sequence>);
+    (the-table :: <table>, key :: <function>,
+     #key test :: <function> = \>)
+ => (entries :: <sequence>)
   sort(map-as(<vector>, identity, the-table),
-    test: method (first, second)
-      order(getter(first), getter(second))
-    end);
+       test: method (first, second)
+               test(key(first), key(second))
+             end);
 end function sort-table;
 
 // It's unintuitive for the user to have to set a content directory for
@@ -22,11 +22,11 @@ end method process-config-element;
 define constant $wiki-http-server = make(<http-server>);
 
 define url-map on $wiki-http-server
-  url "/recent-changes"
+  url wiki-url("/recent-changes")
     action get () => *recent-changes-page*,
     action get ("^feed/?$") => do-feed;
 
-  url "/users"
+  url wiki-url("/users")
     action get () =>
       *list-users-page*,
     action post () =>
@@ -36,7 +36,7 @@ define url-map on $wiki-http-server
     action get ("^(?P<username>[^/]+)/?$") =>
       show-user,
     action get ("^(?P<username>[^/]+)/edit$") =>
-      (bind-user, show-edit-user),
+      show-edit-user,
     action (post, put) ("^(?P<username>[^/]+)$") =>
       do-save-user,
     action get ("^(?P<username>[^/]+)/remove$") =>
@@ -44,7 +44,7 @@ define url-map on $wiki-http-server
     action (delete, post) ("^(?P<username>[^/]+)/remove$") =>
       do-remove-user;
 
-  url "/pages"
+  url wiki-url("/pages")
     action get () => do-pages,
     action get ("^(?P<title>[^/]+)/?$") =>
       (bind-page, show-page),
@@ -73,7 +73,7 @@ define url-map on $wiki-http-server
     action get ("^(?P<title>[^/]+)/access") =>
       (bind-page, show-page-access);
 
-  url "/groups"
+  url wiki-url("/groups")
     action get () => do-groups,
     action get ("^(?P<name>[^/]+)/?$") =>
       (bind-group, show-group),
@@ -96,7 +96,13 @@ define url-map on $wiki-http-server
     action (post, put) ("^(?P<name>[^/]+)/authorization$") =>
       do-save-group-authorization;
 
-  url "/"
+  url wiki-url("/login")
+    action (get, post) () => login;
+
+  url wiki-url("/logout")
+    action (get, post) () => logout;
+
+  url wiki-url("/")
     action get () => *main-page*;
 end url-map;
 

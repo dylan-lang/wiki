@@ -1,5 +1,5 @@
 <%dsp:taglib name="wiki"/>
-<%dsp:taglib name="web-framework"/>
+<%dsp:taglib name="web-framework" prefix="wf"/>
 <a href="/" title="Dylan">
   <h1 id="header">
     Dylan
@@ -37,7 +37,7 @@
         <span class="user-info">
           <a id="authenticated-user-link" href="<wiki:show-user-permanent-link />"><wiki:show-user-username/></a>
           &mdash;
-          <a href="<web-framework:show-logout-url redirect="true" current="true"/>">logout</a>
+          <a href="<wf:show-logout-url redirect="true" current="true"/>">logout</a>
         </span>
       </wiki:with-authenticated-user>
     </dsp:then>
@@ -45,7 +45,7 @@
       <span>
         <a href="/users">register</a>
         &mdash;
-        <a href="<web-framework:show-login-url redirect="true" current="true"/>">login</a>
+        <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
       </span>
     </dsp:else>
   </dsp:if>

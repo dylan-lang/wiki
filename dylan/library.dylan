@@ -6,6 +6,7 @@ define library wiki
   use common-dylan,
     import: { common-extensions };
   use dylan;
+  use graphviz-renderer;
   use http-common;
   use io;
   use koala,
@@ -26,7 +27,7 @@ define library wiki
   use simple-parser;
   use regular;
 
-  use graphviz-renderer;
+  use uncommon-dylan;
 
   // for the test suite
   export wiki-internal;
@@ -34,6 +35,8 @@ end library wiki;
 
 define module wiki-internal
   use changes,
+    rename: { published => date-published,
+              label => category-label },
     exclude: { <uri> };
   use common-extensions,
     exclude: { format-to-string };
@@ -59,6 +62,7 @@ define module wiki-internal
   use table-extensions;
   use threads;
   use regular-expressions;
+  use uncommon-dylan;
   use uri;
   use users;
   use web-framework,

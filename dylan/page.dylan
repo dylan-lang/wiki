@@ -3,8 +3,10 @@ module: wiki-internal
 define thread variable *page-title* = #f;
 
 
-// class
-
+// Represents a user-editable wiki page that will be stored by web-framework.
+// Not to be confused with <wiki-dsp>, which is a DSP maintained in our
+// source code tree.
+//
 define class <wiki-page> (<versioned-object>, <entry>)
   slot allowed-editors :: type-union(<boolean>, <sequence>) = #t,
     init-keyword: allowed-editors:;
@@ -41,10 +43,12 @@ define method storage-type
   <string-table>;
 end;
 
+// Tells web-framework under what unique (I assume) key to store this object.
+//
 define inline-only method key
     (page :: <wiki-page>)
- => (res :: <string>);
-  page.title;
+ => (res :: <string>)
+  page.title
 end;
 
 
@@ -59,8 +63,7 @@ end;
 define method page-permanent-link
     (title :: <string>)
  => (url :: <url>);
-  let location = parse-url("/pages/");
-  last(location.uri-path) := title;
+  let location = wiki-url("/pages/%s", title);
   transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
@@ -135,11 +138,11 @@ define method generate-connections-graph (page :: <wiki-page>) => ();
   gvr/add-predecessors(node, backlinks);
   gvr/add-successors(node, last(page.versions).references);
   for (node in gvr/nodes(graph))
-    node.xml/attributes["URL"] := build-uri(page-permanent-link(node.label));
-    node.xml/attributes["color"] := "blue";
-    node.xml/attributes["style"] := "filled";
-    node.xml/attributes["fontname"] := "Verdana"; 
-    node.xml/attributes["shape"] := "note";
+    node.gvr/attributes["URL"] := build-uri(page-permanent-link(node.gvr/label));
+    node.gvr/attributes["color"] := "blue";
+    node.gvr/attributes["style"] := "filled";
+    node.gvr/attributes["fontname"] := "Verdana"; 
+    node.gvr/attributes["shape"] := "note";
   end for;
   let temporary-graph = gvr/generate-graph(graph, node, format: "svg");
   let graph-file = as(<file-locator>, temporary-graph);
@@ -392,12 +395,13 @@ define method show-page (#key title, version)
   let version = if (version)
       element(*page*.versions, string-to-integer(version) - 1, default: #f);
     end if;
-  dynamic-bind (*version* = version, *page-title* = percent-decode(title))
+  dynamic-bind (*version* = version,
+                *page-title* = percent-decode(title))
     respond-to(#"get", case
-        *page* => *view-page-page*;
-	authenticated-user() => *edit-page-page*;
-	otherwise => *non-existing-page-page*;
-      end case);
+                         *page* => *view-page-page*;
+                         authenticated-user() => *edit-page-page*;
+                         otherwise => *non-existing-page-page*;
+                       end case);
   end;
 end method show-page;
 
@@ -411,11 +415,14 @@ define method show-edit-page (#key title)
 end method show-edit-page;
 
 define method show-page-versions-differences (#key title, a, b)
-  let version :: false-or(<wiki-page-version>) = block ()
-      if (a)
-        element(*page*.versions, string-to-integer(a) - 1, default: #f);
+  let version :: false-or(<wiki-page-version>)
+    = block ()
+        if (a)
+          element(*page*.versions, string-to-integer(a) - 1, default: #f);
+        end;
+      exception (<error>)
+        #f
       end;
-    exception (<error>) #f end;
   let other-version :: false-or(<wiki-page-version>)
     = block ()
         if (version & instance?(b, <string>))
@@ -459,42 +466,34 @@ define constant show-page-access =
 // tags
 
 define tag show-page-permanent-link in wiki
- (page :: <wiki-dsp>)
- (use-change :: <boolean>)
-  output("%s", 
-    if (use-change)
-      page-permanent-link(*change*.title)
-    elseif (*page*)
-      permanent-link(*page*)
-    else
-      ""
-    end if);
+    (page :: <wiki-dsp>)
+    (use-change :: <boolean>)
+  if (use-change)
+    output("%s", page-permanent-link(*change*.title));
+  elseif (*page*)
+    output("%s", permanent-link(*page*))
+  end;
 end;
 
 define tag show-page-page-permanent-link in wiki 
- (page :: <wiki-dsp>)
- ()
-  output("%s", if (*page* & discussion?(*page*)) 
-                 let link = permanent-link(*page*);
-                 last(link.uri-path)
-                   := regex-replace(last(link.uri-path), "^Discussion: ", "");
-                 link;
-               else
-                 ""
-               end if);
-end;
+    (page :: <wiki-dsp>)
+    ()
+  if (*page* & discussion?(*page*)) 
+    let link = permanent-link(*page*);
+    last(link.uri-path) := regex-replace(last(link.uri-path), "^Discussion: ", "");
+    output("%s", link);
+  end;
+end tag show-page-page-permanent-link;
 
 define tag show-page-discussion-permanent-link in wiki
- (page :: <wiki-dsp>)
- ()
-  output("%s", if (*page*) 
-                 let link = permanent-link(*page*);
-                 last(link.uri-path) := concatenate("Discussion: ", last(link.uri-path));
-                 link;
-               else
-                 ""
-               end if);                        
-end;
+    (page :: <wiki-dsp>)
+    ()
+  if (*page*) 
+    let link = permanent-link(*page*);
+    last(link.uri-path) := concatenate("Discussion: ", last(link.uri-path));
+    output("%s", link);
+  end;
+end tag show-page-discussion-permanent-link;
 
 define tag show-page-title in wiki
     (page :: <wiki-dsp>)
@@ -508,14 +507,14 @@ define tag show-page-title in wiki
                           end if));
 end;
 
-define tag show-page-content in wiki 
+define tag show-page-content in wiki
     (page :: <wiki-dsp>)
     (content-format :: false-or(<string>))
   output("%s", if (*page*)
                  let content = (*version* | *page*.versions.last).content.content;
                  case
                    content-format = "xhtml"
-                     => parse-wiki-markup(content); //wiki-markup-to-html(content);
+                     => wiki-markup-to-html(content); // parse-wiki-markup(content);
                    otherwise
                      => content; 
                  end case;
@@ -575,17 +574,21 @@ end;
 
 define body tag list-pages in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
-    (tags :: false-or(<string>), sort :: false-or(<string>), use-query-tags :: <boolean>)
+    (tags :: false-or(<string>),
+     order-by :: false-or(<string>),
+     use-query-tags :: <boolean>)
    let tagged = get-query-value("tagged");
    tags := if (use-query-tags & instance?(tagged, <string>))
              extract-tags(tagged);
            elseif (tags)
              extract-tags(tags);
            end if;
-   let pages = if (sort)
-                 sort-table(storage(<wiki-page>), select (sort by \=)
-                                                    "published" => published
-                                                  end);
+   let pages = if (order-by)
+                 sort-table(storage(<wiki-page>),
+                            select (sort by \=)
+                              "published" => date-published;
+                              otherwise => date-published;
+                            end);
                else
                  map-as(<vector>, identity, storage(<wiki-page>));
                end if;
@@ -651,7 +654,7 @@ define named-method latest-page-version? in wiki
     (page :: <wiki-dsp>)
   if (*page*)
     if (*version*) 
-     *page*.versions.last = *version*
+      *page*.versions.last = *version*
     else
       #t
     end if;

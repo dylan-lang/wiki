@@ -1,4 +1,14 @@
-module: wiki-internal
+Module: wiki-internal
+
+// Prefix for all wiki URLs.  Set to "" for no prefix.
+define constant $wiki-url-prefix :: <string> = "";
+
+define function wiki-url
+    (format-string, #rest format-args)
+ => (url :: <url>)
+  parse-url(concatenate($wiki-url-prefix,
+                        apply(format-to-string, format-string, format-args)))
+end;  
 
 // generator  (nice comment!  i bet this generates something...)
 define constant $generator :: <generator> =
@@ -55,35 +65,40 @@ define method save-change
   end;
     
   let change = make(class, title: title, action: action, authors: authors);
-  change.comments[0] := make(<comment>, name: as(<string>, action), authors: authors,
-                                        content: make(<raw-content>, content: comment));
+  change.comments[0] := make(<comment>,
+                             name: as(<string>, action),
+                             authors: authors,
+                             content: make(<raw-content>, content: comment));
   save(change);
 end;
 
 
-define tag show-version-published in wiki (page :: <wiki-dsp>)
- (formatted :: <string>)
+define tag show-version-published in wiki
+    (page :: <wiki-dsp>)
+    (formatted :: <string>)
   if (*version*)
-    output("%s", format-date(formatted, *version*.published));
+    output("%s", format-date(formatted, *version*.date-published));
   end if;
 end;
 
 define tag show-page-published in wiki (page :: <wiki-dsp>)
- (formatted :: <string>)
+    (formatted :: <string>)
   if (*page*)
-    output("%s", format-date(formatted, *page*.published));
+    output("%s", format-date(formatted, *page*.date-published));
   end if;
 end;
 
-define tag show-version-number in wiki (page :: <wiki-dsp>)
- ()
+define tag show-version-number in wiki
+    (page :: <wiki-dsp>)
+    ()
   if (*version*)
     output("%d", *version*.version-number);
   end if;
 end; 
 
-define tag show-version-comment in wiki (page :: <wiki-dsp>)
- ()
+define tag show-version-comment in wiki
+    (page :: <wiki-dsp>)
+    ()
   if (*version*)
     output("%s", *version*.comments[0].content.content);
   end if;
@@ -118,12 +133,12 @@ define body tag list-changes-daily in wiki
   let day = #[];
   
   let changes = sort(wiki-changes(), test: method (first, second)
-      first.published > second.published   
+      first.date-published > second.date-published   
     end);
   for (change in changes)
-    let (this-year, this-month, this-day) = decode-date(change.published);
+    let (this-year, this-month, this-day) = decode-date(change.date-published);
     let (last-year, last-month, last-day) = if (size(day) > 0)
-        decode-date(first(day).published);
+        decode-date(first(day).date-published);
       end if;
     if (empty?(day) | (last-year & 
      (last-year = this-year & last-month = this-month & last-day = this-day)))
@@ -153,7 +168,7 @@ end;
 define tag show-day-date in wiki (page :: <wiki-dsp>)
  (formatted :: <string>)
   if (*day*)
-    output("%s", format-date(formatted, first(*day*).published));
+    output("%s", format-date(formatted, first(*day*).date-published));
   end if;
 end;
 
@@ -161,7 +176,7 @@ define tag show-change-date in wiki
  (page :: <wiki-dsp>)
  (formatted :: <string>)
   if (*change*)
-    output("%s", format-date(formatted, *change*.published));
+    output("%s", format-date(formatted, *change*.date-published));
   end if;
 end;
 

@@ -5,8 +5,11 @@ define thread variable *user-username* = #f;
 
 // class
 
+define constant <wiki-user> = <user>;
+/*
 define class <wiki-user> (<user>)
 end;
+*/
 
 define wf/object-test (user) in wiki end;
 
@@ -32,12 +35,14 @@ in wiki end;
 // url
 
 define method permanent-link (user :: <wiki-user>, #key escaped?, full?)
- => (url :: <url>);
+ => (url :: <url>)
   user-permanent-link(user.username);
 end;
 
-define method user-permanent-link (username :: <string>) => (url :: <url>);
-  let location = parse-url(format-to-string("/users/%s", username));
+define method user-permanent-link
+    (username :: <string>)
+ => (url :: <url>)
+  let location = wiki-url("/users/%s", username);
   transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
@@ -48,10 +53,18 @@ end;
 
 // methods
 
+/*
+define method storage-type
+    (type == <wiki-user>)
+ => (type :: <type>)
+  <string-table>
+end;
+*/
+
 define method save-user
     (user-username :: <string>, user-password :: false-or(<string>), user-email :: <string>,
      #key comment :: <string> = "")
- => ();
+ => ()
   let user :: false-or(<wiki-user>) = find-user(user-username);
   let action :: <symbol> = #"edit";
   if (user)
@@ -114,21 +127,23 @@ end;
 
 // pages
 
-define variable *view-user-page* =
-  make(<wiki-dsp>, source: "view-user.dsp");
+define variable *view-user-page*
+  = make(<wiki-dsp>, source: "view-user.dsp");
 
-define variable *edit-user-page* = 
-  make(<wiki-dsp>, source: "edit-user.dsp");
+define variable *edit-user-page*
+  = make(<wiki-dsp>, source: "edit-user.dsp");
 
-define variable *list-users-page* =
-  make(<wiki-dsp>, source: "list-users.dsp");
+define variable *list-users-page*
+  = make(<wiki-dsp>, source: "list-users.dsp");
 
-define variable *remove-user-page* =
-  make(<wiki-dsp>, source: "remove-user.dsp");
+define variable *remove-user-page*
+  = make(<wiki-dsp>, source: "remove-user.dsp");
 
-define variable *non-existing-user-page* =
-  make(<wiki-dsp>, source: "non-existing-user.dsp");
+define variable *non-existing-user-page*
+  = make(<wiki-dsp>, source: "non-existing-user.dsp");
 
+define variable *login-page*
+  = make(<wiki-dsp>, source: "login.dsp");
 
 // actions
 
@@ -166,9 +181,7 @@ define method do-save-user (#key username)
   let errors = #();
   
   if (~instance?(username, <string>)
-      | username = ""
-      | ~instance?(new-username, <string>)
-      | new-username = "")
+      | username = "")
     errors := add!(errors, #"username");
   end if;
 

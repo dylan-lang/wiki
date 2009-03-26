@@ -2,9 +2,9 @@ module: wiki-internal
 
 define method do-feed ()
   let changes = sort(wiki-changes(), test: method (first, second)
-				             first.published > second.published
+				             first.date-published > second.date-published
 					   end);
-  let feed-updated = ~empty?(changes) & first(changes).published;
+  let feed-updated = ~empty?(changes) & first(changes).date-published;
   let feed-authors = #[];
   for (change in changes)
     for (author in change.authors)
@@ -33,8 +33,8 @@ define method generate-atom (change :: <wiki-change>, #key)
       title(change.title),
 //      do(do(method(x) collect(generate-atom(x)) end, entry.links)),
       id(build-uri(change-identifier(change))),
-      published(generate-atom(change.published)),
-      updated(generate-atom(change.published)),
+      published(generate-atom(change.date-published)),
+      updated(generate-atom(change.date-published)),
       do(if (author) generate-atom(author) end if),
 //      do(do(method(x) collect(generate-atom(x)) end, entry.contributors)),
       do(collect(generate-atom(change.comments[0].content)))
