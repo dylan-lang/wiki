@@ -1,27 +1,59 @@
-- tag cloud
+ACLs
+----
+
+two admin levels: admin, admin+
+admin has full privs for pages
+admin+ can do anything
+
+privs: change-privs,
+       read-user,
+       write-user,
+       delete-user,
+       
+general - change-privs
+pages - read/modify/delete
+      - everyone has create privs, with captcha
+      - rename requires delete privs
+users - read/modify/delete
+      - everyone has create privs, with captcha
+      - rename requires delete privs
+      - everyone can list user names, but "read" gives priv to 
+group - delete
+
+admin group can do anything
+page created: owned by creating user
+  
+
+Registration
+------------
+* Should have its own page
+* Should give error if no username entered
+* Should leave you logged in
+* Should put initial focus in password field
+
+- search widget not implemented
+  * advanced search
+- tag cloud (what's this?)
 - inline svg
- * connection graph
- * tags at bottom of page
-- document code
-- advanced search
-- microformats!
- * users
+  * connection graph
+  * tags at bottom of page
+- microformats! (what's this?)
+  * users
 - menu for user
 - hints in lists
 - icon for groups
 - icon for files
 - clean-up page menu
-- renaming users (?)
+- renaming users/groups/pages
 - atom feed
 - group authorization
- * macro
- * groups-read/-write
- * users-read/-write
+  * macro
+  * groups-read/-write
+  * users-read/-write
 - file upload
 - user page: edited pages
- * each page: list of versions
+  * each page: list of versions
 - page: authors
- * each user: list of versions  
+  * each user: list of versions  
 - 304 (not modified)
-  * compare request etag with
-    page version timestamp
+  * compare request etag with page version timestamp

@@ -57,7 +57,7 @@ define module wiki-internal
   use storage;
   use streams;
   use strings,
-    import: { index-of };
+    import: { trim };
   use substring-search;
   use table-extensions;
   use threads;

@@ -10,6 +10,9 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
       <h2>Search Results for <em><dsp:show-query-value name="query"/></em></h2>
+
+      <wiki:search-results/>
+
     </div>
   </div>		
   <%dsp:include url="footer.dsp"/>

@@ -44,6 +44,11 @@ define url-map on $wiki-http-server
     action (delete, post) ("^(?P<username>[^/]+)/remove$") =>
       do-remove-user;
 
+  url wiki-url("/register")
+    // For now the users page gives a way to create an account.
+    // Eventually the registration page should be more specialized.
+    action get () => *list-users-page*;
+
   url wiki-url("/pages")
     action get () => do-pages,
     action get ("^(?P<title>[^/]+)/?$") =>
@@ -96,8 +101,13 @@ define url-map on $wiki-http-server
     action (post, put) ("^(?P<name>[^/]+)/authorization$") =>
       do-save-group-authorization;
 
+/***** We'll use Google or Yahoo custom search, at least for a while
+  url wiki-url("/search")
+    action (get, post) () => $search-page;
+*/
+
   url wiki-url("/login")
-    action (get, post) () => login;
+    action (get, post) () => curry(login, realm: "dylan-wiki");
 
   url wiki-url("/logout")
     action (get, post) () => logout;

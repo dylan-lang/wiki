@@ -22,7 +22,7 @@
       <dsp:if test="group?">
         <dsp:else>
           <p class="hint">
-            This group doesn't exist. You can create it by entering the group's name below.
+            This group doesn't exist. Enter a comment and click Create to create it.
           </p>
         </dsp:else>
       </dsp:if>
@@ -33,7 +33,7 @@
               <li id="name-item">
                 <label id="name-label" for="name-input">Name: <em title="required">*</em></label>
                 <input id="name-input" type="text" name="name" value="<wiki:show-group-name/>"/>
-                <dsp:when test="name-error?"><span class="error">An name is required.</span></dsp:when>
+                <dsp:when test="name-error?"><span class="error">A name is required.</span></dsp:when>
                 <dsp:when test="exists-error?"><span class="error">There's already a group with this name.</span></dsp:when> 
               </li>
 	    </dsp:when>

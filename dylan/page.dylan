@@ -1,4 +1,4 @@
-module: wiki-internal
+Module: wiki-internal
 
 define thread variable *page-title* = #f;
 
@@ -324,9 +324,23 @@ define variable *page-connections-page* =
 define variable *page-authors-page* =
   make(<wiki-dsp>, source: "page-authors.dsp");
 
-define variable *search-page* =
-  make(<wiki-dsp>, source: "search-page.dsp");
+define variable *search-page*
+  = make(<wiki-dsp>, source: "search-page.dsp");
 
+/* something like this might be nice...
+define pages (page-class: <wiki-dsp>)
+  *view-page-page*          = "view-page.dsp",
+  *view-diff-page*          = "view-diff.dsp",
+  *edit-page-page*          = "edit-page.dsp",
+  *edit-page-access-page*   = "edit-page-access.dsp",
+  *remove-page-page*        = "remove-page.dsp",
+  *non-existing-page-page*  = "non-existing-page.dsp",
+  *list-page-versions-page* = "list-page-versions.dsp",
+  *list-pages-page*         = "list-pages.dsp",
+  *page-connections-page*   = "page-connections.dsp",
+  *page-authors-page*       = "page-authors.dsp",
+  *search-page*             = "search-results.dsp";
+*/
 
 // actions
 
@@ -665,3 +679,50 @@ define named-method page-changed? in wiki
     (page :: <wiki-dsp>)
   instance?(*change*, <wiki-page-change>)
 end;
+
+
+//// Search
+
+/***** We'll use Google or Yahoo custom search, at least for a while
+
+define class <search-page> (<wiki-dsp>)
+end;
+
+define constant $search-page
+  = make(<search-page>, source: "search-results.dsp");
+
+// Called when the search form is submitted.
+//
+define method respond-to-post
+    (page :: <search-page>)
+  with-query-values(query, search-type, search as search?, go as go?, redirect)
+    log-debug("query = %s, search-type = %s, search? = %s, go? = %s, redirect = %s",
+              query, search-type, search?, go?, redirect);
+    let query = trim(query);
+    if (empty?(query))
+      note-form-error("Please enter a search term.", field: "search-text");
+      process-template(page);
+    elseif (go?)
+      select (as(<symbol>, search-type))
+        #"page" => redirect-to(page-permanent-link(query));
+        #"user" => redirect-to(user-permanent-link(query));
+        #"group" => redirect-to(group-permanent-link(query));
+        //#"file" => redirect-to(file-permanent-link(query));
+        otherwise =>
+          // go to anything with the exact name given
+          let thing = find-user(query) | find-page(query)
+                        | find-group(query) /* | find-file(query) */ ;
+          if (thing)
+            redirect-to(permanent-link(thing));
+          else
+            note-form-error(format-to-string("%s not found", query),
+                            field: "search-text");
+            process-template(page);
+          end if;
+      end select;
+    end if;
+  end;
+end method respond-to-post;
+
+*/
+

@@ -359,3 +359,9 @@ span.object {
   margin: 0;
   padding: 0;
 }
+
+#cse-search-box div {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}

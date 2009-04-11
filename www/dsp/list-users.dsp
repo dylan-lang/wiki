@@ -10,7 +10,7 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
       <h2>Users</h2>
-      <form action="/users">
+      <form action="/users" method="post">
         <ul class="striped big">
           <li class="user">
             <input type="text" name="query" value=""/>

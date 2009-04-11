@@ -2,9 +2,9 @@
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
   <title>Dylan: <wiki:show-page-title/>
-    <dsp:if test="latest-page-version?">
-      <dsp:else>@ #<wiki:show-version-number/></dsp:else>
-    </dsp:if>
+    <dsp:unless test="latest-page-version?">
+      @ #<wiki:show-version-number/>
+    </dsp:unless>
   </title>
   <%dsp:include url="meta.dsp"/>
 </head>
@@ -34,9 +34,9 @@
     </div>
     <div id="body">
       <h2><wiki:show-page-title/>
-          <dsp:if test="latest-page-version?">
-	    <dsp:else><em>@ #<wiki:show-version-number/></em></dsp:else>
-          </dsp:if>
+          <dsp:unless test="latest-page-version?">
+	    <em>@ #<wiki:show-version-number/></em>
+          </dsp:unless>
       </h2>
       <wiki:show-page-content content-format="xhtml"/>
     </div>

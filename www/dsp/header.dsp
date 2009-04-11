@@ -6,11 +6,25 @@
   </h1>
 </a>
 <div id="search-user">
-  <form id="search-form" action="/" method="get">
+
+<form action="http://www.google.com/cse" id="cse-search-box">
+  <div>
+    <input type="hidden" name="cx" value="007351416707469336892:urro5q5ibho" />
+    <input type="hidden" name="ie" value="UTF-8" />
+    <input type="text" name="q" size="31" />
+    <input type="submit" name="sa" value="Search" />
+  </div>
+</form>
+
+<!-- We'll use Google custom search, at least for a while
+
+<script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
+
+  <form id="search-form" action="/search" method="get">
     <fieldset>
       <ol>
         <li>
-          <select name="type" size="1">
+          <select name="search-type" size="1">
 	    <option>*</option>
             <option selected="selected">Page</option>
 	    <option>User</option>
@@ -19,7 +33,7 @@
 	  </select>
 	</li>
         <li>
-          <input id="search-text" type="text" name="query" value=""/>
+          <input id="search-text" type="text" name="query" value="<dsp:get name="query" context="request"/>"/>
 	</li>
 	<li>
           <input type="submit" name="search" value="Search"/>
@@ -30,6 +44,8 @@
       </ol>
     </fieldset>
   </form>
+-->
+
   <div id="authenticated-user">
   <dsp:if test="authenticated?">
     <dsp:then>
@@ -43,7 +59,7 @@
     </dsp:then>
     <dsp:else>
       <span>
-        <a href="/users">register</a>
+        <a href="/register">register</a>
         &mdash;
         <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
       </span>

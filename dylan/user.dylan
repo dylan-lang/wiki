@@ -1,4 +1,4 @@
-module: wiki-internal
+Module: wiki-internal
 
 define thread variable *user-username* = #f;
 
@@ -171,53 +171,50 @@ define method show-edit-user (#key username)
   end;
 end method show-edit-user;
 
-define method do-save-user (#key username)
-  let username = percent-decode(username);
-  let new-username = get-query-value("username");
-  let password = get-query-value("password");
-  let email = get-query-value("email");
-  let user = find-user(username);
-  let comment = get-query-value("comment");
-  let errors = #();
-  
-  if (~instance?(username, <string>)
-      | username = "")
-    errors := add!(errors, #"username");
-  end if;
+define method do-save-user (#key username :: <string>)
+  with-query-values (username as new-username, password, email, comment)
+    let errors = #();
 
-  if (user)
-    // No password needed if user already logged in.
-    if (password = "")
-      password := #f;
+    let username = percent-decode(trim(username));
+    if (empty?(username))
+      errors := add!(errors, #"username");
     end if;
-  else
-    if (~ instance?(password, <string>) | password = "")
-      errors := add!(errors, #"password");
-    end if;
-  end if;
 
-  if (~ instance?(email, <string>) | email = "")
-    errors := add!(errors, #"email");
-  end if;
-
-  if (user & new-username & new-username ~= username & new-username ~= "")
-    if (find-user(new-username))
-      errors := add!(errors, #"exists");
+    let user = find-user(username);
+    if (user)
+      // No password needed if user already logged in.
+      if (password = "")
+        password := #f;
+      end if;
     else
-      username := new-username;
+      if (~ instance?(password, <string>) | password = "")
+        errors := add!(errors, #"password");
+      end if;
     end if;
-  end if;
 
-  if (empty?(errors))
-    save-user(username, password, email);
-    redirect-to(find-user(username));
-  else
-    current-request().request-query-values["password"] := "";
-    dynamic-bind (wf/*errors* = errors,
-                  wf/*form* = current-request().request-query-values)
-      respond-to(#"get", *edit-user-page*);
-    end;
-  end if;
+    if (~ instance?(email, <string>) | email = "")
+      errors := add!(errors, #"email");
+    end if;
+
+    if (user & new-username & new-username ~= username & new-username ~= "")
+      if (find-user(new-username))
+        errors := add!(errors, #"exists");
+      else
+        username := new-username;
+      end if;
+    end if;
+
+    if (empty?(errors))
+      save-user(username, password, email);
+      redirect-to(find-user(username));
+    else
+      current-request().request-query-values["password"] := "";
+      dynamic-bind (wf/*errors* = errors,
+                    wf/*form* = current-request().request-query-values)
+        respond-to(#"get", *edit-user-page*);
+      end;
+    end if;
+  end with-query-values;
 end method do-save-user;
 
 define method do-remove-user (#key username)
