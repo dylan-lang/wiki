@@ -147,10 +147,6 @@ define variable *login-page*
 
 // actions
 
-define method bind-user (#key username)
-  *user* := find-user(percent-decode(username));
-end;
-
 define method show-user (#key username)
   dynamic-bind (*user-username* = percent-decode(username),
                 *user* = find-user(*user-username*))
@@ -231,9 +227,11 @@ define method redirect-to-user-or (page :: <page>, #key username)
   end if;
 end;
 
-define constant show-remove-user
-  = curry(redirect-to-user-or, *remove-user-page*);
-
+define method show-remove-user (#key username :: <string>)
+  dynamic-bind(*user* = find-user(percent-decode(username)))
+    redirect-to-user-or(*remove-user-page*);
+  end;
+end;
 
 // tags
 

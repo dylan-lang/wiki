@@ -1,35 +1,17 @@
-ACLs
-----
-
-two admin levels: admin, admin+
-admin has full privs for pages
-admin+ can do anything
-
-privs: change-privs,
-       read-user,
-       write-user,
-       delete-user,
-       
-general - change-privs
-pages - read/modify/delete
-      - everyone has create privs, with captcha
-      - rename requires delete privs
-users - read/modify/delete
-      - everyone has create privs, with captcha
-      - rename requires delete privs
-      - everyone can list user names, but "read" gives priv to 
-group - delete
-
-admin group can do anything
-page created: owned by creating user
-  
-
 Registration
 ------------
 * Should have its own page
 * Should give error if no username entered
 * Should leave you logged in
 * Should put initial focus in password field
+
+Groups
+------
+* Show the owner
+* Only let the owner or admins edit members
+
+Other
+-----
 
 - search widget not implemented
   * advanced search
@@ -46,10 +28,6 @@ Registration
 - clean-up page menu
 - renaming users/groups/pages
 - atom feed
-- group authorization
-  * macro
-  * groups-read/-write
-  * users-read/-write
 - file upload
 - user page: edited pages
   * each page: list of versions

@@ -9,7 +9,7 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="menu"> 
-      <span>modify</span>
+      <span>menu</span>
       <ul>
 	<li>
 	  <a href="<wiki:show-page-permanent-link/>">view</a> | 
@@ -17,7 +17,7 @@
 	  <a href="<wiki:show-page-permanent-link/>/remove">remove</a>
 	</li>
 	<li><a href="<wiki:show-page-permanent-link/>/versions">versions</a></li>
-	<dsp:if test="page-discussion?">
+	<dsp:if test="is-discussion-page?">
 	  <dsp:then>
 	    <li><a href="<wiki:show-page-page-permanent-link/>">page</a></li>
 	  </dsp:then>

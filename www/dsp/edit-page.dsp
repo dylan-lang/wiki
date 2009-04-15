@@ -10,7 +10,7 @@
     <%dsp:include url="navigation.dsp"/>
     <dsp:when test="page?">
       <div id="menu"> 
-  	<span>modify</span>
+  	<span>menu</span>
     	<ul>
      	  <li>
 	    <a href="<wiki:show-page-permanent-link/>">view</a> |
@@ -18,7 +18,7 @@
 	  </li>
 	  <li><a href="<wiki:show-page-permanent-link/>/versions">versions</a></li>
 	  <li><a href="<wiki:show-page-permanent-link/>/connections">connections</a></li>
-          <dsp:if test="page-discussion?">
+          <dsp:if test="is-discussion-page?">
 	    <dsp:then>
 	      <li><a href="<wiki:show-page-page-permanent-link/>">page</a></li>
 	    </dsp:then>
@@ -33,6 +33,9 @@
     <div id="body">
       <h2><wiki:show-page-title/></h2>
       <dsp:if test="page?">
+        <dsp:then>
+          (Owned by <wiki:show-page-owner/>)
+        </dsp:then>
         <dsp:else>
           <p class="hint">
             This page doesn't exist. You can create it by writing the page's content below.

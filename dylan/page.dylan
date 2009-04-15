@@ -2,14 +2,15 @@ Module: wiki-internal
 
 define thread variable *page-title* = #f;
 
-
 // Represents a user-editable wiki page that will be stored by web-framework.
 // Not to be confused with <wiki-dsp>, which is a DSP maintained in our
 // source code tree.
 //
 define class <wiki-page> (<versioned-object>, <entry>)
-  slot allowed-editors :: type-union(<boolean>, <sequence>) = #t,
-    init-keyword: allowed-editors:;
+  slot page-owner :: <wiki-user>,
+    required-init-keyword: owner:;
+  slot access-controls :: <sequence> = #[],
+    init-keyword: access-controls:;
 end;
 
 define wf/object-tests
@@ -92,23 +93,32 @@ end;
 define method save-page
     (title :: <string>, content :: <string>, 
      #key comment :: <string> = "", tags :: false-or(<sequence>))
- => ();
+ => ()
   let page :: false-or(<wiki-page>) = find-page(title);
   let action :: <symbol> = #"edit";
-  unless (page)
-    page := make(<wiki-page>, title: title);
+  let active-user :: <wiki-user> = authenticated-user();
+  if (page)
+    if (~has-permission?(active-user, page, $modify-content))
+      // temporary
+      error("%s has no permission to edit this page", active-user.username);
+    end;
+  else
+    page := make(<wiki-page>,
+                 title: title,
+                 owner: active-user);
     action := #"add";
   end;
   let version-number :: <integer> = size(page.versions) + 1;
   if (version-number = 1 | (content ~= page.latest-text) | tags ~= page.latest-tags)
     let version = make(<wiki-page-version>,
                        content: make(<raw-content>, content: content),
-                       authors: list(authenticated-user()),
+                       authors: list(active-user),
                        version: version-number,
                        page: page,
 		       categories: tags & as(<vector>, tags));
-    let comment = make(<comment>, name: as(<string>, action),
-                       authors: list(authenticated-user().username),
+    let comment = make(<comment>,
+                       name: as(<string>, action),
+                       authors: list(active-user.username),
                        content: make(<raw-content>, content: comment));
     version.comments[0] := comment;
     version.references := extract-references(version);
@@ -120,7 +130,7 @@ define method save-page
                       title: title,
                       version: version-number, 
                       action: action,
-                      authors: list(authenticated-user().username));
+                      authors: list(active-user.username));
     change.comments[0] := comment;
     save(page);
     save(change);
@@ -261,11 +271,11 @@ define method permitted? (action == #"edit-page", #key)
 end;
 */
 
-define function discussion?
+define method discussion-page?
     (page :: <wiki-page>)
- => (is-discussion? :: <boolean>);
-  let (matched?, discussion, title) =
-    regex-search-strings("(Discussion: )(.*)", page.title);
+ => (is? :: <boolean>)
+  let (matched?, discussion, title)
+    = regex-search-strings("(Discussion: )(.*)", page.title);
   matched? = #t;
 end;
 
@@ -489,10 +499,11 @@ define tag show-page-permanent-link in wiki
   end;
 end;
 
+// rename to main-page-permalink or something
 define tag show-page-page-permanent-link in wiki 
     (page :: <wiki-dsp>)
     ()
-  if (*page* & discussion?(*page*)) 
+  if (*page* & discussion-page?(*page*)) 
     let link = permanent-link(*page*);
     last(link.uri-path) := regex-replace(last(link.uri-path), "^Discussion: ", "");
     output("%s", link);
@@ -519,6 +530,14 @@ define tag show-page-title in wiki
                           else
                             ""
                           end if));
+end;
+
+define tag show-page-owner in wiki
+    (page :: <wiki-dsp>)
+    ()
+  if (*page*)
+    output("%s", escape-xml(*page*.page-owner.username))
+  end;
 end;
 
 define tag show-page-content in wiki
@@ -659,25 +678,37 @@ end;
 
 // named methods
 
-define named-method page-discussion? in wiki
+define named-method is-discussion-page? in wiki
     (page :: <wiki-dsp>)
-  *page* & discussion?(*page*);
+  *page* & discussion-page?(*page*);
 end;
 
 define named-method latest-page-version? in wiki
     (page :: <wiki-dsp>)
-  if (*page*)
-    if (*version*) 
-      *page*.versions.last = *version*
-    else
-      #t
-    end if;
-  end if;
+  *page* & (~*version* | *page*.versions.last = *version*)
 end;
 
 define named-method page-changed? in wiki
     (page :: <wiki-dsp>)
   instance?(*change*, <wiki-page-change>)
+end;
+
+define named-method can-modify-content? in wiki
+    (page :: <wiki-dsp>)
+  let user :: false-or(<user>) = authenticated-user();
+  *page* & has-permission?(user, *page*, $modify-content)
+end;
+
+define named-method can-view-content? in wiki
+    (page :: <wiki-dsp>)
+  let user :: false-or(<user>) = authenticated-user();
+  *page* & has-permission?(user, *page*, $view-content)
+end;
+
+define named-method can-modify-access? in wiki
+    (page :: <wiki-dsp>)
+  let user :: false-or(<user>) = authenticated-user();
+  *page* & has-permission?(user, *page*, $modify-acl)
 end;
 
 

@@ -81,5 +81,18 @@ define module wiki-internal
 
   use graphviz-renderer,
     prefix: "gvr/";
-end module wiki-internal;
 
+  // Exports are intended for the test suite
+  export
+
+    // ACLs
+    $view-content,
+    $modify-content,
+    $modify-acl,
+    $default-access-control,
+    has-permission?,
+    
+    <wiki-user>,
+    <wiki-page>;
+
+end module wiki-internal;

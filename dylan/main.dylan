@@ -21,6 +21,10 @@ end method process-config-element;
 
 define constant $wiki-http-server = make(<http-server>);
 
+// todo -- get rid of all these bind-* calls.  They leave variables bound
+//         in the server thread when they shouldn't be, since the threads
+//         get re-used for multiple requests.
+
 define url-map on $wiki-http-server
   url wiki-url("/recent-changes")
     action get () => *recent-changes-page*,
@@ -40,7 +44,7 @@ define url-map on $wiki-http-server
     action (post, put) ("^(?P<username>[^/]+)$") =>
       do-save-user,
     action get ("^(?P<username>[^/]+)/remove$") =>
-      (bind-user, show-remove-user),
+      show-remove-user,
     action (delete, post) ("^(?P<username>[^/]+)/remove$") =>
       do-remove-user;
 
@@ -94,12 +98,7 @@ define url-map on $wiki-http-server
     action get ("^(?P<name>[^/]+)/members$") =>
       (bind-group, edit-group-members),
     action (post, put) ("^(?P<name>[^/]+)/members$") =>
-      do-save-group-members,
-    // authorization
-    action get ("^(?P<name>[^/]+)/authorization$") =>
-      (bind-group, edit-group-authorization),
-    action (post, put) ("^(?P<name>[^/]+)/authorization$") =>
-      do-save-group-authorization;
+      do-save-group-members;
 
 /***** We'll use Google or Yahoo custom search, at least for a while
   url wiki-url("/search")

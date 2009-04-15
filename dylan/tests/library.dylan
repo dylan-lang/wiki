@@ -1,7 +1,8 @@
-module: dylan-user
+Module: dylan-user
 
 define library wiki-test-suite
   use common-dylan;
+  use system;
   use testworks;
   use wiki;
 
@@ -10,6 +11,10 @@ end library wiki-test-suite;
 
 define module wiki-test-suite
   use common-dylan;
+  use locators,
+    import: { <file-locator>, locator-name };
+  use operating-system,
+    import: { application-name };
   use testworks;
   use wiki-internal;
 

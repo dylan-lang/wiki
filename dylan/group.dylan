@@ -1,4 +1,4 @@
-module: wiki-internal
+Module: wiki-internal
 
 define thread variable *group-name* = #f;
 
@@ -8,10 +8,10 @@ define thread variable *group-name* = #f;
 define class <wiki-group> (<object>) 
   slot group-name :: <string>,
     required-init-keyword: name:;
+  slot group-owner :: <wiki-user>,
+    required-init-keyword: owner:;
   slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
     init-keyword: members:;
-  slot group-authorization :: <table> = default-group-authorization(),
-    init-keyword: authorization:;
 end;
 
 define wf/object-test (group) in wiki end;
@@ -24,32 +24,6 @@ in wiki end;
 */
 
 define wf/error-test (name) in wiki end;
-
-/*
-define group-authorizations
- (pages-write = #f, 
-  pages-read = #t)
-end;
-
-=>
-*/
-
-define method default-group-authorization ()
- => (authorization :: <table>);
-  table(#"pages-write" => #f,
-	#"pages-read" => #t);
-end;
-
-define named-method group-authorization-pages-write? in wiki
-    (page :: <wiki-dsp>)
-  *group* & *group*.group-authorization[#"pages-write"]
-end;
-
-define named-method group-authorization-pages-read? in wiki
-    (page :: <wiki-dsp>)
-  *group* & *group*.group-authorization[#"pages-read"]
-end;
-
 
 // verbs
 
@@ -146,7 +120,9 @@ define method save-group
   let group :: false-or(<wiki-group>) = find-group(name);
   let action :: <symbol> = #"edit";
   if (~group)
-    group := make(<wiki-group>, name: name);
+    group := make(<wiki-group>,
+                  name: name,
+                  owner: authenticated-user());
     action := #"add";
   end if;
   save-change(<wiki-group-change>, name, action, comment);
@@ -203,9 +179,6 @@ define variable *edit-group-page* =
 
 define variable *edit-group-members-page* = 
   make(<wiki-dsp>, source: "edit-group-members.dsp");
-
-define variable *edit-group-authorization-page* =
-  make(<wiki-dsp>, source: "edit-group-authorization.dsp");
 
 define variable *list-groups-page* =
   make(<wiki-dsp>, source: "list-groups.dsp");
@@ -275,22 +248,6 @@ define method do-save-group-members (#key name)
   redirect-to(request-url(current-request()));
 end method do-save-group-members;
 
-define method do-save-group-authorization (#key name)
-  let name = percent-decode(name);
-  let comment = get-query-value("comment");
-  let group = find-group(name);
-  if (group)
-    for (default keyed-by name in default-group-authorization())
-      let value = get-query-value(as(<string>, name));
-      group.group-authorization[name] := (value ~= #f);
-    end for;
-  end if;
-  save-change(<wiki-group-change>, name, #"edit", comment);
-  save(group);
-  dump-data();
-  redirect-to(request-url(current-request()));
-end method do-save-group-authorization;
-
 define method do-save-group (#key name)
   let name = percent-decode(name);
   let new-name = get-query-value("name");
@@ -341,9 +298,6 @@ end;
 define constant edit-group-members =
   curry(redirect-to-group-or, *edit-group-members-page*);
 
-define constant edit-group-authorization =
-  curry(redirect-to-group-or, *edit-group-authorization-page*);
-
 define constant show-remove-group =
   curry(redirect-to-group-or, *remove-group-page*);
 
@@ -375,8 +329,8 @@ end;
 // body tags 
 
 define body tag list-groups in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   let groups = storage(<wiki-group>);
   for (group in groups)
     dynamic-bind(*group* = group)
@@ -386,8 +340,8 @@ define body tag list-groups in wiki
 end;
 
 define body tag list-group-members in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*group*)
     for (user in *group*.group-members)
       dynamic-bind(*user* = user)
