@@ -8,28 +8,7 @@
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
-    <dsp:when test="page?">
-      <div id="menu"> 
-  	<span>menu</span>
-    	<ul>
-     	  <li>
-	    <a href="<wiki:show-page-permanent-link/>">view</a> |
-	    <a href="<wiki:show-page-permanent-link/>/remove">remove</a>
-	  </li>
-	  <li><a href="<wiki:show-page-permanent-link/>/versions">versions</a></li>
-	  <li><a href="<wiki:show-page-permanent-link/>/connections">connections</a></li>
-          <dsp:if test="is-discussion-page?">
-	    <dsp:then>
-	      <li><a href="<wiki:show-page-page-permanent-link/>">page</a></li>
-	    </dsp:then>
-	    <dsp:else>
-	      <li><a href="<wiki:show-page-discussion-permanent-link/>">discussion</a></li>
-	    </dsp:else>
-	  </dsp:if>
-	  <li><a href="<wiki:show-page-permanent-link/>/access">access</a></li>
-        </ul>
-      </div>
-    </dsp:when>
+    <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <h2><wiki:show-page-title/></h2>
       <dsp:if test="page?">
