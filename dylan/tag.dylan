@@ -1,4 +1,4 @@
-module: wiki-internal
+Module: wiki-internal
 
 define wf/object-test (tag) in wiki end;
 
@@ -10,21 +10,21 @@ define function extract-tags
 end;
 
 define tag show-tag in wiki
- (page :: <wiki-dsp>)
- ()
+    (page :: <wiki-dsp>)
+    ()
   if (*tag*)
     output("%s", escape-xml(*tag*));
   end if;
 end;
 
 define named-method query-tagged? in wiki
- (page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   get-query-value("tagged");
 end;
 
 define body tag list-query-tags in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   let tagged = get-query-value("tagged");
   if (instance?(tagged, <string>))
     for (tag in extract-tags(tagged))

@@ -9,7 +9,7 @@ define thread variable *page-title* = #f;
 define class <wiki-page> (<versioned-object>, <entry>)
   slot page-owner :: <wiki-user>,
     required-init-keyword: owner:;
-  slot access-controls :: <sequence> = #[],
+  slot access-controls :: <acls> = $default-access-controls,
     init-keyword: access-controls:;
 end;
 
@@ -304,53 +304,36 @@ end;
 
 // pages
 
-define variable *view-page-page* = 
-  make(<wiki-dsp>, source: "view-page.dsp");
+define constant $view-page-page
+  = make(<wiki-dsp>, source: "view-page.dsp");
 
-define variable *view-diff-page* = 
-  make(<wiki-dsp>, source: "view-diff.dsp");
+define constant $view-diff-page
+  = make(<wiki-dsp>, source: "view-diff.dsp");
 
-define variable *edit-page-page* = 
-  make(<wiki-dsp>, source: "edit-page.dsp");
+define constant $edit-page-page
+  = make(<wiki-dsp>, source: "edit-page.dsp");
 
-define variable *edit-page-access-page* =
-  make(<wiki-dsp>, source: "edit-page-access.dsp");
+define constant $remove-page-page
+  = make (<wiki-dsp>, source: "remove-page.dsp");
 
-define variable *remove-page-page* = 
-  make (<wiki-dsp>, source: "remove-page.dsp");
+define constant $non-existing-page-page
+  = make(<wiki-dsp>, source: "non-existing-page.dsp");
 
-define variable *non-existing-page-page* =
-  make(<wiki-dsp>, source: "non-existing-page.dsp");
+define constant $list-page-versions-page
+  = make(<wiki-dsp>, source: "list-page-versions.dsp");
 
-define variable *list-page-versions-page* = 
-  make(<wiki-dsp>, source: "list-page-versions.dsp");
+define constant $list-pages-page
+  = make(<wiki-dsp>, source: "list-pages.dsp");
 
-define variable *list-pages-page* =
-  make(<wiki-dsp>, source: "list-pages.dsp");
+define constant $page-connections-page
+  = make(<wiki-dsp>, source: "page-connections.dsp");
 
-define variable *page-connections-page* =
-  make(<wiki-dsp>, source: "page-connections.dsp");
+define constant $page-authors-page
+  = make(<wiki-dsp>, source: "page-authors.dsp");
 
-define variable *page-authors-page* =
-  make(<wiki-dsp>, source: "page-authors.dsp");
-
-define variable *search-page*
+define constant $search-page
   = make(<wiki-dsp>, source: "search-page.dsp");
 
-/* something like this might be nice...
-define pages (page-class: <wiki-dsp>)
-  *view-page-page*          = "view-page.dsp",
-  *view-diff-page*          = "view-diff.dsp",
-  *edit-page-page*          = "edit-page.dsp",
-  *edit-page-access-page*   = "edit-page-access.dsp",
-  *remove-page-page*        = "remove-page.dsp",
-  *non-existing-page-page*  = "non-existing-page.dsp",
-  *list-page-versions-page* = "list-page-versions.dsp",
-  *list-pages-page*         = "list-pages.dsp",
-  *page-connections-page*   = "page-connections.dsp",
-  *page-authors-page*       = "page-authors.dsp",
-  *search-page*             = "search-results.dsp";
-*/
 
 // actions
 
@@ -359,51 +342,45 @@ define method do-pages ()
     get-query-value("go") => 
       redirect-to(page-permanent-link(get-query-value("query")));
     otherwise => 
-      process-page(*list-pages-page*);
+      process-page($list-pages-page);
   end;
 end;
 
-define method do-save-page (#key title)
+define method do-save-page (#key title :: <string>)
   let title = percent-decode(title);
-  let new-title = get-query-value("title");
-  let content = get-query-value("content");
-  let comment = get-query-value("comment");
-  let tags = get-query-value("tags");
   let page = find-page(title);
-
-  tags := if (instance?(tags, <string>))
-            extract-tags(tags)
-          else 
-            vector()
-          end if;
-
-  let errors = #();
-
-  if (~ instance?(title, <string>)
-        | title = ""
-        | (new-title & (~ instance?(new-title, <string>) | new-title = "")))
-    errors := add!(errors, #"title");
-  end if;
-
-  if (page & new-title & new-title ~= title & new-title ~= "")
-    if (find-page(new-title))
-      errors := add!(errors, #"exists");
-    else
-      rename-page(page, new-title, comment: comment);
-      title := new-title;
-    end if;
-  end if;
-
-  if (empty?(errors))
-    save-page(title, content | "", comment: comment, tags: tags);
-    redirect-to(find-page(title));
+  if (~page)
+    // Do something better here.  Need an actual error message.
+    redirect-to($non-existing-page-page);
   else
-    dynamic-bind (wf/*errors* = errors,
-                  wf/*form* = current-request().request-query-values)
-      respond-to(#"get", *edit-page-page*);
+    // maybe add a way to specify arguments to with-query-values, like
+    // with-query-values (foo, bar) (trim: #t) ... end
+    with-query-values (title as new-title, content, comment, tags)
+      let errors = #();
+      let tags = iff(tags, extract-tags(tags), #[]);
+      let new-title = new-title & trim(new-title);
+      if (new-title & ~empty?(new-title) & new-title ~= title)
+        // todo -- potential race conditions here.  Should really lock the old and
+        //         new pages around the find-page and rename-page. Low priority now.
+        if (find-page(new-title))
+          errors := add!(errors, #"exists");
+        else
+          title := new-title;
+          rename-page(page, new-title, comment: comment);
+        end;
+      end;
+      if (empty?(errors))
+        save-page(title, content | "", comment: comment, tags: tags);
+        redirect-to(find-page(title));
+      else
+        dynamic-bind (wf/*errors* = errors,
+                      wf/*form* = current-request().request-query-values)
+          respond-to-get($edit-page-page);
+        end;
+      end if;
     end;
   end if;
-end;
+end method do-save-page;
 
 define method do-remove-page (#key title)
   let page = find-page(percent-decode(title));
@@ -411,80 +388,83 @@ define method do-remove-page (#key title)
   redirect-to(page);
 end;
 
-define method bind-page (#key title)
-  *page* := find-page(percent-decode(title));
-end;
-
-define method show-page (#key title, version)
-  let version = if (version)
-      element(*page*.versions, string-to-integer(version) - 1, default: #f);
-    end if;
-  dynamic-bind (*version* = version,
-                *page-title* = percent-decode(title))
-    respond-to(#"get", case
-                         *page* => *view-page-page*;
-                         authenticated-user() => *edit-page-page*;
-                         otherwise => *non-existing-page-page*;
-                       end case);
+define method show-page (#key title :: <string>, version)
+  let title = percent-decode(title);
+  let page = find-page(title);
+  let version = if (page & version)
+                  element(page.versions, string-to-integer(version) - 1, default: #f);
+                end if;
+  dynamic-bind (*page* = page,
+                *version* = version,
+                *page-title* = title)
+    respond-to-get(case
+                     *page* => $view-page-page;
+                     authenticated-user() => $edit-page-page;
+                     otherwise => $non-existing-page-page;
+                   end);
   end;
 end method show-page;
 
 define method show-edit-page (#key title)
-  dynamic-bind (*page-title* = percent-decode(title))
-    respond-to(#"get", case
-                         authenticated-user() => *edit-page-page*;
-                         otherwise => *non-existing-page-page*;
-                       end case); 
+  dynamic-bind (*page-title* = percent-decode(title),
+                *page* = find-page(*page-title*))
+    respond-to-get(case
+                     authenticated-user() => $edit-page-page;
+                     otherwise => $non-existing-page-page;
+                   end case); 
   end;
 end method show-edit-page;
 
-define method show-page-versions-differences (#key title, a, b)
-  let version :: false-or(<wiki-page-version>)
-    = block ()
-        if (a)
-          element(*page*.versions, string-to-integer(a) - 1, default: #f);
+define method show-page-versions-differences (#key title :: <string>, a, b)
+  dynamic-bind (*page* = find-page(percent-decode(title)))
+    let version :: false-or(<wiki-page-version>)
+      = block ()
+          if (a)
+            element(*page*.versions, string-to-integer(a) - 1, default: #f);
+          end;
+        exception (<error>)
+          #f
         end;
-      exception (<error>)
-        #f
-      end;
-  let other-version :: false-or(<wiki-page-version>)
-    = block ()
-        if (version & instance?(b, <string>))
-          element(*page*.versions, string-to-integer(b) - 1, default: #f);
-        elseif (version)
-          element(*page*.versions, version.version-number - 2, default: #f);
+    let other-version :: false-or(<wiki-page-version>)
+      = block ()
+          if (version & instance?(b, <string>))
+            element(*page*.versions, string-to-integer(b) - 1, default: #f);
+          elseif (version)
+            element(*page*.versions, version.version-number - 2, default: #f);
+          end;
+        exception (<error>)
+          #f
         end;
-      exception (<error>)
-        #f
-      end;
-  dynamic-bind(*version* = version,
-               *other-version* = other-version)
-    respond-to(#"get", *view-diff-page*);
+    dynamic-bind(*version* = version,
+                 *other-version* = other-version)
+      respond-to-get($view-diff-page);
+    end;
   end;
 end method show-page-versions-differences;
 
-define method redirect-to-page-or (page :: <page>, #key title)
-  if (*page*)
-    respond-to(#"get", page);
-  else
-    redirect-to(page-permanent-link(percent-decode(title)));
-  end if;
-end;
+define method redirect-to-page-or
+    (page :: <page>, #key title :: <string>)
+  let title = percent-decode(title);
+  dynamic-bind (*page* = find-page(title))
+    if (*page*)
+      respond-to-get(page);
+    else
+      redirect-to(page-permanent-link(title));
+    end if;
+  end;
+end method redirect-to-page-or;
 
 define constant show-page-versions =
-  curry(redirect-to-page-or, *list-page-versions-page*);
+  curry(redirect-to-page-or, $list-page-versions-page);
 
 define constant show-page-connections =
-  curry(redirect-to-page-or, *page-connections-page*);
+  curry(redirect-to-page-or, $page-connections-page);
 
 define constant show-page-authors =
-  curry(redirect-to-page-or, *page-authors-page*);
+  curry(redirect-to-page-or, $page-authors-page);
 
 define constant show-remove-page =
-  curry(redirect-to-page-or, *remove-page-page*);
-
-define constant show-page-access =
-  curry(redirect-to-page-or, *edit-page-access-page*);
+  curry(redirect-to-page-or, $remove-page-page);
 
 
 // tags
@@ -693,23 +673,6 @@ define named-method page-changed? in wiki
   instance?(*change*, <wiki-page-change>)
 end;
 
-define named-method can-modify-content? in wiki
-    (page :: <wiki-dsp>)
-  let user :: false-or(<user>) = authenticated-user();
-  *page* & has-permission?(user, *page*, $modify-content)
-end;
-
-define named-method can-view-content? in wiki
-    (page :: <wiki-dsp>)
-  let user :: false-or(<user>) = authenticated-user();
-  *page* & has-permission?(user, *page*, $view-content)
-end;
-
-define named-method can-modify-access? in wiki
-    (page :: <wiki-dsp>)
-  let user :: false-or(<user>) = authenticated-user();
-  *page* & has-permission?(user, *page*, $modify-acl)
-end;
 
 
 //// Search

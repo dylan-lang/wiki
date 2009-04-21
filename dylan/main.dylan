@@ -1,4 +1,4 @@
-module: wiki-internal
+Module: wiki-internal
 
 
 define function sort-table
@@ -56,31 +56,31 @@ define url-map on $wiki-http-server
   url wiki-url("/pages")
     action get () => do-pages,
     action get ("^(?P<title>[^/]+)/?$") =>
-      (bind-page, show-page),
+      show-page,
     action get ("^(?P<title>[^/]+)/edit$") =>
-      (bind-page, show-edit-page),
-    action (post, put) ("^(?P<title>[^/]+)(/(edit)?)?$") =>
+      show-edit-page,
+    action post ("^(?P<title>[^/]+)(/(edit)?)?$") =>
       do-save-page,
     action get ("^(?P<title>[^/]+)/remove$") =>
-      (bind-page, show-remove-page),
+      show-remove-page,
     action (delete, post) ("^(?P<title>[^/]+)/remove$") =>
       do-remove-page,
-   // versions
+    // versions
     action get ("^(?P<title>[^/]+)/versions$") => 
-      (bind-page, show-page-versions),
+      show-page-versions,
     action get ("^(?P<title>[^/]+)/versions/(?P<version>\\d+)$") =>
-      (bind-page, show-page),
+      show-page,
     action get ("^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$") => 
-      (bind-page, show-page-versions-differences),
+      show-page-versions-differences,
     // connections
     action get ("^(?P<title>[^/]+)/connections$") => 
-      (bind-page, show-page-connections),
+      show-page-connections,
     // authors
     action get ("^(?P<title>[^/]+)/authors$") =>
-      (bind-page, show-page-authors),
+      show-page-authors,
     // access
-    action get ("^(?P<title>[^/]+)/access") =>
-      (bind-page, show-page-access);
+    action (get, post) ("^(?P<title>[^/]+)/access") =>
+      $edit-access-page;
 
   url wiki-url("/groups")
     action get () => do-groups,

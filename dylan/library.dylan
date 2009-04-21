@@ -86,13 +86,14 @@ define module wiki-internal
   export
 
     // ACLs
-    $view-content,
-    $modify-content,
-    $modify-acl,
-    $default-access-control,
+    <acls>,
+    $view-content, $modify-content, $modify-acls,
+    $anyone, $trusted, $owner,
+    $default-access-controls,
     has-permission?,
     
     <wiki-user>,
     <wiki-page>;
 
 end module wiki-internal;
+

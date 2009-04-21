@@ -19,7 +19,14 @@
 	    <em>@ #<wiki:show-version-number/></em>
           </dsp:unless>
       </h2>
-      <wiki:show-page-content content-format="xhtml"/>
+      <dsp:if test="can-view-content?">
+        <dsp:then>
+          <wiki:show-page-content content-format="xhtml"/>
+        </dsp:then>
+        <dsp:else>
+          You do not have permission to view this page.
+        </dsp:else>
+      </dsp:if>
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>
