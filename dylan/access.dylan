@@ -256,7 +256,7 @@ define method respond-to-get
     (acls-page :: <acls-page>, #key title :: <string>)
   let wiki-page = find-page(percent-decode(title));
   if (wiki-page)
-    set-attribute(page-context(), #"owner-name", wiki-page.page-owner.username);
+    set-attribute(page-context(), "owner-name", wiki-page.page-owner.username);
     dynamic-bind (*page* = wiki-page)
       next-method()
     end;

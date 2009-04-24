@@ -202,7 +202,7 @@ define tag show-change-author in wiki (page :: <wiki-dsp>)
 end;
 
 define tag show-change-verb in wiki (page :: <wiki-dsp>)
- ()
+    ()
   if (*change*)
     output("%s", *change-verbs*[*change*.object-class][*change*.change-action]);
   end if;

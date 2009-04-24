@@ -85,20 +85,14 @@ define url-map on $wiki-http-server
   url wiki-url("/groups")
     action get () => do-groups,
     action get ("^(?P<name>[^/]+)/?$") =>
-      (bind-group, show-group),
-    action get ("^(?P<name>[^/]+)/edit$") =>
-      (bind-group, show-edit-group),
-    action (post, put) ("^(?P<name>[^/]+)(/(edit)?)?$") =>
-      do-save-group,
-    action get ("^(?P<name>[^/]+)/remove$") =>
-      (bind-group, show-remove-group),
-    action (delete, post) ("^(?P<name>[^/]+)/remove$") =>
-      do-remove-group,
+      $view-group-page,
+    action (get, post) ("^(?P<name>[^/]+)/edit$") =>
+      $edit-group-page,
+    action (get, post) ("^(?P<name>[^/]+)/remove$") =>
+      $remove-group-page,
     // members
-    action get ("^(?P<name>[^/]+)/members$") =>
-      (bind-group, edit-group-members),
-    action (post, put) ("^(?P<name>[^/]+)/members$") =>
-      do-save-group-members;
+    action (get, post) ("^(?P<name>[^/]+)/members$") =>
+      $edit-group-members-page;
 
 /***** We'll use Google or Yahoo custom search, at least for a while
   url wiki-url("/search")

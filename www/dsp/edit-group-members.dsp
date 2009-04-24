@@ -34,9 +34,11 @@
 	      </td>
               <td id="members-item">
                 <select id="members-list" name="members" multiple="multiple">
-                  <wiki:list-group-members>
-	            <option><wiki:show-user-username/></option>
-	          </wiki:list-group-members>
+                  <dsp:loop over="group-member-names" var="user-name">
+                    <dsp:when test="loop-first?"><ul></dsp:when>
+                      <li><dsp:get name="user-name" context="page"/></li>
+                    <dsp:when test="loop-last?"></ul></dsp:when>
+                  </dsp:loop>
 	        </select>
               </td>
 	    </tr>
