@@ -65,17 +65,36 @@ define constant $anyone = #"anyone";
 define constant $trusted = #"trusted";
 define constant $owner = #"owner";
 
-define constant <acl-target> //:: <type>
+// The compiler barfs on this when I uncomment things.
+//
+define constant <rule-target> //:: <type>
   = type-union(<symbol>, //one-of($anyone, $trusted, $owner),
                <wiki-user>,
                <wiki-group>);
 
+define class <rule> (<object>)
+  constant slot rule-action :: one-of(allow:, deny:),
+    required-init-keyword: action:;
+  constant slot rule-target :: <rule-target>,
+    required-init-keyword: target:;
+end;
+
+// temp, for debugging dood problem
+define constant $acls-lock :: <simple-lock> = make(<simple-lock>);
+
 define class <acls> (<object>)
-  constant slot view-content-rules :: <sequence> = #(),
+  // Must hold this lock before modifying the the values in any
+  // of the other slots.
+  //constant slot acls-lock :: <simple-lock> = make(<simple-lock>);
+
+  // The following are sequences of <rule>, but limited collections
+  // are too broken to use in my experience. :-(
+
+  slot view-content-rules :: <sequence> = #(),
     init-keyword: view-content:;
-  constant slot modify-content-rules :: <sequence> = #(),
+  slot modify-content-rules :: <sequence> = #(),
     init-keyword: modify-content:;
-  constant slot modify-acls-rules :: <sequence> = #(),
+  slot modify-acls-rules :: <sequence> = #(),
     init-keyword: modify-acls:;
 end class <acls>;
 
@@ -91,39 +110,34 @@ define method make
         #())
 end method make;
 
-define method initialize
-    (acls :: <acls>, #key)
-  do(validate-acl-rule, acls.view-content-rules);
-  do(validate-acl-rule, acls.modify-content-rules);
-  do(validate-acl-rule, acls.modify-acls-rules);
-end method initialize;
-
-define function validate-acl-rule (rule)
-  assert(instance?(rule, <sequence>),
-         "Invalid ACL rule, %s, must be a sequence.", rule);
-  assert(rule.size = 2,
-         "Invalid ACL, %s, must be a two element sequence.", rule);
-  let (action, target) = apply(values, rule);
-  assert(member?(action, #(allow:, deny:)),
-         "Invalid ACL action: %s must be allow: or deny:.", action);
-  assert(instance?(target, <acl-target>), "Invalid ACL target: %s", target);
-end function validate-acl-rule;
+define method remove-rules-for-target
+    (acls :: <acls>, target :: <rule-target>)
+  local method not-for-target (rule)
+          rule.rule-target ~= target
+        end;
+  with-lock ($acls-lock /* acls.acls-lock */)
+    acls.view-content-rules := choose(not-for-target, acls.view-content-rules);
+    acls.modify-content-rules := choose(not-for-target, acls.modify-content-rules);
+    acls.modify-acls-rules := choose(not-for-target, acls.modify-acls-rules);
+  end;
+end method remove-rules-for-target;
 
 // Default access controls applied to pages that don't otherwise specify
 // any ACLs.  (But admins are omnipotent.)
 //
 define constant $default-access-controls
   = make(<acls>,
-         view-content: list(list(allow:, $anyone)),
-         modify-content: list(list(allow:, $trusted)),
-         modify-acls: list(list(allow:, $owner)));
+         view-content: list(make(<rule>, action: allow:, target: $anyone)),
+         modify-content: list(make(<rule>, action: allow:, target: $trusted)),
+         modify-acls: list(make(<rule>, action: allow:, target: $owner)));
 
 define method has-permission?
     (user :: false-or(<user>),
-     page :: <wiki-page>,
+     page :: false-or(<wiki-page>),
      requested-operation :: <acl-operation>)
  => (has-permission? :: <boolean>)
   // If user is #f then they're not logged in.
+  // If page is #f then it's a new page being created.
 
   // Admins can do anything for now.  Eventually it may be useful to have
   // two levels of admins: those who can modify any content and those who
@@ -136,10 +150,12 @@ define method has-permission?
   // for the owner to accidentally lock him/herself out, and it could generate
   // a lot of admin requests.
 
-  if (user & (administrator?(user) | page.page-owner = user))
+  if (user & (~page | administrator?(user) | page.page-owner = user))
     #t
   else
-    let acls :: <acls> = page.access-controls;
+    let acls :: <acls> = iff(page,
+                             page.access-controls,
+                             $default-access-controls);
     let rules :: <sequence> = select (requested-operation)
                                 $view-content => acls.view-content-rules;
                                 $modify-content => acls.modify-content-rules;
@@ -147,13 +163,14 @@ define method has-permission?
                               end;
     block (return)
       for (rule in rules)
-        let (action, target) = apply(values, rule);
+        let action = rule.rule-action;
+        let target = rule.rule-target;
         // First match wins
         if (target = $anyone
               | (user
                    & (target = user
                         | (target = $trusted & user = authenticated-user())
-                        | (target = $owner & page.page-owner = user)
+                        | (target = $owner & page & page.page-owner = user)
                         | (instance?(target, <wiki-group>)
                              & member?(user, target.group-members)))))
           return(action = allow:)
@@ -189,14 +206,14 @@ define method parse-rules
          error?)
 end method parse-rules;
 
-// Return two values: a parsed rule rule like #(deny:, <user cgay>) and
-// whether or not there were any errors.  If there is an error, such as
-// group not found, include #(original-rule, error-message) for the erring
-// rule.
+// Return two values: a parsed rule and whether or not there were any errors.
+// If there is an error, such as group not found, include
+// #(original-rule, error-message) for the erring rule.  (This is crufty and
+// should be improved.)
 //
 define method parse-rule
     (rule :: <string>)
- => (rule :: false-or(<sequence>), errors? :: <boolean>)
+ => (rule, errors? :: <boolean>)
   let rule = trim(rule);
   let action = allow:;
   if (rule.size > 0)
@@ -206,13 +223,13 @@ define method parse-rule
     end;
     if (rule.size > 0)
       select (as-lowercase(rule) by \=)
-        "trusted" => list(action, $trusted);
-        "anyone" => list(action, $anyone);
-        "owner" => list(action, $owner);
+        "trusted" => make(<rule>, action: action, target: $trusted);
+        "anyone" => make(<rule>, action: action, target: $anyone);
+        "owner" => make(<rule>, action: action, target: $owner);
         otherwise =>
           let target = find-user(rule) | find-group(rule);
           if (target)
-            list(action, target)
+            make(<rule>, action: action, target: target)
           else
             let msg = format-to-string("No user or group named %s was found.",
                                        rule);
@@ -232,8 +249,9 @@ define method unparse-rules
 end;
 
 define method unparse-rule
-    (rule :: <sequence>) => (rule :: <string>)
-  let (action, target) = apply(values, rule);
+    (rule :: <rule>) => (rule :: <string>)
+  let action = rule.rule-action;
+  let target = rule.rule-target;
   concatenate(select (action)
                 allow: => "";
                 deny:  => "!";
@@ -274,16 +292,30 @@ end method respond-to-get;
 define method respond-to-post
     (acls-page :: <acls-page>, #key title :: <string>)
   let wiki-page = find-page(percent-decode(title));
-  with-query-values (view-content, modify-content, modify-acls, comment)
+  if (~wiki-page)
+    // Someone used an old URL or typed it in by hand...
+    resource-not-found-error(url: request-url(current-request()));
+  end;
+  with-query-values (view-content, modify-content, modify-acls, comment, owner)
+    let owner = trim(owner);
+    let new-owner = ~empty?(owner) & find-user(owner);
+    let owner-err? = ~empty?(owner) & ~new-owner;
+
     let (vc-rules, vc-err?) = parse-rules(view-content);
     let (mc-rules, mc-err?) = parse-rules(modify-content);
     let (ma-rules, ma-err?) = parse-rules(modify-acls);
-    if (vc-err? | mc-err? | ma-err?)
+
+    if (owner-err? | vc-err? | mc-err? | ma-err?)
+      if (owner-err?)
+        note-form-error("Cannot set owner to %s; user not found.",
+                        format-arguments: list(owner),
+                        field-name: "owner");
+      end;        
       local method note-errors (rules, field-name)
               for (rule in rules)
-                let (action, target) = apply(values, rule);
-                if (~member?(action, #(allow:, deny:)))
-                  note-form-error(target, field-name: field-name)
+                if (~instance?(rule, <rule>))
+                  let (rule, msg) = apply(values, rule);
+                  note-form-error(msg, field-name: field-name)
                 end;
               end;
             end;
@@ -294,6 +326,11 @@ define method respond-to-post
         respond-to-get(acls-page, title: title);
       end;
     else
+      // todo -- Probably should save a <wiki-change> of some sort.
+      //         I haven't figured out what the Master Plan was yet.
+      if (new-owner & new-owner ~= wiki-page.page-owner)
+        wiki-page.page-owner := new-owner;
+      end;
       wiki-page.access-controls := make(<acls>,
                                         view-content: vc-rules,
                                         modify-content: mc-rules,
@@ -318,17 +355,17 @@ define tag show-rules in wiki
 end;
 
 define named-method can-view-content? in wiki
-    (acls-page :: <acls-page>)
+    (acls-page :: <wiki-dsp>)
   has-permission?(authenticated-user(), *page*, $view-content)
 end;
 
 define named-method can-modify-content? in wiki
-    (acls-page :: <acls-page>)
+    (page :: <wiki-dsp>)
   has-permission?(authenticated-user(), *page*, $modify-content)
 end;
 
 define named-method can-modify-acls? in wiki
-    (acls-page :: <acls-page>)
+    (acls-page :: <wiki-dsp>)
   has-permission?(authenticated-user(), *page*, $modify-acls)
 end;
 

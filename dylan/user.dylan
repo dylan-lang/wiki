@@ -11,6 +11,9 @@ define class <wiki-user> (<user>)
 end;
 */
 
+// This is set in main.dylan, via the config file.
+define variable *admin-user* :: false-or(<wiki-user>) = #f;
+
 define wf/object-test (user) in wiki end;
 
 /*
@@ -26,7 +29,7 @@ in wiki end;
 
 // verbs
 
-*change-verbs*[<wiki-user-change>] :=
+$change-verbs[<wiki-user-change>] :=
   table(#"edit" => "edited",
 	#"removal" => "removed",
 	#"add" => "registered");
@@ -63,8 +66,8 @@ end;
 
 define method save-user
     (user-username :: <string>, user-password :: false-or(<string>), user-email :: <string>,
-     #key comment :: <string> = "")
- => ()
+     #key comment :: <string> = "", administrator?)
+ => (user :: <wiki-user>)
   let user :: false-or(<wiki-user>) = find-user(user-username);
   let action :: <symbol> = #"edit";
   if (user)
@@ -86,6 +89,7 @@ define method save-user
                        end if);
   save(user);
   dump-data();
+  user
 end method save-user;
 
 define generic rename-user
@@ -115,34 +119,45 @@ define method rename-user
   dump-data();
 end method rename-user;
 
+// todo -- MAKE THREAD SAFE
 define method remove-user
-    (user :: <wiki-user>,
-     #key comment :: <string> = "")
+    (user :: <wiki-user>, #key comment :: <string> = "")
  => ()
-  save-change(<wiki-user-change>, user.username, #"removal", comment);
   remove-key!(storage(<wiki-user>), user.username);
+  let message = "Automatic change due to user removal.";
+  for (group in groups-owned-by-user(user))
+    group.group-owner := *admin-user*;
+    save-change(<wiki-user-change>,
+                user.username, #"remove-group-owner", message)
+  end;
+  for (group in user-groups(user))
+    group.group-members := remove!(group.group-members, user);
+    save-change(<wiki-user-change>,
+                user.username, #"remove-group-member", message);
+  end;
+  save-change(<wiki-user-change>, user.username, #"removal", comment);
   dump-data();
 end;
 
 
 // pages
 
-define variable *view-user-page*
+define constant $view-user-page
   = make(<wiki-dsp>, source: "view-user.dsp");
 
-define variable *edit-user-page*
+define constant $edit-user-page
   = make(<wiki-dsp>, source: "edit-user.dsp");
 
-define variable *list-users-page*
+define constant $list-users-page
   = make(<wiki-dsp>, source: "list-users.dsp");
 
-define variable *remove-user-page*
+define constant $remove-user-page
   = make(<wiki-dsp>, source: "remove-user.dsp");
 
-define variable *non-existing-user-page*
+define constant $non-existing-user-page
   = make(<wiki-dsp>, source: "non-existing-user.dsp");
 
-define variable *login-page*
+define constant $login-page
   = make(<wiki-dsp>, source: "login.dsp");
 
 // actions
@@ -150,20 +165,22 @@ define variable *login-page*
 define method show-user (#key username)
   dynamic-bind (*user-username* = percent-decode(username),
                 *user* = find-user(*user-username*))
-    respond-to(#"get", case
-                         *user* => *view-user-page*;
-                         otherwise => *edit-user-page*;
-                       end);
+    // This call to process-page feels hackish.  It's here specifically so that
+    // *page-context* is bound, but we shouldn't have to worry about that!
+    process-page(case
+                   *user* => $view-user-page;
+                   otherwise => $edit-user-page;
+                 end);
   end;
 end method show-user;
 
 define method show-edit-user (#key username)
   dynamic-bind (*user-username* = percent-decode(username),
                 *user* = find-user(*user-username*))
-    respond-to(#"get", case
-	                 *user* => *edit-user-page*;
-			 otherwise => *non-existing-user-page*;
-                       end case);
+    respond-to-get(case
+                     *user* => $edit-user-page;
+                     otherwise => $non-existing-user-page;
+                   end);
   end;
 end method show-edit-user;
 
@@ -207,7 +224,7 @@ define method do-save-user (#key username :: <string>)
       current-request().request-query-values["password"] := "";
       dynamic-bind (wf/*errors* = errors,
                     wf/*form* = current-request().request-query-values)
-        respond-to(#"get", *edit-user-page*);
+        respond-to(#"get", $edit-user-page);
       end;
     end if;
   end with-query-values;
@@ -229,7 +246,7 @@ end;
 
 define method show-remove-user (#key username :: <string>)
   dynamic-bind(*user* = find-user(percent-decode(username)))
-    redirect-to-user-or(*remove-user-page*);
+    redirect-to-user-or($remove-user-page);
   end;
 end;
 
@@ -316,3 +333,35 @@ end;
 define named-method user-changed? in wiki (page :: <wiki-dsp>)  
   instance?(*change*, <wiki-user-change>);
 end;
+
+define named-method logged-in? in wiki
+    (page :: <wiki-dsp>)
+  authenticated-user() ~= #f
+end;
+
+define named-method admin? in wiki (page :: <wiki-dsp>)
+  *user* & administrator?(*user*)
+end;
+
+define named-method user-group-names in wiki (page :: <wiki-dsp>)
+  if (*user*)
+    sort(map(group-name, user-groups(*user*)))
+  else
+    #[]
+  end;
+end;
+
+define named-method group-names-owned-by-user in wiki (page :: <wiki-dsp>)
+  if (*user*)
+    sort(map(group-name, groups-owned-by-user(*user*)))
+  else
+    #[]
+  end;
+end;
+
+define named-method can-modify-user?
+    (page :: <wiki-dsp>)
+  let user = authenticated-user();
+  user & (administrator?(user) | user = *user*)
+end;
+

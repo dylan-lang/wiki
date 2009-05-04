@@ -8,9 +8,9 @@
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
-    <%dsp:include url="options-menu.dsp"/>
+    <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">
-      <h2><wiki:show-page-title/></h2>
+      <h2>Remove group '<wiki:show-group-name/>'</h2>
       <form action="" method="post">
 	<fieldset>
           <ol>
@@ -20,7 +20,7 @@
             </li>
           </ol>
         </fieldset>        	
-        <input type="submit" value="Remove '<wiki:show-page-title/>'"/>  
+        <input type="submit" value="Remove Group"/>
       </form>
     </div>
   </div>

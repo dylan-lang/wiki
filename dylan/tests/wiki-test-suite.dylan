@@ -36,30 +36,33 @@ end;
 // Tests the default access controls for a <wiki-page>.
 //
 define test test-default-access-controls ()
-  let page = make-page("test-default-access-controls", $default-access-controls);
-  let test-data =
-    list(list("not-logged-in can view content",   #t, #f, $view-content),
-         list("not-logged-in can modify content", #f, #f, $modify-content),
-         list("not-logged-in can modify ACLs",    #f, #f, $modify-acls),
-         
-         list("owner can view content",   #t, $owner-user, $view-content),
-         list("owner can modify content", #t, $owner-user, $modify-content),
-         list("owner can modify ACLs",    #t, $owner-user, $modify-acls),
-         
-         list("vanilla user can view content",   #t, $plain-user, $view-content),
-         list("vanilla user can modify content", #t, $plain-user, $modify-content),
-         list("vanilla user can modify ACLs",    #f, $plain-user, $modify-acls),
-         
-         list("admin user can view content",   #t, $admin-user, $view-content),
-         list("admin user can modify content", #t, $admin-user, $modify-content),
-         list("admin user can modify ACLs",    #t, $admin-user, $modify-acls));
+  for (page in list(#f,  // #f is for new pages being created
+                    make-page("test-default-access-controls",
+                              $default-access-controls)))
+    let test-data =
+      list(list("not-logged-in can view content",   #t, #f, $view-content),
+           list("not-logged-in can modify content", #f, #f, $modify-content),
+           list("not-logged-in can modify ACLs",    #f, #f, $modify-acls),
 
-  for (item in test-data)
-    let (check-name, expected-result, user, acl-operation) = apply(values, item);
-    check-equal(check-name,
-                expected-result,
-                has-permission?(user, page, acl-operation));
-  end;
+           list("owner can view content",   #t, $owner-user, $view-content),
+           list("owner can modify content", #t, $owner-user, $modify-content),
+           list("owner can modify ACLs",    #t, $owner-user, $modify-acls),
+
+           list("vanilla user can view content",   #t, $plain-user, $view-content),
+           list("vanilla user can modify content", #t, $plain-user, $modify-content),
+           list("vanilla user can modify ACLs",    #f, $plain-user, $modify-acls),
+
+           list("admin user can view content",   #t, $admin-user, $view-content),
+           list("admin user can modify content", #t, $admin-user, $modify-content),
+           list("admin user can modify ACLs",    #t, $admin-user, $modify-acls));
+
+    for (item in test-data)
+      let (check-name, expected-result, user, acl-operation) = apply(values, item);
+      check-equal(format-to-string("%s (page = %s)", check-name, page),
+                  expected-result,
+                  has-permission?(user, page, acl-operation));
+    end for;
+  end for;
 end test test-default-access-controls;
 
 // Verify that if no rule matches access is denied.

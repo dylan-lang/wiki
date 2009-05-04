@@ -12,17 +12,16 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">               
-      <h2>Access Control for <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
-
       <dsp:show-form-notes/>
-
+      <h2>Access Control for <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
       <dsp:if test="can-view-content?">
         <dsp:then>
           <form action="" method="post">
 
             <p/>
-            Owner: <input id="owner-input" type="text" name="owner" width="20"
-                          value="<dsp:get name="owner-name" context="page"/>"/>
+            <label id="owner-label" for="owner-input">Owner:</label>
+            <input id="owner-input" type="text" name="owner" width="20"
+                   value="<dsp:get name="owner-name" context="page"/>"/>
             <p/>
             <table border="0">
               <tr>
@@ -43,6 +42,14 @@
                 </td>
               </tr>
             </table>
+
+            Enter user names, group names, or one of the three
+            special rules: <em>owner</em>, <em>trusted</em> (i.e.,
+            must be logged in), or <em>anyone</em>.  Enter one per
+            line.  Precede any rule with ! to deny access to that
+            target.
+
+            <p/>
             <label id="comment-label" for="comment-input">Comment:</label>
             <input id="comment-input" type="text" name="comment" value="" width="50"/>
             <p/>

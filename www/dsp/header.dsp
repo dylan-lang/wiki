@@ -16,7 +16,8 @@
   </div>
 </form>
 
-<!-- We'll use Google custom search, at least for a while
+<dsp:comment>
+We'll use Google custom search, at least for a while
 
 <script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
 
@@ -44,7 +45,8 @@
       </ol>
     </fieldset>
   </form>
--->
+
+</dsp:comment>
 
   <div id="authenticated-user">
   <dsp:if test="authenticated?">

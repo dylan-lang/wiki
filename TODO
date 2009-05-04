@@ -1,5 +1,34 @@
+General
+-------
+* MAKE THREAD SAFE -- basically anything like removing a user, which
+  modifies multiple objects, may have race conditions.  Needs careful
+  thought.
+* Convert specialized tags to use <dsp:loop> and improve <dsp:loop>
+  as needed.
+* navigation.dsp should be able to include wiki pages so that it can
+  be customizable on a per-site and/or per-user basis.
+* i18n
+
+Tags
+----
+
+* The way news items are implemented (by adding a special tag) means
+  that anyone can add a news item.  Probably just add a set of
+  reserved tags in the config file.  (Reserved for admins, I guess.)
+  Not worth generalizing the ACLs stuff to tags, I think.
+
+Users
+-----
+* Show the email address if the user him/herself is viewing the page.
+* When an admin is editing a user, allow them to make the user an admin.
+  (This is where the two levels of admin could come into play.)
+* Support a full name attribute.
+* Have a "home" wiki page for each user.  similar to twiki
+
 Registration
 ------------
+* Validate email addresses by sending to them and not enabling the
+  account until verified.
 * Should have its own page
 * Should give error if no username entered
 * Should leave you logged in
@@ -7,8 +36,21 @@ Registration
 
 Groups
 ------
-* Show the options menu
-* Only let the owner or admins edit members
+* Remove group from any ACLs upon deletion, and display list of pages whos
+  ACLs will be affected.  Bonus points: say whether removing the group will
+  make it so that no one (other than an admin and the owner) has access to
+  a page.
+* Show "This group has no members" if true.
+* Combine editing attributes and group members onto one page.  This requires
+  javascript to do it right, i.e. not require a POST for each member change.
+
+Pages
+-----
+* Conflict detection (multiple overlapping edits)
+* improve display of tags.  maybe put to the right of the title.
+* looks like page versions aren't quite correct yet.
+  e.g., do they always show the latest tags?
+* should be a way to include other pages inline.
 
 Other
 -----
@@ -18,14 +60,12 @@ Other
 - tag cloud (what's this?)
 - inline svg
   * connection graph
-  * tags at bottom of page
 - microformats! (what's this?)
   * users
 - menu for user
 - hints in lists
 - icon for groups
 - icon for files
-- clean-up page menu
 - renaming users/groups/pages
 - atom feed
 - file upload

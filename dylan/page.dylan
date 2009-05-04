@@ -29,7 +29,7 @@ define wf/error-test (title) in wiki end;
 
 // verbs
 
-*change-verbs*[<wiki-page-change>] := 
+$change-verbs[<wiki-page-change>] := 
   table(#"edit" => "edited",
 	#"removal" => "removed",
 	#"renaming" => "renamed",
@@ -289,13 +289,13 @@ define function redirect-content?
   values(content, title);
 end;
 
-define inline-only method latest-text
+define method latest-text
     (page :: <wiki-page>)
  => (text :: <string>);
   page.versions.last.content.content
 end;
 
-define inline-only method latest-tags
+define method latest-tags
     (page :: <wiki-page>)
  => (tags :: <sequence>);
   page.versions.last.categories
@@ -335,8 +335,6 @@ define constant $search-page
   = make(<wiki-dsp>, source: "search-page.dsp");
 
 
-// actions
-
 define method do-pages ()
   case
     get-query-value("go") => 
@@ -349,37 +347,33 @@ end;
 define method do-save-page (#key title :: <string>)
   let title = percent-decode(title);
   let page = find-page(title);
-  if (~page)
-    // Do something better here.  Need an actual error message.
-    redirect-to($non-existing-page-page);
-  else
-    // maybe add a way to specify arguments to with-query-values, like
-    // with-query-values (foo, bar) (trim: #t) ... end
-    with-query-values (title as new-title, content, comment, tags)
-      let errors = #();
-      let tags = iff(tags, extract-tags(tags), #[]);
-      let new-title = new-title & trim(new-title);
-      if (new-title & ~empty?(new-title) & new-title ~= title)
-        // todo -- potential race conditions here.  Should really lock the old and
-        //         new pages around the find-page and rename-page. Low priority now.
-        if (find-page(new-title))
-          errors := add!(errors, #"exists");
-        else
-          title := new-title;
-          rename-page(page, new-title, comment: comment);
-        end;
-      end;
-      if (empty?(errors))
-        save-page(title, content | "", comment: comment, tags: tags);
-        redirect-to(find-page(title));
+  with-query-values (title as new-title, content, comment, tags)
+    let errors = #();
+    let tags = iff(tags, extract-tags(tags), #[]);
+    let new-title = new-title & trim(new-title);
+
+    // Handle page renaming.
+    // todo -- potential race conditions here.  Should really lock the old and
+    //         new pages around the find-page and rename-page. Low priority now.
+    if (new-title & ~empty?(new-title) & new-title ~= title)
+      if (find-page(new-title))
+        errors := add!(errors, #"exists");
       else
-        dynamic-bind (wf/*errors* = errors,
-                      wf/*form* = current-request().request-query-values)
-          respond-to-get($edit-page-page);
-        end;
-      end if;
+        title := new-title;
+        rename-page(page, new-title, comment: comment);
+      end;
     end;
-  end if;
+
+    if (empty?(errors))
+      save-page(title, content | "", comment: comment, tags: tags);
+      redirect-to(find-page(title));
+    else
+      dynamic-bind (wf/*errors* = errors,
+                    wf/*form* = current-request().request-query-values)
+        respond-to-get($edit-page-page);
+      end;
+    end if;
+  end;
 end method do-save-page;
 
 define method do-remove-page (#key title)
@@ -397,11 +391,13 @@ define method show-page (#key title :: <string>, version)
   dynamic-bind (*page* = page,
                 *version* = version,
                 *page-title* = title)
-    respond-to-get(case
-                     *page* => $view-page-page;
-                     authenticated-user() => $edit-page-page;
-                     otherwise => $non-existing-page-page;
-                   end);
+    // This call to process-page feels hackish.  It's here specifically so that
+    // *page-context* is bound, but we shouldn't have to worry about that!
+    process-page(case
+                   *page* => $view-page-page;
+                   authenticated-user() => $edit-page-page;
+                   otherwise => $non-existing-page-page;
+                 end);
   end;
 end method show-page;
 
@@ -563,6 +559,8 @@ define body tag list-page-tags in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
   if (*page*)
+    // Is it correct to be using the tags from the newest page version?
+    // At least this DSP tag should be called show-latest-page-tags ...
     for (tag in latest-tags(*page*))
       dynamic-bind(*tag* = tag)
         do-body();
@@ -585,6 +583,34 @@ define body tag list-page-versions in wiki
   end if;
 end;
 
+define method find-pages
+    (#key tags :: <sequence> = #[],  // strings
+          order-by :: false-or(<symbol>))
+ => (pages :: <sequence>)
+   let pages = map-as(<vector>, identity, storage(<wiki-page>));
+   if (~empty?(tags))
+     pages := choose(method (page)
+                       every?(rcurry(member?, page.versions.last.categories,
+                                     test:, \=),
+                              tags)
+                     end,
+                     pages);
+   end;
+   if (order-by)
+     pages := sort(pages, test: method (p1, p2)
+                                  p1.date-published > p2.date-published
+                                end);
+   end;
+   pages
+end method find-pages;
+
+define named-method all-page-titles
+    (page :: <wiki-dsp>)
+  map(title, find-pages())
+end;
+
+// This is only used is main.dsp now, and only for news.
+// May want to make a special one for news instead.
 define body tag list-pages in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     (tags :: false-or(<string>),
@@ -596,26 +622,8 @@ define body tag list-pages in wiki
            elseif (tags)
              extract-tags(tags);
            end if;
-   let pages = if (order-by)
-                 sort-table(storage(<wiki-page>),
-                            select (sort by \=)
-                              "published" => date-published;
-                              otherwise => date-published;
-                            end);
-               else
-                 map-as(<vector>, identity, storage(<wiki-page>));
-               end if;
-   let tagged-pages = if (tags)
-                        choose(method (page)
-                                 every?(rcurry(member?, page.versions.last.categories,
-                                               test:, \=),
-                                        tags)
-                               end,
-                               pages);
-                      else
-                        pages
-                      end if;
-  for (page in tagged-pages)
+  for (page in find-pages(tags: tags | #[],
+                          order-by: order-by & as(<symbol>, order-by)))
     dynamic-bind(*page* = page)
       do-body();
     end;
@@ -673,6 +681,11 @@ define named-method page-changed? in wiki
   instance?(*change*, <wiki-page-change>)
 end;
 
+define named-method page-tags in wiki
+    (page :: <wiki-dsp>)
+  // todo -- show tags for the specific page version being displayed!
+  *page* & sort(*page*.latest-tags) | #[]
+end;
 
 
 //// Search

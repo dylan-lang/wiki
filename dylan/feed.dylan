@@ -1,9 +1,11 @@
-module: wiki-internal
+Module: wiki-internal
 
+// Responder for /recent-changes/feed
 define method do-feed ()
-  let changes = sort(wiki-changes(), test: method (first, second)
-				             first.date-published > second.date-published
-					   end);
+  let changes = sort(wiki-changes(),
+                     test: method (change1, change2)
+                             change1.date-published > change2.date-published
+                           end);
   let feed-updated = ~empty?(changes) & first(changes).date-published;
   let feed-authors = #[];
   for (change in changes)
@@ -12,7 +14,8 @@ define method do-feed ()
     end for;
   end for;
   let feed = make(<feed>,
-                  generator: $generator,
+                  generator: make(<generator>,
+                                  text: "wiki", version: "0.1", uri: ""),
                   title: "TITLE",
                   subtitle: "SUBTITLE",
                   updated: feed-updated | current-date(),

@@ -1,20 +1,14 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-   <title>Dylan: <wiki:show-group-name/></title>
+  <title>Dylan: <wiki:show-group-name/></title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
-    <div id="menu"> 
-      <span>edit</span>
-      <ul>
-	<li><a href="<wiki:show-group-permanent-link/>">properties</a></li>
-        <li><a href="<wiki:show-group-permanent-link/>/authorization">authorization</a></li>
-      </ul>
-    </div>
+    <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">               
       <h2>Members of <a href="<wiki:show-group-permanent-link/>"><wiki:show-group-name/></a></h2>
       <form action="members" method="post">
@@ -34,10 +28,8 @@
 	      </td>
               <td id="members-item">
                 <select id="members-list" name="members" multiple="multiple">
-                  <dsp:loop over="group-member-names" var="user-name">
-                    <dsp:when test="loop-first?"><ul></dsp:when>
-                      <li><dsp:get name="user-name" context="page"/></li>
-                    <dsp:when test="loop-last?"></ul></dsp:when>
+                  <dsp:loop over="group-member-names" var="user-name" header="<ul>" footer="</ul>">
+                    <option><dsp:get name="user-name" context="page"/></option>
                   </dsp:loop>
 	        </select>
               </td>

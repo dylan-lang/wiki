@@ -8,15 +8,9 @@
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
-    <dsp:when test="group?">
-      <div id="menu"> 
-        <span>edit</span>
-        <ul>
-          <li><a href="<wiki:show-group-permanent-link/>/members">members</a></li>
-        </ul>
-      </div> 
-    </dsp:when>
+    <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">               
+      <dsp:show-form-notes/>
       <h2><wiki:show-group-name/></h2>
       <dsp:unless test="group?">
         <p class="hint">

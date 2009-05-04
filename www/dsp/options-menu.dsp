@@ -22,7 +22,7 @@
 	    <li><a href="<wiki:show-page-discussion-permanent-link/>">discussion</a></li>
           </dsp:else>
 	</dsp:if>
-        <dsp:when test="can-modify-access?">
+        <dsp:when test="can-modify-acls?">
           <li><a href="<wiki:show-page-permanent-link/>/access">access</a></li>
         </dsp:when>
       </ul>

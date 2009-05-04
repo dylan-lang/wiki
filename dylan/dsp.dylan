@@ -6,5 +6,6 @@ define taglib wiki () end;
 // with <wiki-page>, which is a user-editable wiki page stored in the database
 // by web-framework.
 //
-define class <wiki-dsp> (<dylan-server-page>) end;
+define class <wiki-dsp> (<dylan-server-page>)
+end;
 

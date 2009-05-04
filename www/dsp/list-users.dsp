@@ -13,12 +13,15 @@
       <form action="/users" method="post">
         <ul class="striped big">
           <li class="user">
-            <input type="text" name="query" value=""/>
+            <input type="text" name="user-name" value=""/>
             <input type="submit" name="go" value="Create"/>
           </li>
           <wiki:list-users>
             <li class="user">
               <a href="<wiki:show-user-permanent-link/>"><wiki:show-user-username/></a>
+              <dsp:when test="admin?">
+                (administrator)
+              </dsp:when>
             </li>
           </wiki:list-users>
         </ul>

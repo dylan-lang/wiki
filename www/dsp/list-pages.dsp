@@ -23,11 +23,20 @@
             <input type="text" name="query" value=""/>
             <input type="submit" name="go" value="Create"/>
           </li>
+          <dsp:loop over="all-page-titles" var="page-title">
+            <li class="page">
+              <a href="/pages/<dsp:get name="page-title" context="page"/>"><dsp:get name="page-title" context="page"/></a>
+            </li>
+          </dsp:loop>
+
+<dsp:comment>            
           <wiki:list-pages use-query-tags="true">
             <li class="page">
               <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a>
             </li>
           </wiki:list-pages>
+</dsp:comment>            
+
         </ul>
       </form>
     </div>

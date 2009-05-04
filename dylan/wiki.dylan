@@ -10,11 +10,7 @@ define function wiki-url
                         apply(format-to-string, format-string, format-args)))
 end;  
 
-// generator  (nice comment!  i bet this generates something...)
-define constant $generator :: <generator> =
-  make(<generator>, text: "wiki", version: "0.1", uri: "");
-
-define variable *change-verbs* = make(<table>);
+define variable $change-verbs = make(<table>);
 
 define wf/object-tests (day, change) in wiki end;
 
@@ -39,14 +35,19 @@ define class <wiki-change> (<entry>)
     required-init-keyword: action:;
 end;
 
-define class <wiki-user-change> (<wiki-change>) end;
+define class <wiki-user-change> (<wiki-change>)
+end;
 
 define class <wiki-page-change> (<wiki-change>)
   slot change-version :: <integer> = 0,
     init-keyword: version:;
 end;
 
-define class <wiki-group-change> (<wiki-change>) end;
+define class <wiki-group-change> (<wiki-change>)
+end;
+
+define class <wiki-acls-change> (<wiki-change>)
+end;
 
 // If authors: is not provided then the current authenticate user is used
 // or an error is signalled if there is no authenticated user.
@@ -63,7 +64,7 @@ define method save-change
       unauthorized-error();
     end;
   end;
-    
+
   let change = make(class, title: title, action: action, authors: authors);
   change.comments[0] := make(<comment>,
                              name: as(<string>, action),
@@ -104,12 +105,12 @@ define tag show-version-comment in wiki
   end if;
 end;
 
-define variable *recent-changes-page* =
-  make(<wiki-dsp>, source: "list-recent-changes.dsp");
+define constant $recent-changes-page
+  = make(<wiki-dsp>, source: "list-recent-changes.dsp");
 
 define method wiki-changes
     ()
- => (changes :: <sequence>);
+ => (changes :: <sequence>)
   let change-types = list(<wiki-user-change>, <wiki-page-change>, <wiki-group-change>);
   apply(concatenate,
         map(curry(map-as, <vector>, identity),
@@ -204,7 +205,7 @@ end;
 define tag show-change-verb in wiki (page :: <wiki-dsp>)
     ()
   if (*change*)
-    output("%s", *change-verbs*[*change*.object-class][*change*.change-action]);
+    output("%s", $change-verbs[*change*.object-class][*change*.change-action]);
   end if;
 end;
 
@@ -228,12 +229,12 @@ define sideways method permission-error (action, #key)
 end;
 
 define sideways method authentication-error (action, #key)
-  respond-to(#"get", *not-logged-in-page*);
+  respond-to(#"get", $not-logged-in-page);
 end;
 
-define variable *main-page* =
-  make(<wiki-dsp>, source: "main.dsp");
+define constant $main-page
+  = make(<wiki-dsp>, source: "main.dsp");
 
-define variable *not-logged-in-page* =
-  make(<wiki-dsp>, source: "not-logged-in.dsp");
+define constant $not-logged-in-page
+  = make(<wiki-dsp>, source: "not-logged-in.dsp");
 

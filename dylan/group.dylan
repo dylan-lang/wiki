@@ -16,13 +16,18 @@ define class <wiki-group> (<object>)
     required-init-keyword: name:;
   slot group-owner :: <wiki-user>,
     required-init-keyword: owner:;
-  constant slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
+  slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
     init-keyword: members:;
   /* todo
   slot group-description :: <string>,
     init-keyword: description:;
   */
 end class <wiki-group>;
+
+define method initialize
+    (group :: <wiki-group>, #key)
+  add-new!(group.group-members, group.group-owner);
+end;
 
 // This is pretty restrictive for now.  Easier to loosen the rules later
 // than to tighten them up.
@@ -38,7 +43,7 @@ end method validate-group-name;
 // Must come up with a simpler, more general way to handle form errors...
 define wf/error-test (name) in wiki end;
 
-*change-verbs*[<wiki-group-change>]
+$change-verbs[<wiki-group-change>]
   := table(#"edit" => "edited",
            #"removal" => "removed",
            #"add" => "added",
@@ -90,6 +95,26 @@ define method find-group
   element(storage(<wiki-group>), name, default: #f)
 end;
 
+// Find all groups that a user is a member of.
+//
+define method user-groups
+    (user :: <wiki-user>)
+ => (groups :: <collection>)
+  choose(method (group)
+           member?(user, group.group-members)
+         end,
+         table-values(storage(<wiki-group>)))
+end;
+
+define method groups-owned-by-user
+    (user :: <wiki-user>)
+ => (groups :: <collection>)
+  choose(method (group)
+           group.group-owner = user
+         end,
+         table-values(storage(<wiki-group>)))
+end;
+
 define method rename-group
     (name :: <string>, new-name :: <string>,
      #key comment :: <string> = "")
@@ -135,11 +160,23 @@ define method save-group
   dump-data();
 end method save-group;
 
+define method create-group
+    (name :: <string>, #key comment :: <string> = "")
+ => (group :: <wiki-group>)
+  let group = make(<wiki-group>,
+                   name: name,
+                   owner: authenticated-user());
+  save-change(<wiki-group-change>, name, #"add", comment);
+  save(group);
+  dump-data();
+  group
+end method create-group;
+
 define method add-member
     (user :: <wiki-user>, group :: <wiki-group>,
      #key comment :: <string> = "")
  => ()
-  add!(group.group-members, user);
+  add-new!(group.group-members, user);
   let comment = concatenate("added ", user.username, ". ", comment);
   save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
   save(group);
@@ -157,14 +194,18 @@ define method remove-member
   dump-data();
 end;
 
+// todo -- MAKE THREAD SAFE
 define method remove-group
     (group :: <wiki-group>,
      #key comment :: <string> = "")
-  // todo -- Remove the group from any ACLs!
-  save-change(<wiki-group-change>, group.group-name, #"removal", comment);
   remove-key!(storage(<wiki-group>), group.group-name);
+  for (page in storage(<wiki-page>))
+    remove-rules-for-target(page.access-controls, group);
+  end;
+  save-change(<wiki-group-change>, group.group-name, #"removal", comment);
   dump-data();
 end;
+
 
 /*
 define method permitted? (action == #"edit-page", #key)
@@ -173,41 +214,96 @@ define method permitted? (action == #"edit-page", #key)
 end;
 */
 
+//// List Groups (note not a subclass of <group-page>)
+
+define class <list-groups-page> (<wiki-dsp>)
+end;
+
+define constant $list-groups-page
+  = make(<list-groups-page>, source: "list-groups.dsp");
+
+// Posting to /groups creates a new group.
+//
+define method respond-to-post
+    (page :: <list-groups-page>, #key)
+  let user = authenticated-user();
+  let new-name = trim(get-query-value("group") | "");
+  // "block" really needs a no-error clause...write a try macro...
+  let error? = block (return)
+                 validate-group-name(new-name);
+                 #f
+               exception (ex :: <error>)
+                 note-form-error(ex, field-name: "group");
+                 respond-to-get($list-groups-page);
+                 #t
+               end;
+  if (~error?)
+    if (find-group(new-name))
+      note-form-error("A group named %s already exists.",
+                      format-arguments: list(new-name),
+                      field-name: "group");
+      respond-to-get($list-groups-page);
+    else
+      redirect-to(create-group(new-name));
+    end;
+  end;
+end method respond-to-post;
+
+
+//// Group page
+
+define class <group-page> (<wiki-dsp>)
+end;
+
+define method respond-to-get
+    (page :: <group-page>, #key name :: <string>)
+  dynamic-bind (*group-name* = percent-decode(name),
+                *group* = find-group(*group-name*))
+    if (~page-requires-group-modify-permission?(page)
+          | can-modify-group?(page))
+      next-method();
+    else
+      note-form-message("You do not have permission to modify group '%s'.", name);
+      respond-to-get($view-group-page, name: name);
+    end;
+  end;
+end method respond-to-get;
+
+define constant $non-existing-group-page
+  = make(<group-page>, source: "non-existing-group.dsp");
+
+define method page-requires-group-modify-permission?
+    (page :: <group-page>) => (req? :: <boolean>)
+  #t
+end;
+
 
 //// View Group
 
-define class <view-group-page> (<wiki-dsp>) end;
+define class <view-group-page> (<group-page>)
+end;
 
 define constant $view-group-page
   = make(<view-group-page>, source: "view-group.dsp");
 
-define method respond-to-get
-    (page :: <view-group-page>, #key name :: <string>)
-  dynamic-bind (*group-name* = percent-decode(name),
-                *group* = find-group(*group-name*))
-    next-method();
-  end;
-end method respond-to-get;
+define method page-requires-group-modify-permission?
+    (page :: <view-group-page>) => (req? :: <boolean>)
+  #f
+end;
+
+define named-method user-is-group-owner?
+    (page :: <view-group-page>)
+  *group*.group-owner = find-user(get-attribute(page-context(), "user-name"))
+end;
 
 
 //// Edit Group
 
-define class <edit-group-page> (<wiki-dsp>) end;
+define class <edit-group-page> (<group-page>)
+end;
 
 define constant $edit-group-page
   = make(<edit-group-page>, source: "edit-group.dsp");
-
-define method respond-to-get
-    (page :: <edit-group-page>, #key name :: <string>)
-  dynamic-bind (*group-name* = percent-decode(name),
-                *group* = find-group(*group-name*))
-    // Note that the template takes care of checking the ACLs.
-    respond-to-get(case
-                     authenticated-user() => $edit-group-page;
-                     otherwise => $non-existing-group-page;
-                   end);
-  end;
-end method respond-to-get;
 
 define method respond-to-post
     (page :: <edit-group-page>, #key name :: <string>)
@@ -253,19 +349,11 @@ end method respond-to-post;
 
 //// Remove Group
 
-define class <remove-group-page> (<wiki-dsp>)
+define class <remove-group-page> (<group-page>)
 end;
 
 define constant $remove-group-page
   = make(<remove-group-page>, source: "remove-group.dsp");
-
-define method respond-to-get
-    (page :: <remove-group-page>, #key name :: <string>)
-  dynamic-bind(*group-name* = percent-decode(name),
-               *group* = find-group(*group-name*))
-    next-method();
-  end;
-end method respond-to-get;
 
 define method respond-to-post
     (page :: <remove-group-page>, #key name :: <string>)
@@ -274,7 +362,7 @@ define method respond-to-post
     if (*group*)
       remove-group(*group*, comment: get-query-value("comment"));
       note-form-message("Group %s removed", *group-name*);
-      redirect-to($list-groups-page);
+      respond-to-get($list-groups-page);
     else
       respond-to-get($non-existing-group-page);
     end;
@@ -282,25 +370,16 @@ define method respond-to-post
 end method respond-to-post;
 
 
-
-//// Edit Group
+//// Edit Group Members
 
 // todo -- eventually it should be possible to edit the group name, owner,
 // and members all in one page.
 
-define class <edit-group-members-page> (<wiki-dsp>)
+define class <edit-group-members-page> (<group-page>)
 end;
 
 define constant $edit-group-members-page
   = make(<edit-group-members-page>, source: "edit-group-members.dsp");
-
-define method respond-to-get
-    (page :: <edit-group-members-page>, #key name :: <string>)
-  dynamic-bind(*group-name* = percent-decode(name),
-               *group* = find-group(*group-name*))
-    next-method();
-  end;
-end method respond-to-get;
 
 define method respond-to-post
     (page :: <edit-group-members-page>, #key name :: <string>)
@@ -331,49 +410,19 @@ end method respond-to-post;
 
 
 
-//// List Groups
-
-define constant $list-groups-page
-  = make(<wiki-dsp>, source: "list-groups.dsp");
-
-define variable $non-existing-group-page
-  = make(<wiki-dsp>, source: "non-existing-group.dsp");
-
-
-// actions
-
-define method do-groups ()
-  case
-    get-query-value("go") =>
-      redirect-to(group-permanent-link(get-query-value("query")));
-    otherwise =>
-      process-page($list-groups-page);
-  end;
-end;
-
-/*
-define method redirect-to-group-or (page :: <page>, #key name)
-  if (*group*)
-    respond-to(#"get", page);
-  else
-    redirect-to(group-permanent-link(percent-decode(name)));
-  end if;
-end;
-*/
-
-// tags
+//// Tags
 
 define tag show-group-permanent-link in wiki
     (page :: <wiki-dsp>)
     (use-change :: <boolean>)
-  output("%s", 
-    if (use-change)
-      group-permanent-link(*change*.title)
-    elseif (*group*)
-      permanent-link(*group*)
-    else "" end if);
+  output("%s", iff(use-change,
+                   group-permanent-link(*change*.title),
+                   permanent-link(*group*)));
 end;
 
+// get rid of this and put the group name in the page context so it
+// can be accessed by <dsp:get>?
+//
 define tag show-group-name in wiki
     (page :: <wiki-dsp>)
     ()
@@ -385,20 +434,12 @@ define tag show-group-name in wiki
 end tag show-group-name;
 
 
-// body tags 
+//// Named Methods
 
-define body tag list-groups in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  let groups = storage(<wiki-group>);
-  for (group in groups)
-    dynamic-bind(*group* = group)
-      do-body();
-    end;
-  end for;
+define named-method all-group-names in wiki
+    (page :: <list-groups-page>)
+  sort(map(group-name, table-values(storage(<wiki-group>))))
 end;
-
-// named methods
 
 define named-method group-changed? in wiki
     (page :: <wiki-dsp>)
@@ -406,12 +447,14 @@ define named-method group-changed? in wiki
 end;
 
 define named-method group-member-names in wiki
-    (page :: <wiki-dsp>)
-  map(username, group-members(*group*))
+    (page :: <group-page>)
+  sort(map(username, group-members(*group*)))
 end;
 
-define named-method user-is-group-owner?
-    (page :: <wiki-dsp>)
-  *group*.group-owner = find-user(get-attribute(page-context(), "user-name"))
+define named-method can-modify-group?
+    (page :: <group-page>)
+  let user = authenticated-user();
+  user & (administrator?(user) | user = *group*.group-owner)
 end;
+
 

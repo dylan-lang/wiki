@@ -14,5 +14,9 @@
   <document-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www"/>
   <dsp-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www/dsp"/>
 
-  <wiki content-directory = "c:/cgay/dylan/trunk/libraries/network/wiki/storage" />
+  <wiki content-directory="c:/tmp">
+    <administrator username="administrator"
+                   password="D1D1"
+                   email="hackers@lists.opendylan.org"/>
+  </wiki>
 </koala>
