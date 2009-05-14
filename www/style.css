@@ -339,7 +339,7 @@ span.object {
 
 .page,
 .user {
-  padding-left: 0.2em,
+  padding-left: 0.2em;
 }
 
 .page::before {
@@ -364,4 +364,18 @@ span.object {
   display: inline;
   margin: 0;
   padding: 0;
+}
+
+
+/* For use in <input>, <textarea>, etc elements themselves to indicate
+   the entered value was invalid.
+ */
+.invalid-input {
+  background-color: yellow;
+}
+
+/* For use with the explanatory text associated with an invalid input field.
+ */
+.field-error, .page-errors {
+  color: red;
 }

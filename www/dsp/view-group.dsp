@@ -12,8 +12,8 @@
       <%dsp:include url="group-options-menu.dsp"/>
     </dsp:when>
     <div id="body">
-      <dsp:show-form-notes/>
       <h2>Group: <wiki:show-group-name/></h2>
+      <dsp:show-form-notes/>
       <h3>Members</h3>
       <dsp:if test="logged-in?">
         <dsp:then>

@@ -233,15 +233,13 @@ define method respond-to-post
                  validate-group-name(new-name);
                  #f
                exception (ex :: <error>)
-                 note-form-error(ex, field-name: "group");
+                 add-field-error("group", ex);
                  respond-to-get($list-groups-page);
                  #t
                end;
   if (~error?)
     if (find-group(new-name))
-      note-form-error("A group named %s already exists.",
-                      format-arguments: list(new-name),
-                      field-name: "group");
+      add-field-error("group", "A group named %s already exists.", new-name);
       respond-to-get($list-groups-page);
     else
       redirect-to(create-group(new-name));
@@ -263,7 +261,7 @@ define method respond-to-get
           | can-modify-group?(page))
       next-method();
     else
-      note-form-message("You do not have permission to modify group '%s'.", name);
+      add-page-error("You do not have permission to modify group '%s'.", name);
       respond-to-get($view-group-page, name: name);
     end;
   end;
@@ -320,12 +318,10 @@ define method respond-to-post
       block ()
         validate-group-name(new-name);
       exception (ex :: <error>)
-        note-form-error(ex, field-name: #"name");
+        add-field-error("name", ex);
       end;
       if (find-group(new-name))
-        note-form-error("A group named %s already exists",
-                        format-arguments: list(new-name),
-                        field-name: #"name");
+        add-field-error("name", "A group named %s already exists", new-name);
       end;
     end if;
 
@@ -361,7 +357,7 @@ define method respond-to-post
                *group* = find-group(*group-name*))
     if (*group*)
       remove-group(*group*, comment: get-query-value("comment"));
-      note-form-message("Group %s removed", *group-name*);
+      add-page-note("Group %s removed", *group-name*);
       respond-to-get($list-groups-page);
     else
       respond-to-get($non-existing-group-page);

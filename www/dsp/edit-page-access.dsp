@@ -11,47 +11,64 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="options-menu.dsp"/>
-    <div id="body">               
-      <dsp:show-form-notes/>
+    <div id="body">
+      <dsp:show-page-notes/>
       <h2>Access Control for <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
       <dsp:if test="can-view-content?">
         <dsp:then>
           <form action="" method="post">
 
-            <p/>
+            <p>
+            Enter user names, group names, or one of the three
+            special targets: <em>owner</em> (i.e., page
+            owner), <em>trusted</em> (i.e., must be logged in),
+            or <em>anyone</em>.  Enter one per line.  Precede any
+            rule with ! to deny access to that target.
+            </p>
+
             <label id="owner-label" for="owner-input">Owner:</label>
-            <input id="owner-input" type="text" name="owner" width="20"
-                   value="<dsp:get name="owner-name" context="page"/>"/>
+<dsp:comment>
+todo
+            <dsp:input id="owner-input" type="text" name="owner" width="20"/>
+</dsp:comment>
+            <input id="owner-input" type="text" name="owner-name" width="20"
+                   <dsp:if-error field-name='owner-name' text='class="invalid-input"'/>
+                   value="<dsp:get name='owner-name' context='request,page'/>"/>
+            <dsp:show-field-errors field-name="owner-name"/>
             <p/>
             <table border="0">
               <tr>
                 <td>
                   <label for="view-content-input">View Content</label>
-                  <textarea id="view-content-input" name="view-content" cols="20" rows="10"
+                  <textarea id="view-content-input" name="view-content" cols="20" rows="6"
+                            <dsp:if-error field-name='view-content' text='class="invalid-input"'/>
                             ><wiki:show-rules name="view-content"/></textarea>
                 </td>
                 <td>
                   <label for="modify-content-input">Modify Content</label>
-                  <textarea id="modify-content-input" name="modify-content" cols="20" rows="10"
+                  <textarea id="modify-content-input" name="modify-content" cols="20" rows="6"
+                            <dsp:if-error field-name='modify-content' text='class="invalid-input"'/>
                             ><wiki:show-rules name="modify-content"/></textarea>
                 </td>
                 <td>
                   <label for="modify-acls-input">Modify ACLs</label>
-                  <textarea id="modify-acls-input" name="modify-acls" cols="20" rows="10"
+                  <textarea id="modify-acls-input" name="modify-acls" cols="20" rows="6"
+                            <dsp:if-error field-name='modify-acls' text='class="invalid-input"'/>
                             ><wiki:show-rules name="modify-acls"/></textarea>
                 </td>
               </tr>
+              <tr>
+                <td colspan="3" align="left">
+                  <dsp:show-field-errors field-name="modify-content,modify-acls,view-content"/>
+                </td>
+              </tr>
             </table>
-
-            Enter user names, group names, or one of the three
-            special rules: <em>owner</em>, <em>trusted</em> (i.e.,
-            must be logged in), or <em>anyone</em>.  Enter one per
-            line.  Precede any rule with ! to deny access to that
-            target.
-
             <p/>
             <label id="comment-label" for="comment-input">Comment:</label>
-            <input id="comment-input" type="text" name="comment" value="" width="50"/>
+            <input id="comment-input" type="text" name="comment" width="50"
+                   <dsp:if-error field-name='comment' text='class="invalid-input"'/>
+                   value="<dsp:get name='comment' context='request'/>"/>
+            <dsp:show-field-errors field-name="comment"/>
             <p/>
             <input type="submit" value="Save" />
           </form>

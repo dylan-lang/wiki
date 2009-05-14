@@ -296,8 +296,8 @@ define method respond-to-post
     // Someone used an old URL or typed it in by hand...
     resource-not-found-error(url: request-url(current-request()));
   end;
-  with-query-values (view-content, modify-content, modify-acls, comment, owner)
-    let owner = trim(owner);
+  with-query-values (view-content, modify-content, modify-acls, comment, owner-name)
+    let owner = trim(owner-name);
     let new-owner = ~empty?(owner) & find-user(owner);
     let owner-err? = ~empty?(owner) & ~new-owner;
 
@@ -307,15 +307,14 @@ define method respond-to-post
 
     if (owner-err? | vc-err? | mc-err? | ma-err?)
       if (owner-err?)
-        note-form-error("Cannot set owner to %s; user not found.",
-                        format-arguments: list(owner),
-                        field-name: "owner");
+        add-field-error("owner-name",
+                        "Cannot set owner to %s; user not found.", owner);
       end;        
       local method note-errors (rules, field-name)
               for (rule in rules)
                 if (~instance?(rule, <rule>))
                   let (rule, msg) = apply(values, rule);
-                  note-form-error(msg, field-name: field-name)
+                  add-field-error(field-name, msg);
                 end;
               end;
             end;
@@ -340,19 +339,31 @@ define method respond-to-post
   end;
 end method respond-to-post;
 
+// Show the unparsed ACL rules for a wiki page.  The 'name' parameter
+// determines what rules to show.  If there's a query value by the
+// same name then that is used instead because it is what the user just
+// typed into the input field and they may need to edit it.  Note that
+// this means the name of the <textarea> field must be one of "view-content"
+// "modify-content", or "modify-acls".
+//
 define tag show-rules in wiki
     (acls-page :: <acls-page>)
     (name :: <string>)
   let name = as-lowercase(name);
-  let acls = *page*.access-controls;
-  output("%s", unparse-rules(select (name by \=)
-                               "view-content" => acls.view-content-rules;
-                               "modify-content" => acls.modify-content-rules;
-                               "modify-acls" => acls.modify-acls-rules;
-                               otherwise =>
-                                 error("Invalid rule type: %s", name);
-                             end));
-end;
+  let text = get-query-value(name);
+  if (text)
+    output("%s", quote-html(text));
+  else
+    let acls = *page*.access-controls;
+    output("%s", unparse-rules(select (name by \=)
+                                 "view-content" => acls.view-content-rules;
+                                 "modify-content" => acls.modify-content-rules;
+                                 "modify-acls" => acls.modify-acls-rules;
+                                 otherwise =>
+                                   error("Invalid rule type: %s", name);
+                               end));
+  end;
+end tag show-rules;
 
 define named-method can-view-content? in wiki
     (acls-page :: <wiki-dsp>)
