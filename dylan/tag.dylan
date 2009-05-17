@@ -9,11 +9,15 @@ Module: wiki-internal
 
 define wf/object-test (tag) in wiki end;
 
-define function extract-tags
-    (tag-string :: <string>)
- => (tags :: <sequence>);
+define function parse-tags
+    (tag-string :: <string>) => (tags :: <sequence>)
   choose(complement(empty?),
-         remove-duplicates!(split(tag-string, " "), test: \=));
+         remove-duplicates!(map(trim, split(tag-string, ",")), test: \=));
+end;
+
+define function unparse-tags
+    (tags :: <sequence>) => (tags :: <string>)
+  join(tags, ", ")
 end;
 
 define tag show-tag in wiki
@@ -34,7 +38,7 @@ define body tag list-query-tags in wiki
     ()
   let tagged = get-query-value("tagged");
   if (instance?(tagged, <string>))
-    for (tag in extract-tags(tagged))
+    for (tag in parse-tags(tagged))
       dynamic-bind(*tag* = tag)
         do-body();
       end;

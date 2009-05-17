@@ -11,21 +11,11 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <h2><wiki:show-page-title/></h2>
-      <dsp:if test="page?">
-        <dsp:else>
-          <p class="hint">
-            This page doesn't exist. You can create it by writing the page's content below.
-          </p>
-        </dsp:else>
-      </dsp:if>
-      <dsp:if test="file?">
-        <dsp:then>
-          <form action="<turboblog:show-blog-permanent-link />/files/<turboblog:show-file-filename />?edit" method="post" enctype="multipart/form-data">
-        </dsp:then>
-        <dsp:else>
-          <form action="<turboblog:show-blog-permanent-link />/files?add" method="post" enctype="multipart/form-data">
-        </dsp:else>
-      </dsp:if>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
+      <form action="/???" method="post" enctype="multipart/form-data">
         <fieldset id="general">
           <legend>General</legend>
           <ol>
@@ -33,14 +23,13 @@
               <li id="file">
                 <label id="file-label" for="file-input">File <em>*</em></label>
                 <input id="file-input" type="file" name="file" />
-                <dsp:when test="file-error?"><span class="error">A file is required.</span></dsp:when>
+                <dsp:show-field-errors field-name="file"/>
               </li>
             </dsp:when>
             <li id="filename">
               <label id="filename-label" for="filename-input">Filename <dsp:when test="file?"><em>*</em></dsp:when></label>
-              <input id="filename-input" type="text" name="filename" value="<turboblog:show-file-filename />"/>
-              <dsp:when test="filename-error?"><span class="error">An filename is required.</span></dsp:when>
-              <dsp:when test="exists-error?"><span class="error">There&quot;s already a file with this name.</span></dsp:when>
+              <input id="filename-input" type="text" name="filename" value="<dsp:get name="filename" context="page"/>"/>
+              <dsp:show-field-errors field-name="filename"/>
             </li>
           </ol>
         </fieldset>

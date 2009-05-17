@@ -10,6 +10,10 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
       <h2><wiki:show-user-username/></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:if test="user?">
         <dsp:else>
           <p class="hint">

@@ -10,6 +10,10 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
       <h2>Files</h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <form action="/files">
         <ul class="striped big">
           <li class="file">

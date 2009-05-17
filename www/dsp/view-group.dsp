@@ -13,7 +13,10 @@
     </dsp:when>
     <div id="body">
       <h2>Group: <wiki:show-group-name/></h2>
-      <dsp:show-form-notes/>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <h3>Members</h3>
       <dsp:if test="logged-in?">
         <dsp:then>

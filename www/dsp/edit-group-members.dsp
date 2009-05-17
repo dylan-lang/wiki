@@ -11,6 +11,10 @@
     <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">               
       <h2>Members of <a href="<wiki:show-group-permanent-link/>"><wiki:show-group-name/></a></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <form action="members" method="post">
         <fieldset>
           <table style="width: 100%">

@@ -12,6 +12,10 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <h2>Error</h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <p>You have to <a href="<wf:show-login-url redirect="yes" current="yes"/>">login</a> to go on.</p>
     </div>
   </div>

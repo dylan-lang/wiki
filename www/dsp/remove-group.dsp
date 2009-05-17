@@ -11,6 +11,10 @@
     <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">
       <h2>Remove group '<wiki:show-group-name/>'</h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <form action="" method="post">
 	<fieldset>
           <ol>

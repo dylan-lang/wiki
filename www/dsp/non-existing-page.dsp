@@ -11,6 +11,10 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
       <h2><wiki:show-page-title/></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <p class="hint">
         This page doesn't exist.
 	<a href="/register">Register</a> or

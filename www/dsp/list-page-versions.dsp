@@ -11,6 +11,10 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">               
       <h2>History of <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <ul class="striped big">
 	<wiki:list-page-versions>
 	  <li>

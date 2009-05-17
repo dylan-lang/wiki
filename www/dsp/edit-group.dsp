@@ -10,8 +10,11 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">               
-      <dsp:show-form-notes/>
       <h2><wiki:show-group-name/></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:unless test="group?">
         <p class="hint">
           This group doesn't exist. Enter a comment and click Create to create it.

@@ -19,11 +19,15 @@
 	    <em>@ #<wiki:show-version-number/></em>
           </dsp:unless>
       </h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:if test="can-view-content?">
         <dsp:then>
           <wiki:show-page-content content-format="xhtml"/>
           <dsp:loop over="page-tags" var="tag" header="<hl/><h3>Tags:</h3>">
-            <dsp:unless test="loop-first?">, </dsp:unless>
+            <dsp:unless test="loop-start?">, </dsp:unless>
             <dsp:get name="tag" context="page"/>
           </dsp:loop>
         </dsp:then>

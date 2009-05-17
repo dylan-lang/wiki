@@ -19,6 +19,8 @@ Tags
 
 Users
 -----
+* If you get an error when creating a user (e.g., don't enter a password)
+  the username isn't displayed on the followup page.
 * Show the email address if the user him/herself is viewing the page.
 * When an admin is editing a user, allow them to make the user an admin.
   (This is where the two levels of admin could come into play.)
@@ -51,6 +53,12 @@ Pages
 * looks like page versions aren't quite correct yet.
   e.g., do they always show the latest tags?
 * should be a way to include other pages inline.
+* Allow owner or administrator to change page owner when editing page.
+* When viewing a non-newest revision, the options menu items are incorrect.
+  e.g., "edit" loads the newest revision's content.  Instead it should
+  load the old content and give a warning near the Save button that you
+  are editing an older revision.  "remove" probably shouldn't be there,
+  and "connections" should show the connections of the older revision.
 
 Other
 -----

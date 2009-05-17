@@ -95,9 +95,9 @@ define url-map on $wiki-http-server
     action get ("^(?P<title>[^/]+)/?$") =>
       show-page,
     action get ("^(?P<title>[^/]+)/edit$") =>
-      show-edit-page,
+      $edit-page-page,
     action post ("^(?P<title>[^/]+)(/(edit)?)?$") =>
-      do-save-page,
+      $edit-page-page,
     action get ("^(?P<title>[^/]+)/remove$") =>
       show-remove-page,
     action (delete, post) ("^(?P<title>[^/]+)/remove$") =>
@@ -111,7 +111,7 @@ define url-map on $wiki-http-server
       show-page-versions-differences,
     // connections
     action get ("^(?P<title>[^/]+)/connections$") => 
-      show-page-connections,
+      $connections-page,
     // authors
     action get ("^(?P<title>[^/]+)/authors$") =>
       show-page-authors,

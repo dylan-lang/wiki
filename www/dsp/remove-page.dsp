@@ -11,6 +11,10 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <h2><wiki:show-page-title/></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:if test="can-modify-content?">
         <dsp:then>
           <form action="" method="post">

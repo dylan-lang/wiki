@@ -264,13 +264,6 @@ define method diff
   values(diff-a, diff-b);
 end;
 
-/*
-define method permitted? (action == #"edit-page", #key)
- => (permitted? :: <boolean>);
-  (~ authenticated-user()) & error(make(<authentication-error>));
-end;
-*/
-
 define method discussion-page?
     (page :: <wiki-page>)
  => (is? :: <boolean>)
@@ -297,7 +290,7 @@ end;
 
 define method latest-tags
     (page :: <wiki-page>)
- => (tags :: <sequence>);
+ => (tags :: <sequence>)
   page.versions.last.categories
 end;
 
@@ -309,9 +302,6 @@ define constant $view-page-page
 
 define constant $view-diff-page
   = make(<wiki-dsp>, source: "view-diff.dsp");
-
-define constant $edit-page-page
-  = make(<wiki-dsp>, source: "edit-page.dsp");
 
 define constant $remove-page-page
   = make (<wiki-dsp>, source: "remove-page.dsp");
@@ -325,14 +315,47 @@ define constant $list-page-versions-page
 define constant $list-pages-page
   = make(<wiki-dsp>, source: "list-pages.dsp");
 
-define constant $page-connections-page
-  = make(<wiki-dsp>, source: "page-connections.dsp");
-
 define constant $page-authors-page
   = make(<wiki-dsp>, source: "page-authors.dsp");
 
 define constant $search-page
   = make(<wiki-dsp>, source: "search-page.dsp");
+
+
+//// Page connections (backlinks)
+
+define class <connections-page> (<wiki-dsp>)
+end;
+
+define constant $connections-page
+  = make(<connections-page>, source: "page-connections.dsp");
+
+define method respond-to-get
+    (page :: <connections-page>, #key title :: <string>)
+  let title = percent-decode(title);
+  dynamic-bind (*page* = find-page(title))
+    if (*page*)
+      next-method();
+    else
+      respond-to-get($non-existing-page-page, title: title);
+    end;
+  end;
+end method respond-to-get;
+
+define body tag list-page-backlinks in wiki
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
+  let backlinks = find-backlinks(*page*);
+  if (empty?(backlinks))
+    output("There are no connections to this page.");
+  else
+    for (backlink in backlinks)
+      set-attribute(page-context(), "backlink", backlink.title);
+      set-attribute(page-context(), "backlink-url", permanent-link(backlink));
+      do-body();
+    end for;
+  end if;
+end;
 
 
 define method do-pages ()
@@ -343,38 +366,6 @@ define method do-pages ()
       process-page($list-pages-page);
   end;
 end;
-
-define method do-save-page (#key title :: <string>)
-  let title = percent-decode(title);
-  let page = find-page(title);
-  with-query-values (title as new-title, content, comment, tags)
-    let errors = #();
-    let tags = iff(tags, extract-tags(tags), #[]);
-    let new-title = new-title & trim(new-title);
-
-    // Handle page renaming.
-    // todo -- potential race conditions here.  Should really lock the old and
-    //         new pages around the find-page and rename-page. Low priority now.
-    if (new-title & ~empty?(new-title) & new-title ~= title)
-      if (find-page(new-title))
-        errors := add!(errors, #"exists");
-      else
-        title := new-title;
-        rename-page(page, new-title, comment: comment);
-      end;
-    end;
-
-    if (empty?(errors))
-      save-page(title, content | "", comment: comment, tags: tags);
-      redirect-to(find-page(title));
-    else
-      dynamic-bind (wf/*errors* = errors,
-                    wf/*form* = current-request().request-query-values)
-        respond-to-get($edit-page-page);
-      end;
-    end if;
-  end;
-end method do-save-page;
 
 define method do-remove-page (#key title)
   let page = find-page(percent-decode(title));
@@ -391,25 +382,72 @@ define method show-page (#key title :: <string>, version)
   dynamic-bind (*page* = page,
                 *version* = version,
                 *page-title* = title)
-    // This call to process-page feels hackish.  It's here specifically so that
-    // *page-context* is bound, but we shouldn't have to worry about that!
-    process-page(case
-                   *page* => $view-page-page;
-                   authenticated-user() => $edit-page-page;
-                   otherwise => $non-existing-page-page;
-                 end);
+    respond-to-get(case
+                     *page* => $view-page-page;
+                     authenticated-user() => $edit-page-page;
+                     otherwise => $non-existing-page-page;
+                   end,
+                   title: title);
   end;
 end method show-page;
 
-define method show-edit-page (#key title)
-  dynamic-bind (*page-title* = percent-decode(title),
-                *page* = find-page(*page-title*))
-    respond-to-get(case
-                     authenticated-user() => $edit-page-page;
-                     otherwise => $non-existing-page-page;
-                   end case); 
+define class <edit-page-page> (<wiki-dsp>)
+end;
+
+define constant $edit-page-page
+  = make(<edit-page-page>, source: "edit-page.dsp");
+
+define method respond-to-get
+    (page :: <edit-page-page>, #key title :: <string>)
+  let title = percent-decode(title);
+  if (authenticated-user())
+    set-attribute(page-context(), "title", title);
+    dynamic-bind (*page* = find-page(title))
+      if (*page*)
+        let content = *page*.versions.last.content.content;
+        set-attribute(page-context(), "content", content);
+        set-attribute(page-context(), "owner", *page*.page-owner);
+        set-attribute(page-context(), "tags", unparse-tags(*page*.latest-tags));
+      end;
+      next-method();
+    end;
+  else
+    // This shouldn't happen unless the user typed in the /edit url,
+    // since the edit option shouldn't be available unless logged in.
+    add-page-error("You must be logged in to edit wiki pages.");
+    respond-to-get($view-page-page, title: title)
   end;
-end method show-edit-page;
+end method respond-to-get;
+
+define method respond-to-post
+    (page :: <edit-page-page>, #key title :: <string>)
+  let title = percent-decode(title);
+  let page = find-page(title);
+  with-query-values (title as new-title, content, comment, tags)
+    let tags = iff(tags, parse-tags(tags), #[]);
+    let new-title = new-title & trim(new-title);
+
+    // Handle page renaming.
+    // todo -- potential race conditions here.  Should really lock the old and
+    //         new pages around the find-page and rename-page. Low priority now.
+    if (new-title & ~empty?(new-title) & new-title ~= title)
+      if (find-page(new-title))
+        add-field-error("title", "A page with this title already exists.");
+      else
+        title := new-title;
+        rename-page(page, new-title, comment: comment);
+      end;
+    end;
+
+    if (page-has-errors?())
+      // Redisplay the page with errors highlighted.
+      respond-to-get($edit-page-page, title: title);
+    else
+      save-page(title, content | "", comment: comment, tags: tags);
+      redirect-to(find-page(title));
+    end if;
+  end;
+end method respond-to-post;
 
 define method show-page-versions-differences (#key title :: <string>, a, b)
   dynamic-bind (*page* = find-page(percent-decode(title)))
@@ -452,9 +490,6 @@ end method redirect-to-page-or;
 
 define constant show-page-versions =
   curry(redirect-to-page-or, $list-page-versions-page);
-
-define constant show-page-connections =
-  curry(redirect-to-page-or, $page-connections-page);
 
 define constant show-page-authors =
   curry(redirect-to-page-or, $page-authors-page);
@@ -543,18 +578,6 @@ end;
 
 // body tags 
 
-define body tag list-page-backlinks in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*page*)
-    for (backlink in find-backlinks(*page*))
-      dynamic-bind (*page* = backlink)
-        do-body();
-      end;
-    end for;
-  end if;
-end;
-
 define body tag list-page-tags in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
@@ -618,9 +641,9 @@ define body tag list-pages in wiki
      use-query-tags :: <boolean>)
    let tagged = get-query-value("tagged");
    tags := if (use-query-tags & instance?(tagged, <string>))
-             extract-tags(tagged);
+             parse-tags(tagged);
            elseif (tags)
-             extract-tags(tags);
+             parse-tags(tags);
            end if;
   for (page in find-pages(tags: tags | #[],
                           order-by: order-by & as(<symbol>, order-by)))

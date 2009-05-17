@@ -14,6 +14,10 @@
     <div id="body">
       <dsp:show-page-notes/>
       <h2>Access Control for <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:if test="can-view-content?">
         <dsp:then>
           <form action="" method="post">

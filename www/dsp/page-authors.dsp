@@ -11,6 +11,10 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">               
       <h2>Authors of <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <ul class="striped big">
 	<wiki:list-page-authors>
           <li><a href="<wiki:show-user-permanent-link/>"><wiki:show-user-username/></a></li>

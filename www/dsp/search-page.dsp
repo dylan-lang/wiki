@@ -9,7 +9,10 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
-      <h2>Search Results for <em><dsp:show-query-value name="query"/></em></h2>
+      <h2>Search Results for <em><dsp:get name="query" context="request"/></em></h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
 
       <wiki:search-results/>
 

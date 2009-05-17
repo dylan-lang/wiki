@@ -10,6 +10,10 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
       <h2>Recent Changes</h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <wiki:list-changes-daily>
 	<h3><wiki:show-day-date formatted="%d.%m.%y"/></h3>
 	<dl id="changes">

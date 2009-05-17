@@ -10,6 +10,10 @@
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
       <h2>Pages</h2>
+
+      <dsp:show-page-errors/>
+      <dsp:show-page-notes/>
+
       <dsp:when test="query-tagged?">
         <ul class="cloud" id="query-tags">
           <wiki:list-query-tags>
