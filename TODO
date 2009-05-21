@@ -48,6 +48,10 @@ Groups
 
 Pages
 -----
+* The "Pages" page, linked in the left margin, lists all pages.  It should
+  list ~20 pages per page and put up "<< 1, 2, 3 ... n >>" links at the bottom.
+  Or something.  It's a good excuse to develop a built-in mechanism for doing
+  that in DSP.
 * Conflict detection (multiple overlapping edits)
 * improve display of tags.  maybe put to the right of the title.
 * looks like page versions aren't quite correct yet.

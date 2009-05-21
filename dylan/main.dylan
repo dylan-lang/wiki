@@ -19,10 +19,9 @@ define sideways method process-config-element
   let password = admin-elem & get-attr(admin-elem, #"password");
   let email = admin-elem & get-attr(admin-elem, #"email");
   if (~(username & password & email))
-    break("username = %s, password = %s, email = %s", username, password, email);
     error("The <administrator> element must be specified in the config file "
           "with a username, password, and email.");
-  else
+  elseif (~find-user(username))
     let user = make(<wiki-user>,
                     username: username,
                     password: password,
@@ -139,14 +138,105 @@ define url-map on $wiki-http-server
 
 end url-map;
 
+define function restore-from-text-files
+    () => (num-page-revs)
+  let cwd = locator-directory(as(<file-locator>, application-filename()));
+  let wikidata = subdirectory-locator(cwd, "wikidata");
+  let page-data = make(<stretchy-vector>);
+  local method gather-page-data (directory, filename, type)
+          // look for "page-<page-num>-<rev-num>.props"
+          let parts = split(filename, '.');
+          if (type = #"file" & parts.size = 2 & parts[1] = "props")
+            let parts = split(parts[0], '-');
+            if (parts.size = 3 & parts[0] = "page")
+              let page-num = string-to-integer(parts[1]);
+              let rev-num = string-to-integer(parts[2]);
+              add!(page-data, pair(page-num, rev-num));
+            end;
+          end;
+        end;
+  local method less? (pd1, pd2)
+          pd1.head < pd2.head | (pd1.head = pd2.head & pd1.tail < pd2.tail)
+        end;
+  local method page-locator (page-num, rev-num, extension)
+          let filename = format-to-string("page-%d-%d.%s",
+                                          page-num, rev-num, extension);
+          merge-locators(as(<file-locator>, filename), wikidata)
+        end;
+  local method parse-line (stream)
+          // e.g. "author: hannes"
+          let line = read-line(stream);
+          let parts = split(line, ':', count: 2);
+          copy-sequence(parts[1], start: min(parts[1].size, 1))
+        end;
+  do-directory(gather-page-data, wikidata);
+  page-data := sort(page-data, test: less?);
+  let administrator = find-user("administrator");
+  let previous-page-num = #f;
+  for (pd in page-data)
+    let page-num = pd.head;
+    let rev-num = pd.tail;
+    with-open-file(stream = page-locator(page-num, rev-num, "props"))
+      let title = parse-line(stream);
+      let author = find-user(parse-line(stream)) | administrator;
+      // as-iso8601-string and make(<date>, iso8601-string ...) are not inverses??
+      let timestamp = make(<date>,
+                           iso8601-string: choose(method(x)
+                                                    ~member?(x, "-:")
+                                                  end,
+                                                  parse-line(stream)));
+      let comment = parse-line(stream);
+      let action = #"edit";
+      let page = find-page(title);
+      if (~page)
+        page := make(<wiki-page>,
+                     title: title,
+                     owner: author);
+        action := #"add";
+      end;
+      let tags = #[];
+      let content = file-contents(page-locator(page-num, rev-num, "content"));
+      save-page-internal(page, content, comment, tags, author, action);
+    end;
+  end for;
+  dump-data();
+  page-data.size
+end function restore-from-text-files;
+
+/*
+The conversion procedure probably is like this:
+
+* Run the modified old wiki code, which will write out all the wiki
+  pages to text files.
+* Run the new wiki code briefly, just so it can read in the config
+  file and create the administrator user.  Create some user accounts.
+  The next step will use these if it finds them.  Shut down the wiki.
+* Run the new wiki code again with the --restore command-line argument.
+  Be sure the wikidata directory is in the same directory as the wiki
+  executable.
+*/
 define function main
     ()
-  let filename = locator-name(as(<file-locator>, application-name()));
-  if (split(filename, ".")[0] = "wiki")
-    koala-main(server: $wiki-http-server,
-               description: "Dylan wiki")
+  if (member?("--restore", application-arguments(), test: \=))
+    // need to handle the --config argument here so the content directory is set.
+    // copied from koala-main.  not intended to be pretty.
+    let parser = *argument-list-parser*;
+    parse-arguments(parser, application-arguments());
+    let config-file = option-value-by-long-name(parser, "config");
+    if (config-file)
+      // we just cons up a server here because all we care about is that
+      // the <wiki> setting is processed.
+      configure-server(make(<http-server>), config-file);
+    end;
+    format-out("Restored %d page revisions\n", restore-from-text-files());
+  else
+    let filename = locator-name(as(<file-locator>, application-name()));
+    if (split(filename, ".")[0] = "wiki")
+      koala-main(server: $wiki-http-server,
+                 description: "Dylan wiki")
+    end;
   end;
-end;
+end function main;
 
 begin
   main();

@@ -96,33 +96,44 @@ define method save-page
  => ()
   let page :: false-or(<wiki-page>) = find-page(title);
   let action :: <symbol> = #"edit";
-  let active-user :: <wiki-user> = authenticated-user();
+  let author :: <wiki-user> = authenticated-user();
   if (page)
-    if (~has-permission?(active-user, page, $modify-content))
+    if (~has-permission?(author, page, $modify-content))
       // temporary
-      error("%s has no permission to edit this page", active-user.username);
+      error("%s has no permission to edit this page", author.username);
     end;
   else
     page := make(<wiki-page>,
                  title: title,
-                 owner: active-user);
+                 owner: author);
     action := #"add";
   end;
+  save-page-internal(page, content, comment, tags, author, action);
+  dump-data();
+  generate-connections-graph(page);
+end method save-page;
+
+// This is separated out so it can be used for the conversion from the
+// old wiki to new.
+define method save-page-internal
+    (page :: <wiki-page>, content :: <string>, comment :: <string>,
+     tags :: <sequence>, author :: <wiki-user>, action :: <symbol>)
+  let title = page.title;
   let version-number :: <integer> = size(page.versions) + 1;
   if (version-number = 1 | (content ~= page.latest-text) | tags ~= page.latest-tags)
     let version = make(<wiki-page-version>,
                        content: make(<raw-content>, content: content),
-                       authors: list(active-user),
+                       authors: list(author),
                        version: version-number,
                        page: page,
 		       categories: tags & as(<vector>, tags));
     let comment = make(<comment>,
                        name: as(<string>, action),
-                       authors: list(active-user.username),
+                       authors: list(author.username),
                        content: make(<raw-content>, content: comment));
     version.comments[0] := comment;
     version.references := extract-references(version);
-    add-author(page, authenticated-user());
+    add-author(page, author);
     with-storage (pages = <wiki-page>)
       page.versions := add!(page.versions, version);
     end;
@@ -130,15 +141,12 @@ define method save-page
                       title: title,
                       version: version-number, 
                       action: action,
-                      authors: list(active-user.username));
+                      authors: list(author.username));
     change.comments[0] := comment;
     save(page);
     save(change);
-    dump-data();
-  
-    generate-connections-graph(page);
   end if;
-end method save-page;
+end method save-page-internal;
 
 define method generate-connections-graph (page :: <wiki-page>) => ();
   let graph = make(gvr/<graph>);

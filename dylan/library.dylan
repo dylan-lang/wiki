@@ -1,8 +1,9 @@
-module: dylan-user
-author: turbo24prg
+Module: dylan-user
+Author: turbo24prg
 
 define library wiki
   use collections;
+  use command-line-parser;
   use common-dylan,
     import: { common-extensions };
   use dylan;
@@ -38,6 +39,7 @@ define module wiki-internal
     rename: { published => date-published,
               label => category-label },
     exclude: { <uri> };
+  use command-line-parser;
   use common-extensions,
     exclude: { format-to-string };
   use date;
@@ -49,9 +51,7 @@ define module wiki-internal
   use http-common,
     exclude: { remove-attribute };
   use locators,
-    import: { <file-locator>,
-              locator-name,
-              merge-locators };
+    exclude: { <http-server> };
   use permission;
   use simple-xml;
   use storage;
