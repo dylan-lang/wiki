@@ -19,6 +19,7 @@ Tags
 
 Users
 -----
+* Don't store passwords in cleartext.
 * If you get an error when creating a user (e.g., don't enter a password)
   the username isn't displayed on the followup page.
 * Show the email address if the user him/herself is viewing the page.

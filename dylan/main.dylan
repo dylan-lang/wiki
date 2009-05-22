@@ -169,6 +169,32 @@ define function restore-from-text-files
           let parts = split(line, ':', count: 2);
           copy-sequence(parts[1], start: min(parts[1].size, 1))
         end;
+  // Load users in this format:
+  // username
+  // password
+  // email
+  // <blank line>
+  let user-locator = merge-locators(as(<file-locator>, "users.txt"), wikidata);
+  with-open-file(stream = user-locator)
+    let user-count = 0;
+    block ()
+      while (#t)
+        let username = read-line(stream);
+        let password = read-line(stream);
+        let email = read-line(stream);
+        let user = make(<wiki-user>,
+                        username: username,
+                        password: password,
+                        email: email,
+                        administrator?: #f);
+        save(user);
+        inc!(user-count);
+        assert(empty?(read-line(stream)));
+      end;
+    exception (ex :: <end-of-stream-error>)
+      // done
+    end;
+  end;
   do-directory(gather-page-data, wikidata);
   page-data := sort(page-data, test: less?);
   let administrator = find-user("administrator");
@@ -208,6 +234,7 @@ The conversion procedure probably is like this:
 
 * Run the modified old wiki code, which will write out all the wiki
   pages to text files.
+* BACKUP THE WIKI DATABASE!
 * Run the new wiki code briefly, just so it can read in the config
   file and create the administrator user.  Create some user accounts.
   The next step will use these if it finds them.  Shut down the wiki.
