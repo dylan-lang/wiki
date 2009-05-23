@@ -83,12 +83,13 @@ end;
 
 define method add-author
     (page :: <wiki-page>, user :: <user>)
- => (user :: <user>);
-  page.authors := add-new!(page.authors, user, test: method (first, second)
-      first.username = second.username
-    end);
-  user;
-end;
+ => (user :: <user>)
+  page.authors := add-new!(page.authors, user,
+                           test: method (user1, user2)
+                                   user1.user-name = user2.user-name
+                                 end);
+  user
+end method add-author;
 
 define method save-page
     (title :: <string>, content :: <string>, 
@@ -100,7 +101,7 @@ define method save-page
   if (page)
     if (~has-permission?(author, page, $modify-content))
       // temporary
-      error("%s has no permission to edit this page", author.username);
+      error("%s has no permission to edit this page", author.user-name);
     end;
   else
     page := make(<wiki-page>,
@@ -129,7 +130,7 @@ define method save-page-internal
 		       categories: tags & as(<vector>, tags));
     let comment = make(<comment>,
                        name: as(<string>, action),
-                       authors: list(author.username),
+                       authors: list(author.user-name),
                        content: make(<raw-content>, content: comment));
     version.comments[0] := comment;
     version.references := extract-references(version);
@@ -141,7 +142,7 @@ define method save-page-internal
                       title: title,
                       version: version-number, 
                       action: action,
-                      authors: list(author.username));
+                      authors: list(author.user-name));
     change.comments[0] := comment;
     save(page);
     save(change);
@@ -555,7 +556,7 @@ define tag show-page-owner in wiki
     (page :: <wiki-dsp>)
     ()
   if (*page*)
-    output("%s", escape-xml(*page*.page-owner.username))
+    output("%s", escape-xml(*page*.page-owner.user-name))
   end;
 end;
 

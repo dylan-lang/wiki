@@ -51,7 +51,7 @@ define module wiki-internal
   use http-common,
     exclude: { remove-attribute };
   use locators,
-    exclude: { <http-server> };
+    exclude: { <http-server>, <url> };
   use permission;
   use simple-xml;
   use storage;

@@ -258,7 +258,7 @@ define method unparse-rule
               end,
               select (target by instance?)
                 <symbol> => as-lowercase(as(<string>, target));
-                <user> => target.username;
+                <user> => target.user-name;
                 <wiki-group> => target.group-name;
                 otherwise => error("Invalid rule target: %s", target);
               end)
@@ -274,7 +274,7 @@ define method respond-to-get
     (acls-page :: <acls-page>, #key title :: <string>)
   let wiki-page = find-page(percent-decode(title));
   if (wiki-page)
-    set-attribute(page-context(), "owner-name", wiki-page.page-owner.username);
+    set-attribute(page-context(), "owner-name", wiki-page.page-owner.user-name);
     dynamic-bind (*page* = wiki-page)
       next-method()
     end;

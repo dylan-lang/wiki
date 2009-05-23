@@ -59,7 +59,7 @@ define method save-change
   if (~authors)
     let auth-user = authenticated-user();
     if (auth-user)
-      authors := list(auth-user.username);
+      authors := list(auth-user.user-name);
     else
       unauthorized-error();
     end;

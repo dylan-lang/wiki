@@ -23,7 +23,7 @@ define sideways method process-config-element
           "with a username, password, and email.");
   elseif (~find-user(username))
     let user = make(<wiki-user>,
-                    username: username,
+                    name: username,
                     password: password,
                     email: email,
                     administrator?: #t);
@@ -183,7 +183,7 @@ define function restore-from-text-files
         let password = read-line(stream);
         let email = read-line(stream);
         let user = make(<wiki-user>,
-                        username: username,
+                        name: username,
                         password: password,
                         email: email,
                         administrator?: #f);

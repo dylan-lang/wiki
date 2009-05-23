@@ -37,9 +37,10 @@ $change-verbs[<wiki-user-change>] :=
 
 // url
 
-define method permanent-link (user :: <wiki-user>, #key escaped?, full?)
+define method permanent-link
+    (user :: <wiki-user>, #key escaped?, full?)
  => (url :: <url>)
-  user-permanent-link(user.username);
+  user-permanent-link(user.user-name);
 end;
 
 define method user-permanent-link
@@ -65,27 +66,28 @@ end;
 */
 
 define method save-user
-    (user-username :: <string>, user-password :: false-or(<string>), user-email :: <string>,
+    (name :: <string>, password :: false-or(<string>), email :: <string>,
      #key comment :: <string> = "", administrator?)
  => (user :: <wiki-user>)
-  let user :: false-or(<wiki-user>) = find-user(user-username);
+  let user :: false-or(<wiki-user>) = find-user(name);
   let action :: <symbol> = #"edit";
   if (user)
     if (password)
-      user.password := user-password;
+      user.user-password := password;
     end if;
-    user.email := user-email;
+    user.user-email := email;
   else
-    user := make(<wiki-user>, username: user-username,
-			      password: user-password,
-			      email: user-email);
+    user := make(<wiki-user>,
+                 name: name,
+                 password: password,
+                 email: email);
     action := #"add";
   end;
-  save-change(<wiki-user-change>, user-username, action, comment,
+  save-change(<wiki-user-change>, name, action, comment,
               authors: if (authenticated-user())
-                         list(authenticated-user().username)
+                         list(authenticated-user().user-name)
                        else
-                         list(user-username)
+                         list(name)
                        end if);
   save(user);
   dump-data();
@@ -110,9 +112,9 @@ define method rename-user
     (user :: <wiki-user>, new-name :: <string>,
      #key comment :: false-or(<string>))
  => ()
-  let comment = concatenate("was: ", user.username, ". ", comment | "");
-  remove-key!(storage(<wiki-user>), user.username);
-  user.username := new-name;
+  let comment = concatenate("was: ", user.user-name, ". ", comment | "");
+  remove-key!(storage(<wiki-user>), user.user-name);
+  user.user-name := new-name;
   storage(<wiki-user>)[new-name] := user;
   save-change(<wiki-user-change>, new-name, #"renaming", comment);
   save(user);
@@ -123,19 +125,19 @@ end method rename-user;
 define method remove-user
     (user :: <wiki-user>, #key comment :: <string> = "")
  => ()
-  remove-key!(storage(<wiki-user>), user.username);
+  remove-key!(storage(<wiki-user>), user.user-name);
   let message = "Automatic change due to user removal.";
   for (group in groups-owned-by-user(user))
     group.group-owner := *admin-user*;
     save-change(<wiki-user-change>,
-                user.username, #"remove-group-owner", message)
+                user.user-name, #"remove-group-owner", message)
   end;
   for (group in user-groups(user))
     group.group-members := remove!(group.group-members, user);
     save-change(<wiki-user-change>,
-                user.username, #"remove-group-member", message);
+                user.user-name, #"remove-group-member", message);
   end;
-  save-change(<wiki-user-change>, user.username, #"removal", comment);
+  save-change(<wiki-user-change>, user.user-name, #"removal", comment);
   dump-data();
 end;
 
@@ -255,7 +257,7 @@ end;
 define tag show-user-username in wiki (page :: <wiki-dsp>)
     ()
   output("%s", if (*user*)
-                 escape-xml(*user*.username)
+                 escape-xml(*user*.user-name)
                elseif (wf/*form* & element(wf/*form*, "username", default: #f))
                  escape-xml(wf/*form*["username"])
                elseif (*user-username*)
@@ -268,7 +270,7 @@ end;
 define tag show-user-email in wiki (page :: <wiki-dsp>)
     ()
   output("%s", if (*user*)
-                 escape-xml(*user*.email);
+                 escape-xml(*user*.user-email);
                elseif (wf/*form* & element(wf/*form*, "email", default: #f))
                  escape-xml(wf/*form*["email"]);
                else

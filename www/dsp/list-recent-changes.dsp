@@ -30,7 +30,9 @@
 		<dsp:if test="change-action=edit?">
 		  <dsp:then>
 		    <a href="<wiki:show-page-permanent-link use-change="true"/>/versions/<wiki:show-change-version/>?diff"><wiki:show-change-verb/></a> 
+<!--
 		    (<a href="<wiki:show-page-permanent-link use-change="true"/>/versions/<wiki:show-change-version/>?diff"><wiki:show-change-difference/></a>) 
+-->
 		  </dsp:then>
 		  <dsp:else>
 		    <wiki:show-change-verb/>

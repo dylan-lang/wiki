@@ -177,7 +177,7 @@ define method add-member
      #key comment :: <string> = "")
  => ()
   add-new!(group.group-members, user);
-  let comment = concatenate("added ", user.username, ". ", comment);
+  let comment = concatenate("added ", user.user-name, ". ", comment);
   save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
   save(group);
   dump-data();
@@ -188,7 +188,7 @@ define method remove-member
      #key comment :: <string> = "")
  => ()
   remove!(group.group-members, user);
-  let comment = concatenate("removed ", user.username, ". ", comment);
+  let comment = concatenate("removed ", user.user-name, ". ", comment);
   save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
   save(group);
   dump-data();
@@ -444,7 +444,7 @@ end;
 
 define named-method group-member-names in wiki
     (page :: <group-page>)
-  sort(map(username, group-members(*group*)))
+  sort(map(user-name, group-members(*group*)))
 end;
 
 define named-method can-modify-group?

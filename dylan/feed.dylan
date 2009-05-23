@@ -48,7 +48,7 @@ end;
 define method generate-atom (user :: <wiki-user>, #key)
   with-xml()
     author {
-      name(user.username),
+      name(user.user-name),
       uri(build-uri(permanent-link(user)))
     }
   end;
