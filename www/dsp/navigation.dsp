@@ -29,7 +29,9 @@
       <li><a href="/pages">Pages</a></li>
       <li><a href="/users">Users</a></li>
       <li><a href="/groups">Groups</a></li>
+<!--  not yet
       <li><a href="/files">Files</a></li>
+-->
     </ul>
   </li>
 </ul>

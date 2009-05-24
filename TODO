@@ -1,3 +1,19 @@
+Fix before going live
+---------------------
+
+Anything that is a regression compared to the original wiki.
+
+* show-page-versions doesn't list the author or the comment
+* The way news items are implemented (by adding a special tag) means
+  that anyone can add a news item.  Probably just add a set of
+  reserved tags in the config file.  (Reserved for admins, I guess.)
+  Not worth generalizing the ACLs stuff to tags, I think.
+* Convert the content in www.opendylan.org to wiki pages and make
+  them only editable by the dylan-hackers group.
+* Support group descriptions.
+* Most of the items in the "Users" list below.
+* Most of the items in the "Registration" list below.
+
 General
 -------
 * MAKE THREAD SAFE -- basically anything like removing a user, which
@@ -12,10 +28,8 @@ General
 Tags
 ----
 
-* The way news items are implemented (by adding a special tag) means
-  that anyone can add a news item.  Probably just add a set of
-  reserved tags in the config file.  (Reserved for admins, I guess.)
-  Not worth generalizing the ACLs stuff to tags, I think.
+* Overview page (hannes: what do you have in mind exactly?)
+* Ability to browse all pages with a given set of tags.
 
 Users
 -----
