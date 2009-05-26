@@ -25,11 +25,6 @@ define class <wiki-page-version> (<entry>)
     init-keyword: references:;
 end;
 
-define class <versioned-object> (<object>)
-  slot versions :: <vector> = #[],
-    init-keyword: versions:;
-end;
-
 define class <wiki-change> (<entry>)
   slot change-action :: <symbol>,
     required-init-keyword: action:;

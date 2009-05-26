@@ -3,7 +3,6 @@ Fix before going live
 
 Anything that is a regression compared to the original wiki.
 
-* show-page-versions doesn't list the author or the comment
 * The way news items are implemented (by adding a special tag) means
   that anyone can add a news item.  Probably just add a set of
   reserved tags in the config file.  (Reserved for admins, I guess.)
@@ -13,6 +12,10 @@ Anything that is a regression compared to the original wiki.
 * Support group descriptions.
 * Most of the items in the "Users" list below.
 * Most of the items in the "Registration" list below.
+* The methods on permanent-link are incorrect.  For example, if you go
+  to the "connections" page via the "versions" page, all the connection
+  page links are incorrect.  Maybe transform-uris is broken.  Maybe we
+  should be using <web-locator>s instead.
 
 General
 -------
@@ -40,7 +43,11 @@ Users
 * When an admin is editing a user, allow them to make the user an admin.
   (This is where the two levels of admin could come into play.)
 * Support a full name attribute.
-* Have a "home" wiki page for each user.  similar to twiki
+* Have a "home" wiki page for each user, similar to twiki.  Pre-create
+  the page.  Maybe call it e.g. "User: Full Name".
+* Allow user to set their timezone and date format, and show all times
+  relative to that.
+
 
 Registration
 ------------

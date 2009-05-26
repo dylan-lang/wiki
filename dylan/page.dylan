@@ -6,11 +6,13 @@ define thread variable *page-title* = #f;
 // Not to be confused with <wiki-dsp>, which is a DSP maintained in our
 // source code tree.
 //
-define class <wiki-page> (<versioned-object>, <entry>)
+define class <wiki-page> (<entry>)
   slot page-owner :: <wiki-user>,
     required-init-keyword: owner:;
   slot access-controls :: <acls> = $default-access-controls,
     init-keyword: access-controls:;
+  slot page-versions :: <vector> = #[],
+    init-keyword: versions:;
 end;
 
 define wf/object-tests
@@ -120,7 +122,7 @@ define method save-page-internal
     (page :: <wiki-page>, content :: <string>, comment :: <string>,
      tags :: <sequence>, author :: <wiki-user>, action :: <symbol>)
   let title = page.title;
-  let version-number :: <integer> = size(page.versions) + 1;
+  let version-number :: <integer> = size(page.page-versions) + 1;
   if (version-number = 1 | (content ~= page.latest-text) | tags ~= page.latest-tags)
     let version = make(<wiki-page-version>,
                        content: make(<raw-content>, content: content),
@@ -136,7 +138,7 @@ define method save-page-internal
     version.references := extract-references(version);
     add-author(page, author);
     with-storage (pages = <wiki-page>)
-      page.versions := add!(page.versions, version);
+      page.page-versions := add!(page.page-versions, version);
     end;
     let change = make(<wiki-page-change>,
                       title: title,
@@ -155,7 +157,7 @@ define method generate-connections-graph (page :: <wiki-page>) => ();
   let backlinks = find-backlinks(page);
   backlinks := map(title, backlinks);
   gvr/add-predecessors(node, backlinks);
-  gvr/add-successors(node, last(page.versions).references);
+  gvr/add-successors(node, last(page.page-versions).references);
   for (node in gvr/nodes(graph))
     node.gvr/attributes["URL"] := build-uri(page-permanent-link(node.gvr/label));
     node.gvr/attributes["color"] := "blue";
@@ -241,7 +243,7 @@ define method find-backlinks
   let backlinks = make(<stretchy-vector>);
   for (page-title in sort(key-sequence(storage(<wiki-page>))))
     let page = find-page(page-title);
-    if (page & member?(title, last(page.versions).references, test: \=))
+    if (page & member?(title, last(page.page-versions).references, test: \=))
       backlinks := add!(backlinks, page);
     end if;
   end for; 
@@ -294,13 +296,13 @@ end;
 define method latest-text
     (page :: <wiki-page>)
  => (text :: <string>);
-  page.versions.last.content.content
+  page.page-versions.last.content.content
 end;
 
 define method latest-tags
     (page :: <wiki-page>)
  => (tags :: <sequence>)
-  page.versions.last.categories
+  page.page-versions.last.categories
 end;
 
 
@@ -315,12 +317,6 @@ define constant $view-diff-page
 define constant $remove-page-page
   = make (<wiki-dsp>, source: "remove-page.dsp");
 
-define constant $non-existing-page-page
-  = make(<wiki-dsp>, source: "non-existing-page.dsp");
-
-define constant $list-page-versions-page
-  = make(<wiki-dsp>, source: "list-page-versions.dsp");
-
 define constant $list-pages-page
   = make(<wiki-dsp>, source: "list-pages.dsp");
 
@@ -329,6 +325,55 @@ define constant $page-authors-page
 
 define constant $search-page
   = make(<wiki-dsp>, source: "search-page.dsp");
+
+define constant $non-existing-page-page
+  = make(<wiki-dsp>, source: "non-existing-page.dsp");
+
+
+
+//// List Page Versions
+
+define class <page-versions-page> (<wiki-dsp>)
+end;
+
+define constant $page-versions-page
+  = make(<page-versions-page>, source: "list-page-versions.dsp");
+
+define method respond-to-get
+    (page :: <page-versions-page>, #key title :: <string>)
+  let wiki-page = find-page(percent-decode(title));
+  if (wiki-page)
+    set-attribute(page-context(), "title", percent-decode(title));
+    set-attribute(page-context(), "page-versions",
+                  if (wiki-page)
+                    reverse(wiki-page.page-versions)
+                  else
+                    #()
+                  end);
+    next-method()
+  else
+    respond-to-get($non-existing-page-page, title: title);
+  end;
+end;
+
+define body tag list-page-versions in wiki
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
+  for (version in get-attribute(page-context(), "page-versions"))
+    let pc = page-context();
+    set-attribute(pc, "author", version.authors.last.user-name);
+    // todo -- make date format and TZ a user setting.
+    set-attribute(pc, "published",
+                  format-date("%e %b %Y %H:%M:%S", version.date-published));
+    let comment = version.comments[0].content.content;
+    if (~comment | comment.empty?)
+      comment := "no comment";
+    end;
+    set-attribute(pc, "comment", comment);
+    set-attribute(pc, "version-number", version.version-number);
+    do-body();
+  end;
+end tag list-page-versions;
 
 
 //// Page connections (backlinks)
@@ -386,7 +431,8 @@ define method show-page (#key title :: <string>, version)
   let title = percent-decode(title);
   let page = find-page(title);
   let version = if (page & version)
-                  element(page.versions, string-to-integer(version) - 1, default: #f);
+                  element(page.page-versions, string-to-integer(version) - 1,
+                          default: #f);
                 end if;
   dynamic-bind (*page* = page,
                 *version* = version,
@@ -413,7 +459,7 @@ define method respond-to-get
     set-attribute(page-context(), "title", title);
     dynamic-bind (*page* = find-page(title))
       if (*page*)
-        let content = *page*.versions.last.content.content;
+        let content = *page*.page-versions.last.content.content;
         set-attribute(page-context(), "content", content);
         set-attribute(page-context(), "owner", *page*.page-owner);
         set-attribute(page-context(), "tags", unparse-tags(*page*.latest-tags));
@@ -463,7 +509,7 @@ define method show-page-versions-differences (#key title :: <string>, a, b)
     let version :: false-or(<wiki-page-version>)
       = block ()
           if (a)
-            element(*page*.versions, string-to-integer(a) - 1, default: #f);
+            element(*page*.page-versions, string-to-integer(a) - 1, default: #f);
           end;
         exception (<error>)
           #f
@@ -471,9 +517,9 @@ define method show-page-versions-differences (#key title :: <string>, a, b)
     let other-version :: false-or(<wiki-page-version>)
       = block ()
           if (version & instance?(b, <string>))
-            element(*page*.versions, string-to-integer(b) - 1, default: #f);
+            element(*page*.page-versions, string-to-integer(b) - 1, default: #f);
           elseif (version)
-            element(*page*.versions, version.version-number - 2, default: #f);
+            element(*page*.page-versions, version.version-number - 2, default: #f);
           end;
         exception (<error>)
           #f
@@ -496,9 +542,6 @@ define method redirect-to-page-or
     end if;
   end;
 end method redirect-to-page-or;
-
-define constant show-page-versions =
-  curry(redirect-to-page-or, $list-page-versions-page);
 
 define constant show-page-authors =
   curry(redirect-to-page-or, $page-authors-page);
@@ -564,7 +607,7 @@ define tag show-page-content in wiki
     (page :: <wiki-dsp>)
     (content-format :: false-or(<string>))
   output("%s", if (*page*)
-                 let content = (*version* | *page*.versions.last).content.content;
+                 let content = (*version* | *page*.page-versions.last).content.content;
                  case
                    content-format = "xhtml"
                      => wiki-markup-to-html(content); // parse-wiki-markup(content);
@@ -603,18 +646,6 @@ define body tag list-page-tags in wiki
   end if;
 end;
 
-define body tag list-page-versions in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*page*)
-    for (version in reverse(*page*.versions))
-      dynamic-bind(*version* = version)
-        do-body();
-      end;
-    end for;
-  end if;
-end;
-
 define method find-pages
     (#key tags :: <sequence> = #[],  // strings
           order-by :: false-or(<symbol>))
@@ -622,7 +653,7 @@ define method find-pages
    let pages = map-as(<vector>, identity, storage(<wiki-page>));
    if (~empty?(tags))
      pages := choose(method (page)
-                       every?(rcurry(member?, page.versions.last.categories,
+                       every?(rcurry(member?, page.page-versions.last.categories,
                                      test:, \=),
                               tags)
                      end,
@@ -705,7 +736,7 @@ end;
 
 define named-method latest-page-version? in wiki
     (page :: <wiki-dsp>)
-  *page* & (~*version* | *page*.versions.last = *version*)
+  *page* & (~*version* | *page*.page-versions.last = *version*)
 end;
 
 define named-method page-changed? in wiki

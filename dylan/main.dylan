@@ -103,7 +103,7 @@ define url-map on $wiki-http-server
       do-remove-page,
     // versions
     action get ("^(?P<title>[^/]+)/versions$") => 
-      show-page-versions,
+      $page-versions-page,
     action get ("^(?P<title>[^/]+)/versions/(?P<version>\\d+)$") =>
       show-page,
     action get ("^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$") => 
