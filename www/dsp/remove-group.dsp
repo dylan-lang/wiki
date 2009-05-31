@@ -1,7 +1,7 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan: <wiki:show-page-title/></title>
+  <title>Dylan Wiki: Remove Group <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>
@@ -10,17 +10,20 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">
-      <h2>Remove group '<wiki:show-group-name/>'</h2>
+      <h2>Remove Group <dsp:get name="group-name"/></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
+
+      <%dsp:include url="view-group-body.dsp"/>
 
       <form action="" method="post">
 	<fieldset>
           <ol>
             <li id="comment-item">
               <label id="comment-label" for="comment-input">Comment:</label>
-              <input id="comment-input" type="text" name="comment" value=""/>
+              <input id="comment-input" type="text" name="comment"
+                     value="<dsp:get name='comment' context='request'/>"/>
             </li>
           </ol>
         </fieldset>        	

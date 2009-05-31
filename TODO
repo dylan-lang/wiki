@@ -66,6 +66,7 @@ Registration
 
 Groups
 ------
+* Options menu offers edit/remove even if the user is not owner or admin.
 * Remove group from any ACLs upon deletion, and display list of pages whos
   ACLs will be affected.  Bonus points: say whether removing the group will
   make it so that no one (other than an admin and the owner) has access to

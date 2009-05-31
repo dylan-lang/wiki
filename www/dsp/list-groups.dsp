@@ -1,8 +1,8 @@
-<%dsp:taglib name="dsp"/>
 <%dsp:taglib name="wiki"/>
+<%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan: Groups</title>
+  <title>Dylan Wiki: Groups</title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>
@@ -19,12 +19,21 @@
         <form action="/groups" method="post">
           <ul class="striped big">
             <li class="group">
-              <input type="text" name="group" value=""/>
+              <input type="text" name="group"
+                     value="<dsp:get name='group' context='request,page'/>"
+                     <dsp:if-error field-name='group' text='class="invalid-input"'/>
+                     />
               <input type="submit" name="go" value="Create"/>
+              <dsp:show-field-errors field-name="group"/>
             </li>
           </ul>
         </form>
       </dsp:when>
+      <dsp:unless test="logged-in?">
+	<a href="/register">Register</a> or
+	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
+        to create a new group.
+      </dsp:unless>
       <dsp:loop over="all-group-names" var="group-name" header="<ul>" footer="</ul>">
         <li class="group">
           <a href="/groups/<dsp:get name="group-name" context="page"/>"><dsp:get name="group-name" context="page"/></a>

@@ -1,7 +1,7 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan: <wiki:show-page-title/>
+  <title>Dylan Wiki: <wiki:show-page-title/>
     <dsp:unless test="latest-page-version?">
       @ #<wiki:show-version-number/>
     </dsp:unless>

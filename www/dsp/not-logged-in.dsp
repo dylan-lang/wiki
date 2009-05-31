@@ -2,7 +2,7 @@
 <%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan</title>
+  <title>Dylan Wiki: Login</title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>

@@ -3,7 +3,7 @@
 <%dsp:include url="xhtml-start.dsp"/>
 
 <head>
-   <title>Dylan: <wiki:show-page-title/> -- access control</title>
+   <title>Dylan Wiki: <wiki:show-page-title/> -- access control</title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>

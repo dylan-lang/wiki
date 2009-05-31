@@ -2,7 +2,7 @@
 <%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan: <wiki:show-group-name/></title>
+  <title>Dylan Wiki: <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>
@@ -10,7 +10,7 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
-      <h2><wiki:show-group-name/></h2>
+      <h2><dsp:get name="group-name"/></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

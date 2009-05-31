@@ -1,7 +1,7 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan: Recent Changes</title>
+  <title>Dylan Wiki: Recent Changes</title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>

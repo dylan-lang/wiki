@@ -7,19 +7,19 @@
 </a>
 <div id="search-user">
 
-<form action="http://www.google.com/cse" id="cse-search-box">
-  <div>
-    <input type="hidden" name="cx" value="007351416707469336892:urro5q5ibho" />
-    <input type="hidden" name="ie" value="UTF-8" />
-    <input type="text" name="q" size="31" />
-    <input type="submit" name="sa" value="Search" />
-  </div>
-</form>
+  <form action="http://www.google.com/cse" id="cse-search-box">
+    <div>
+      <input type="hidden" name="cx" value="007351416707469336892:urro5q5ibho" />
+      <input type="hidden" name="ie" value="UTF-8" />
+      <input type="text" name="q" size="20" />
+      <input type="submit" name="sa" value="Google Search" />
+    </div>
+  </form>
 
 <dsp:comment>
 We'll use Google custom search, at least for a while
 
-<script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
+  <script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
 
   <form id="search-form" action="/search" method="get">
     <fieldset>
@@ -49,23 +49,24 @@ We'll use Google custom search, at least for a while
 </dsp:comment>
 
   <div id="authenticated-user">
-  <dsp:if test="authenticated?">
-    <dsp:then>
-      <wiki:with-authenticated-user>
-        <span class="user-info">
-          <a id="authenticated-user-link" href="<wiki:show-user-permanent-link />"><wiki:show-user-username/></a>
+    <dsp:if test="authenticated?">
+      <dsp:then>
+        <wiki:with-authenticated-user>
+          <span class="user-info">
+            <a id="authenticated-user-link" href="<wiki:show-user-permanent-link />"><wiki:show-user-username/></a>
+            &mdash;
+            <a href="<wf:show-logout-url redirect="true" current="true"/>">logout</a>
+          </span>
+        </wiki:with-authenticated-user>
+      </dsp:then>
+      <dsp:else>
+        <span>
+          <a href="/register">register</a>
           &mdash;
-          <a href="<wf:show-logout-url redirect="true" current="true"/>">logout</a>
+          <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
         </span>
-      </wiki:with-authenticated-user>
-    </dsp:then>
-    <dsp:else>
-      <span>
-        <a href="/register">register</a>
-        &mdash;
-        <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
-      </span>
-    </dsp:else>
-  </dsp:if>
+      </dsp:else>
+    </dsp:if>
   </div>
+
 </div>

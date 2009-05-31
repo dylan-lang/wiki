@@ -379,3 +379,7 @@ span.object {
 .field-error, .page-errors {
   color: red;
 }
+
+#comment-input {
+  width: 30em;
+}

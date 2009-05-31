@@ -57,6 +57,19 @@ end;
 
 // methods
 
+// This is pretty restrictive for now.  Easier to loosen the rules later
+// than to tighten them up.  The name has been pre-trimmed and %-decoded.
+//
+define method validate-user-name
+    (name :: <string>) => (name :: <string>)
+  if (empty?(name))
+    error("A user name is required.");
+  elseif (~regex-search("^[A-Za-z0-9_-]+$", name))
+    error("User names must contain only alphanumerics, hyphens and underscores.");
+  end;
+  name
+end method validate-user-name;
+
 /*
 define method storage-type
     (type == <wiki-user>)
