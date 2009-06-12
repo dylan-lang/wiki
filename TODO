@@ -3,13 +3,8 @@ Fix before going live
 
 Anything that is a regression compared to the original wiki.
 
-* The way news items are implemented (by adding a special tag) means
-  that anyone can add a news item.  Probably just add a set of
-  reserved tags in the config file.  (Reserved for admins, I guess.)
-  Not worth generalizing the ACLs stuff to tags, I think.
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
-* Support group descriptions.
 * Most of the items in the "Users" list below.
 * Most of the items in the "Registration" list below.
 * The methods on permanent-link are incorrect.  For example, if you go
@@ -17,8 +12,7 @@ Anything that is a regression compared to the original wiki.
   page links are incorrect.  Maybe transform-uris is broken.  Maybe we
   should be using <web-locator>s instead.
 * RSS or Atom feed working.
-* Redirection from old view.dsp?title=foo to /pages/foo.  Bonus points
-  for redirecting from specific revision numbers.
+* Redirection from old view.dsp?title=foo to /pages/foo.
 * Write all the hard-linked pages in the navigation bar (and the news items)
   in the old wiki so they're available immediately after conversion.  All
   we need to do after conversion is add the "opendylan.org news" tag.
@@ -28,7 +22,7 @@ General
 * MAKE THREAD SAFE -- basically anything like removing a user, which
   modifies multiple objects, may have race conditions.  Needs careful
   thought.
-* Convert specialized tags to use <dsp:loop> and improve <dsp:loop>
+* Convert specialized DSP tags to use <dsp:loop> and improve <dsp:loop>
   as needed.
 * navigation.dsp should be able to include wiki pages so that it can
   be customizable on a per-site and/or per-user basis.
@@ -36,9 +30,9 @@ General
 
 Tags
 ----
-
 * Overview page (hannes: what do you have in mind exactly?)
 * Ability to browse all pages with a given set of tags.
+* Make reserved tags and the "news" tag configurable.
 
 Users
 -----
@@ -60,12 +54,9 @@ Users
 
 Registration
 ------------
-* Validate email addresses by sending to them and not enabling the
-  account until verified.
-* Should have its own page
-* Should give error if no username entered
-* Should leave you logged in
-* Should put initial focus in password field
+* The account activation key is just base-64 encoded.  Not very secure,
+  just minimally good enough for now.
+* Put initial focus in password field.
 
 Groups
 ------
