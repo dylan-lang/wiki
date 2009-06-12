@@ -35,12 +35,6 @@ end method validate-group-name;
 // Must come up with a simpler, more general way to handle form errors...
 define wf/error-test (name) in wiki end;
 
-$change-verbs[<wiki-group-change>]
-  := table(#"edit" => "edited",
-           #"removal" => "removed",
-           #"add" => "added",
-           #"renaming" => "renamed");
-
 
 // storage
 
@@ -130,7 +124,7 @@ define method rename-group
     remove-key!(storage(<wiki-group>), group.group-name);
     group.group-name := new-name;
     storage(<wiki-group>)[new-name] := group;
-    save-change(<wiki-group-change>, new-name, #"renaming", comment);
+    save-change(<wiki-group-change>, new-name, $rename, comment);
     save(group);
     dump-data();
   end if;
@@ -142,7 +136,7 @@ define method create-group
   let group = make(<wiki-group>,
                    name: name,
                    owner: authenticated-user());
-  save-change(<wiki-group-change>, name, #"add", comment);
+  save-change(<wiki-group-change>, name, $create, comment);
   save(group);
   dump-data();
   group
@@ -154,7 +148,7 @@ define method add-member
  => ()
   add-new!(group.group-members, user);
   let comment = concatenate("added ", user.user-name, ". ", comment);
-  save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
+  save-change(<wiki-group-change>, group.group-name, $edit, comment);  
   save(group);
   dump-data();
 end;
@@ -165,7 +159,7 @@ define method remove-member
  => ()
   remove!(group.group-members, user);
   let comment = concatenate("removed ", user.user-name, ". ", comment);
-  save-change(<wiki-group-change>, group.group-name, #"edit", comment);  
+  save-change(<wiki-group-change>, group.group-name, $edit, comment);  
   save(group);
   dump-data();
 end;
@@ -178,7 +172,7 @@ define method remove-group
   for (page in storage(<wiki-page>))
     remove-rules-for-target(page.access-controls, group);
   end;
-  save-change(<wiki-group-change>, group.group-name, #"removal", comment);
+  save-change(<wiki-group-change>, group.group-name, $remove, comment);
   dump-data();
 end;
 
@@ -197,6 +191,19 @@ end;
 
 define constant $list-groups-page
   = make(<list-groups-page>, source: "list-groups.dsp");
+
+define method respond-to-get
+    (page :: <list-groups-page>, #key)
+  local method group-info (group)
+          table(<string-table>,
+                "name" => group.group-name,
+                "count" => integer-to-string(group.group-members.size),
+                "description" => quote-html(group.group-description))
+        end;
+  set-attribute(page-context(), "all-groups",
+                map(group-info, table-values(storage(<wiki-group>))));
+  next-method();
+end method respond-to-get;
 
 // Posting to /groups creates a new group.
 //
@@ -326,7 +333,7 @@ define method respond-to-post
         group.group-description := description;
         group.group-owner := new-owner;
         save(group);
-        save-change(<wiki-group-change>, name, #"edit", comment);
+        save-change(<wiki-group-change>, name, $edit, comment);
         dump-data();
       end;
       redirect-to(group);

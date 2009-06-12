@@ -29,14 +29,6 @@ in wiki end;
 define wf/error-test (title) in wiki end;
 
 
-// verbs
-
-$change-verbs[<wiki-page-change>] := 
-  table(#"edit" => "edited",
-	#"removal" => "removed",
-	#"renaming" => "renamed",
-	#"add" => "added");
-
 
 // storage
 
@@ -93,27 +85,46 @@ define method add-author
   user
 end method add-author;
 
+// todo -- Do this as a wiki page.
+define constant $reserved-tags :: <sequence> = #["opendylan.org news"];
+
+define method reserved-tag?
+    (tag :: <string>) => (reserved? :: <boolean>)
+  member?(tag, $reserved-tags, test: \=)
+end;
+
 define method save-page
     (title :: <string>, content :: <string>, 
      #key comment :: <string> = "", tags :: false-or(<sequence>))
  => ()
   let page :: false-or(<wiki-page>) = find-page(title);
-  let action :: <symbol> = #"edit";
+  let action :: <symbol> = $edit;
   let author :: <wiki-user> = authenticated-user();
   if (page)
     if (~has-permission?(author, page, $modify-content))
-      // temporary
-      error("%s has no permission to edit this page", author.user-name);
+      add-page-error("You do not have permission to edit this page.");
     end;
   else
     page := make(<wiki-page>,
                  title: title,
                  owner: author);
-    action := #"add";
+    action := $create;
   end;
-  save-page-internal(page, content, comment, tags, author, action);
-  dump-data();
-  generate-connections-graph(page);
+
+  let reserved-tags = choose(reserved-tag?, tags);
+  if (~empty?(reserved-tags) & ~administrator?(author))
+    add-field-error("tags", "The tag%s %s %s reserved for administrator use.",
+                    iff(reserved-tags.size = 1, "", "s"),
+                    join(tags, ", ", conjunction: " and "),
+                    iff(reserved-tags.size = 1, "is", "are"));
+  end;
+  if (page-has-errors?())
+    respond-to-get($view-page-page, title: title);
+  else
+    save-page-internal(page, content, comment, tags, author, action);
+    dump-data();
+    generate-connections-graph(page);
+  end;
 end method save-page;
 
 // This is separated out so it can be used for the conversion from the
@@ -123,7 +134,9 @@ define method save-page-internal
      tags :: <sequence>, author :: <wiki-user>, action :: <symbol>)
   let title = page.title;
   let version-number :: <integer> = size(page.page-versions) + 1;
-  if (version-number = 1 | (content ~= page.latest-text) | tags ~= page.latest-tags)
+  if (version-number = 1
+        | content ~= page.latest-text
+        | tags ~= page.latest-tags)
     let version = make(<wiki-page-version>,
                        content: make(<raw-content>, content: content),
                        authors: list(author),
@@ -198,7 +211,7 @@ define method remove-page
     (page :: <wiki-page>,
      #key comment :: <string> = "")
  => ();
-  save-change(<wiki-page-change>, page.title, #"removal", comment);
+  save-change(<wiki-page-change>, page.title, $remove, comment);
   remove-key!(storage(<wiki-page>), page.title);
   dump-data();
 end;
@@ -221,7 +234,7 @@ define method rename-page
   remove-key!(storage(<wiki-page>), page.title);
   page.title := new-title;
   storage(<wiki-page>)[new-title] := page;
-  save-change(<wiki-page-change>, new-title, #"renaming", comment);
+  save-change(<wiki-page-change>, new-title, $rename, comment);
   save(page);
   dump-data();
 end;

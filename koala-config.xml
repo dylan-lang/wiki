@@ -1,22 +1,29 @@
 <?xml version="1.0"?>
 <koala>
   <listener address="0.0.0.0" port="8000"/>
-  <debug-server value="on" />
+  <debug-server value="off" />
 
   <!-- dev mode makes DSP check for modified templates and reparse them. -->
   <development-mode enabled="on" />
 
-  <server-root location="c:/cgay/dylan/trunk/libraries/network/wiki"/>
+  <server-root location="trunk/libraries/network/wiki"/>
 
   <!-- For now we set the document root and dsp root explicitly.
        They are not relative to server root due to the way the wiki is
        started up. -->
-  <document-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www"/>
-  <dsp-root location="c:/cgay/dylan/trunk/libraries/network/wiki/www/dsp"/>
+  <document-root location="trunk/libraries/network/wiki/www"/>
+  <dsp-root location="trunk/libraries/network/wiki/www/dsp"/>
 
-  <wiki content-directory="c:/tmp">
+  <wiki content-directory="."
+        site-name="Dylan Wiki">
+
+    <!-- Note that the administrator's email address will be the one
+         from which account emails are sent, so it runs a high spam risk.
+      -->
     <administrator username="administrator"
                    password="D1D1"
                    email="hackers@lists.opendylan.org"/>
+    <authentication realm="dylan-wiki"/>
+    <mail host="lists.opendylan.org"/>
   </wiki>
 </koala>

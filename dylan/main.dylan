@@ -1,10 +1,18 @@
 Module: wiki-internal
 
+define variable *site-name* :: <string> = "Dylan Wiki";
+
+// The realm used for authentication.  Configurable.
+define variable *wiki-realm* :: <string> = "wiki";
+
+define variable *mail-host* = #f;
+define variable *mail-port* :: <integer> = $default-smtp-port;
 
 define sideways method process-config-element
     (server :: <http-server>, node :: xml/<element>, name == #"wiki")
   // set the content-directory
   process-config-element(server, node, #"web-framework");
+  
   local method child-node-named (name)
           block (return)
             for (child in xml/node-children(node))
@@ -14,24 +22,94 @@ define sideways method process-config-element
             end;
           end;
         end;
-  let admin-elem = child-node-named(#"administrator");
-  let username = admin-elem & get-attr(admin-elem, #"username");
-  let password = admin-elem & get-attr(admin-elem, #"password");
-  let email = admin-elem & get-attr(admin-elem, #"email");
+
+  let site-name = get-attr(node, #"site-name");
+  if (site-name)
+    *site-name* := site-name;
+  end;
+
+  let admin-element = child-node-named(#"administrator");
+  if (~admin-element)
+    error("An <administrator> element must be specified in the config file.");
+  end;
+  process-administrator-configuration(admin-element);
+
+  let auth-element = child-node-named(#"authentication");
+  if (auth-element)
+    process-authentication-configuration(auth-element);
+  end;
+
+  let mail-element = child-node-named(#"mail");
+  if (mail-element)
+    process-mail-configuration(mail-element);
+  else
+    error("A <mail> element must be specified in the config file.");
+  end;
+end method process-config-element;
+
+define method process-administrator-configuration
+    (admin-element :: xml/<element>)
+  let username = get-attr(admin-element, #"username");
+  let password = get-attr(admin-element, #"password");
+  let email = get-attr(admin-element, #"email");
   if (~(username & password & email))
     error("The <administrator> element must be specified in the config file "
           "with a username, password, and email.");
-  elseif (~find-user(username))
-    let user = make(<wiki-user>,
-                    name: username,
-                    password: password,
-                    email: email,
-                    administrator?: #t);
-    save(user);
-    dump-data();
-    *admin-user* := user;
   end;
-end method process-config-element;
+  let username = validate-user-name(username);
+  let password = validate-password(password);
+  let email = validate-email(email);
+  let admin = find-user(username);
+  let admin-changed? = #f;
+  if (admin)
+    if (admin.user-password ~= password)
+      admin.user-password := password;
+      admin-changed? := #t;
+      log-info("Administrator user (%s) password changed.", username);
+    end;
+    if (admin.user-email ~= email)
+      admin.user-email := email;
+      admin-changed? := #t;
+      log-info("Administrator user (%s) email changed to %=.", username, email);
+    end;
+  else
+    admin := make(<wiki-user>,
+                  name: username,
+                  password: password,
+                  email: email,
+                  administrator?: #t);
+    admin-changed? := #t;
+    log-info("Administrator user (%s) created.", username);
+  end;
+  if (admin-changed?)
+    save(admin);
+    dump-data();
+  end;
+  *admin-user* := admin;
+end method process-administrator-configuration;
+
+define method process-authentication-configuration
+    (auth-element :: xml/<element>)
+  let realm = get-attr(auth-element, #"realm");
+  if (realm)
+    *wiki-realm* := realm;
+    log-info("Authentication realm set to %=", realm);
+  end;
+end process-authentication-configuration;
+
+define method process-mail-configuration
+    (mail-element :: xml/<element>)
+  let host = get-attr(mail-element, #"host");
+  let port = get-attr(mail-element, #"port");
+  if (host)
+    *mail-host* := host;
+  else
+    error("The <mail> configuration element must have a 'host' attribute.");
+  end;
+  if (port)
+    *mail-port* := string-to-integer(port);
+  end;
+end method process-mail-configuration;
 
 define constant $wiki-http-server = make(<http-server>);
 
@@ -57,37 +135,30 @@ define url-map on $wiki-http-server
     action get () => $main-page;
 
   url wiki-url("/login")
-    action (get, post) () => curry(login, realm: "dylan-wiki");
+    action (get, post) () => curry(login, realm: *wiki-realm*);
 
   url wiki-url("/logout")
     action (get, post) () => logout;
 
   url wiki-url("/recent-changes")
-    action get () => $recent-changes-page,
-    action get ("^feed/?$") => do-feed;
+    action (get, post) () => $recent-changes-page;
 
   url wiki-url("/users")
-    action get () =>
+    action (get, post) () =>
       $list-users-page,
-    action post () =>
-      method ()
-        redirect-to(user-permanent-link(get-query-value("user-name")))
-      end,
-    action get ("^(?P<username>[^/]+)/?$") =>
-      show-user,
-    action get ("^(?P<username>[^/]+)/edit$") =>
-      show-edit-user,
-    action post ("^(?P<username>[^/]+)$") =>
-      do-save-user,
-    action get ("^(?P<username>[^/]+)/remove$") =>
+    action get ("^(?P<name>[^/]+)/?$") =>
+      $view-user-page,
+    action (get, post) ("^(?P<name>[^/]+)/edit$") =>
+      $edit-user-page,
+    action get ("^(?P<name>[^/]+)/remove$") =>
       show-remove-user,
-    action post ("^(?P<username>[^/]+)/remove$") =>
-      do-remove-user;
+    action post ("^(?P<name>[^/]+)/remove$") =>
+      do-remove-user,
+    action get ("^(?P<name>[^/]+)/activate/(?P<key>.+)$") =>
+      respond-to-user-activation-request;
 
   url wiki-url("/register")
-    // For now the users page gives a way to create an account.
-    // Eventually the registration page should be more specialized.
-    action get () => $list-users-page;
+    action (get, post) () => $registration-page;
 
   url wiki-url("/pages")
     action get () => do-pages,

@@ -13,6 +13,7 @@ define library wiki
   use koala,
     import: { dsp };
   use network;
+  use smtp-client;
   use strings;
   use string-extensions;
   use system,
@@ -54,6 +55,7 @@ define module wiki-internal
     exclude: { <http-server>, <url> };
   use permission;
   use simple-xml;
+  use smtp-client;
   use storage;
   use streams;
   use strings,

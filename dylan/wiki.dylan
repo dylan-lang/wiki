@@ -10,7 +10,23 @@ define function wiki-url
                         apply(format-to-string, format-string, format-args)))
 end;  
 
-define variable $change-verbs = make(<table>);
+define constant $activate = #"activate";
+define constant $create = #"create";
+define constant $edit   = #"edit";
+define constant $remove = #"remove";
+define constant $rename = #"rename";
+define constant $remove-group-owner = #"remove-group-owner";
+define constant $remove-group-member = #"remove-group-member";
+
+define table $past-tense-table = {
+    $activate => "activated",
+    $create => "created",
+    $edit   => "edited",
+    $remove => "removed",
+    $rename => "renamed",
+    $remove-group-owner => "removed as group owner",
+    $remove-group-member => "removed as group member"
+  };
 
 define wf/object-tests (day, change) in wiki end;
 
@@ -44,7 +60,7 @@ end;
 define class <wiki-acls-change> (<wiki-change>)
 end;
 
-// If authors: is not provided then the current authenticate user is used
+// If authors: is not provided then the current authenticated user is used
 // or an error is signalled if there is no authenticated user.
 //
 define method save-change
@@ -77,7 +93,8 @@ define tag show-version-published in wiki
   end if;
 end;
 
-define tag show-page-published in wiki (page :: <wiki-dsp>)
+define tag show-page-published in wiki
+    (page :: <wiki-dsp>)
     (formatted :: <string>)
   if (*page*)
     output("%s", format-date(formatted, *page*.date-published));
@@ -100,8 +117,25 @@ define tag show-version-comment in wiki
   end if;
 end;
 
+
+//// Recent Changes
+
+define class <recent-changes-page> (<wiki-dsp>)
+end;
+
 define constant $recent-changes-page
-  = make(<wiki-dsp>, source: "list-recent-changes.dsp");
+  = make(<recent-changes-page>, source: "list-recent-changes.dsp");
+
+define method respond-to-get
+    (page :: <recent-changes-page>, #key)
+  // todo
+  next-method();
+end;
+
+define method respond-to-post
+    (page :: <recent-changes-page>, #key)
+  do-feed()
+end;
 
 define method wiki-changes
     ()
@@ -119,8 +153,8 @@ end;
 */
 
 define body tag list-changes-daily in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   local method bind-and-do-body (day)
     dynamic-bind(*day* = day)
       do-body();
@@ -150,8 +184,8 @@ define body tag list-changes-daily in wiki
 end;
 
 define body tag list-day-changes in wiki
- (page :: <wiki-dsp>, do-body :: <function>)
- ()
+    (page :: <wiki-dsp>, do-body :: <function>)
+    ()
   if (*day*)
     for (change in *day*)
       dynamic-bind(*change* = change)
@@ -169,53 +203,65 @@ define tag show-day-date in wiki (page :: <wiki-dsp>)
 end;
 
 define tag show-change-date in wiki
- (page :: <wiki-dsp>)
- (formatted :: <string>)
+    (page :: <wiki-dsp>)
+    (formatted :: <string>)
   if (*change*)
     output("%s", format-date(formatted, *change*.date-published));
   end if;
 end;
 
-define tag show-change-comment in wiki (page :: <wiki-dsp>)
- ()
+define tag show-change-comment in wiki
+    (page :: <wiki-dsp>)
+    ()
   if (*change*)
     output("%s", *change*.comments[0].content.content);
   end if;
 end;
 
 define tag show-change-title in wiki (page :: <wiki-dsp>)
- ()
+    ()
   if (*change*)
     output("%s", *change*.title);
   end if;
 end;
 
-define tag show-change-author in wiki (page :: <wiki-dsp>)
- ()
+define tag show-change-author in wiki
+    (page :: <wiki-dsp>)
+    ()
   if (*change*)
     output("%s", first(*change*.authors));
   end if;
 end;
 
-define tag show-change-verb in wiki (page :: <wiki-dsp>)
+define tag show-change-verb in wiki
+    (page :: <wiki-dsp>)
     ()
   if (*change*)
-    output("%s", $change-verbs[*change*.object-class][*change*.change-action]);
+    let verb = element($past-tense-table, *change*.change-action, default: #f)
+                 | as(<string>, *change*.change-action);
+    output("%s", verb);
   end if;
 end;
 
 define tag show-change-version in wiki (page :: <wiki-dsp>)
- ()  
+    ()
   if (*change*)
     output("%d", *change*.change-version);
   end if;
 end;
 
-define named-method change-action=edit? in wiki (page :: <wiki-dsp>)
+define named-method group-changed? in wiki
+    (page :: <wiki-dsp>)
+  instance?(*change*, <wiki-group-change>);
+end;
+
+define named-method change-action=edit? in wiki
+    (page :: <wiki-dsp>)
   *change* & *change*.change-action = #"edit";
 end;
 
-define named-method change-action=removal? in wiki (page :: <wiki-dsp>)
+define named-method change-action=removal? in wiki
+    (page :: <wiki-dsp>)
   *change* & *change*.change-action = #"removal";
 end;
 
@@ -232,4 +278,5 @@ define constant $main-page
 
 define constant $not-logged-in-page
   = make(<wiki-dsp>, source: "not-logged-in.dsp");
+
 

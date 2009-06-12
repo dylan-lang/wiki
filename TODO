@@ -53,6 +53,9 @@ Users
   the page.  Maybe call it e.g. "User: Full Name".
 * Allow user to set their timezone and date format, and show all times
   relative to that.
+* Validate name, password, email.  Require a minimum level of
+  security in passwords?  e.g., must not be empty, one char, all the
+  same char, etc.  Maybe there's a cookbook for this.
 
 
 Registration

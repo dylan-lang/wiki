@@ -20,14 +20,13 @@
             <input type="text" name="user-name" value=""/>
             <input type="submit" name="go" value="Create"/>
           </li>
-          <wiki:list-users>
+          <dsp:loop over="active-users" context="page" var="user">
             <li class="user">
-              <a href="<wiki:show-user-permanent-link/>"><wiki:show-user-username/></a>
-              <dsp:when test="admin?">
-                (administrator)
-              </dsp:when>
+              <a href="/users/<dsp:get name='user[name]'/>"><dsp:get name="user[name]"/></a>
+              <dsp:when test="true?" name="user[admin?]">*</dsp:when>
+              <dsp:if-equal name1="user[name]" name2="active-user">(you)</dsp:if-equal>
             </li>
-          </wiki:list-users>
+          </dsp:loop>
         </ul>
       </form>
     </div>

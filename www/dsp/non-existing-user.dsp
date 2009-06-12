@@ -16,7 +16,7 @@
       <dsp:show-page-notes/>
 
       <p class="hint">
-        This group doesn't exist.
+        This user doesn't exist.
 	<a href="/register">Register</a> or
 	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
 	to create it.

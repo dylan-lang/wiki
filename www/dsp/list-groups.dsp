@@ -34,9 +34,10 @@
 	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
         to create a new group.
       </dsp:unless>
-      <dsp:loop over="all-group-names" var="group-name" header="<ul>" footer="</ul>">
+      <dsp:loop over="all-groups" context="page" var="group" header="<ul>" footer="</ul>">
         <li class="group">
-          <a href="/groups/<dsp:get name="group-name" context="page"/>"><dsp:get name="group-name" context="page"/></a>
+          <a href="/groups/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
+          <div class="group-description"><dsp:get name="group[description]"/></div>
         </li>
       </dsp:loop>
     </div>

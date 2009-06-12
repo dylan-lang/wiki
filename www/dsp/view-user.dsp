@@ -1,7 +1,7 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
 <head>
-  <title>Dylan Wiki: <wiki:show-user-username/></title>
+  <title>Dylan Wiki: <dsp:get name="user-name"/></title>
   <%dsp:include url="meta.dsp"/>
 </head>
 <body>
@@ -12,22 +12,33 @@
       <%dsp:include url="user-options-menu.dsp"/>
     </dsp:when>
     <div id="body">
-      <h2><wiki:show-user-username/><dsp:when test="admin?"> (administrator)</dsp:when></h2>
+      <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <dsp:loop over="user-group-names" var="group-name" header="<h3>Group Memberships</h3><ul>" footer="</ul>">
-        <li><a href="/groups/<dsp:get name="group-name" context="page"/>">
-            <dsp:get name="group-name" context="page"/></a>
-        </li>
-      </dsp:loop>
+<dsp:comment> Not until we have a way for the user to opt in...
+      <h3>Email Address</h3>
+      <dsp:get name="user-email"/>
+</dsp:comment>
 
-      <dsp:loop over="group-names-owned-by-user" var="group-name" header="<h3>Group Ownerships</h3><ul>" footer="</ul>">
-        <li><a href="/groups/<dsp:get name="group-name" context="page"/>">
-            <dsp:get name="group-name" context="page"/></a>
-        </li>
-      </dsp:loop>
+      <h3>Group Memberships</h3>
+      <ul>
+        <dsp:loop over="group-memberships" context="page" var="group-name" empty="None">
+          <li><a href="/groups/<dsp:get name='group-name' context='page'/>">
+              <dsp:get name="group-name" context="page"/></a>
+          </li>
+        </dsp:loop>
+      </ul>
+
+      <h3>Group Ownerships</h3>
+      <ul>
+        <dsp:loop over="group-ownerships" context="page" var="group-name" empty="None">
+          <li><a href="/groups/<dsp:get name='group-name' context='page'/>">
+              <dsp:get name="group-name" context="page"/></a>
+          </li>
+        </dsp:loop>
+      </ul>
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>

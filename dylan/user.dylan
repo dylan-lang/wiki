@@ -27,14 +27,6 @@ define wf/error-tests
 in wiki end;
 
 
-// verbs
-
-$change-verbs[<wiki-user-change>] :=
-  table(#"edit" => "edited",
-	#"removal" => "removed",
-	#"add" => "registered");
-
-
 // url
 
 define method permanent-link
@@ -57,6 +49,53 @@ end;
 
 // methods
 
+define method send-new-account-email
+    (user :: <wiki-user>)
+  let url = account-activation-url(user);
+  // body contains "subject\n\n"...weird
+  let body = format-to-string(
+    "Subject: Confirmation for account %s on %s\n\n"
+    "This message is to confirm the account '%s' you registered on %s.  "
+    "Click the following URL to complete the registration process and  "
+    "activate your new account: %s\n",
+    user.user-name, *site-name*, user.user-name, *site-name*, url);
+
+  // Try to send the message.
+  // Retry once if we get 451, to work around grey listing.
+  iterate loop (first? = #t)
+    let handler <transient-smtp-error> = method (ex, next-handler)
+                                           if (first? & ex.smtp-error-code = 451)
+                                             loop(#f);
+                                           else
+                                             next-handler();
+                                           end;
+                                         end;
+    send-smtp-message(host: *mail-host*,
+                      port: *mail-port*,
+                      recipients: list(user.user-email),
+                      from: *admin-user*.user-email,
+                      body: body);
+    log-info("Email verification sent to %s for user %s",
+             user.user-email, user.user-name);
+  end;
+end method send-new-account-email;
+
+define method account-activation-url
+    (user :: <wiki-user>)
+ => (url :: <string>)
+  let default = current-request().request-absolute-url;
+  as(<string>,
+     make(<url>,
+          scheme: "http",
+          host: default.uri-host,
+          port: default.uri-port,
+          // I totally don't get why the uri library uses an empty string
+          // at the beginning of the path...
+          path: list("", "users", user.user-name, "activate",
+                     user.user-activation-key)))
+end method account-activation-url;
+
+
 // This is pretty restrictive for now.  Easier to loosen the rules later
 // than to tighten them up.  The name has been pre-trimmed and %-decoded.
 //
@@ -68,7 +107,29 @@ define method validate-user-name
     error("User names must contain only alphanumerics, hyphens and underscores.");
   end;
   name
-end method validate-user-name;
+end;
+
+define method validate-password
+    (password :: <string>) => (password :: <string>)
+  if (password.size <= 3)
+    error("A password of four or more characters is required.");
+  end;
+  password
+end;
+
+define method validate-email
+    (email :: <string>) => (email :: <string>)
+  // Just checking some basic syntax for now.  Will eventually send mail
+  // to verify.
+  let parts = split(email, '@');
+  if (parts.size ~= 2
+        | parts[0].size = 0
+        | parts[1].size = 0
+        | ~member?('.', parts[1]))
+    error("Invalid email address syntax.");
+  end;
+  email
+end;
 
 /*
 define method storage-type
@@ -78,93 +139,29 @@ define method storage-type
 end;
 */
 
-define method save-user
-    (name :: <string>, password :: false-or(<string>), email :: <string>,
-     #key comment :: <string> = "", administrator?)
- => (user :: <wiki-user>)
-  let user :: false-or(<wiki-user>) = find-user(name);
-  let action :: <symbol> = #"edit";
-  if (user)
-    if (password)
-      user.user-password := password;
-    end if;
-    user.user-email := email;
-  else
-    user := make(<wiki-user>,
-                 name: name,
-                 password: password,
-                 email: email);
-    action := #"add";
-  end;
-  save-change(<wiki-user-change>, name, action, comment,
-              authors: if (authenticated-user())
-                         list(authenticated-user().user-name)
-                       else
-                         list(name)
-                       end if);
-  save(user);
-  dump-data();
-  user
-end method save-user;
-
-define generic rename-user
-    (user :: <object>, new-name :: <string>, #key comment :: false-or(<string>))
- => ();
-
-define method rename-user
-    (name :: <string>, new-name :: <string>,
-     #key comment :: false-or(<string>))
- => ()
-  let user = find-user(name);
-  if (user)
-    rename-user(user, new-name, comment: comment)
-  end if;
-end method rename-user;
-
-define method rename-user
-    (user :: <wiki-user>, new-name :: <string>,
-     #key comment :: false-or(<string>))
- => ()
-  let comment = concatenate("was: ", user.user-name, ". ", comment | "");
-  remove-key!(storage(<wiki-user>), user.user-name);
-  user.user-name := new-name;
-  storage(<wiki-user>)[new-name] := user;
-  save-change(<wiki-user-change>, new-name, #"renaming", comment);
-  save(user);
-  dump-data();
-end method rename-user;
 
 // todo -- MAKE THREAD SAFE
 define method remove-user
     (user :: <wiki-user>, #key comment :: <string> = "")
  => ()
   remove-key!(storage(<wiki-user>), user.user-name);
-  let message = "Automatic change due to user removal.";
+  let message = "Automatic change due to user account removal.";
   for (group in groups-owned-by-user(user))
     group.group-owner := *admin-user*;
     save-change(<wiki-user-change>,
-                user.user-name, #"remove-group-owner", message)
+                user.user-name, $remove-group-owner, message)
   end;
   for (group in user-groups(user))
     group.group-members := remove!(group.group-members, user);
     save-change(<wiki-user-change>,
-                user.user-name, #"remove-group-member", message);
+                user.user-name, $remove-group-member, message);
   end;
-  save-change(<wiki-user-change>, user.user-name, #"removal", comment);
+  save-change(<wiki-user-change>, user.user-name, $remove, comment);
   dump-data();
 end;
 
 
 // pages
-
-define constant $view-user-page
-  = make(<wiki-dsp>, source: "view-user.dsp");
-
-define constant $edit-user-page
-  = make(<wiki-dsp>, source: "edit-user.dsp");
-
-define constant $list-users-page
-  = make(<wiki-dsp>, source: "list-users.dsp");
 
 define constant $remove-user-page
   = make(<wiki-dsp>, source: "remove-user.dsp");
@@ -172,78 +169,260 @@ define constant $remove-user-page
 define constant $non-existing-user-page
   = make(<wiki-dsp>, source: "non-existing-user.dsp");
 
-define constant $login-page
-  = make(<wiki-dsp>, source: "login.dsp");
+//// List Users
 
-// actions
+define class <list-users-page> (<wiki-dsp>)
+end;
 
-define method show-user (#key username)
-  dynamic-bind (*user-username* = percent-decode(username),
-                *user* = find-user(*user-username*))
-    // This call to process-page feels hackish.  It's here specifically so that
-    // *page-context* is bound, but we shouldn't have to worry about that!
-    process-page(case
-                   *user* => $view-user-page;
-                   otherwise => $edit-user-page;
-                 end);
+define constant $list-users-page
+  = make(<list-users-page>, source: "list-users.dsp");
+
+define method respond-to-get
+    (page :: <list-users-page>, #key)
+  let pc = page-context();
+  set-attribute(pc, "active-users",
+                map(method (user)
+                      table(<string-table>,
+                            "name" => user.user-name,
+                            "admin?" => user.administrator?)
+                    end,
+                    choose(user-activated?,
+                           table-values(storage(<wiki-user>)))));
+  let active-user = authenticated-user();
+  set-attribute(pc, "active-user", active-user & active-user.user-name);
+  next-method();
+end;
+
+define method respond-to-post
+    (page :: <list-users-page>, #key)
+  let user-name = percent-decode(get-query-value("user-name"));
+  redirect-to(wiki-url("/users/%s/edit", user-name));
+end;
+
+//// View User
+
+define class <view-user-page> (<wiki-dsp>)
+end;
+
+define constant $view-user-page
+  = make(<view-user-page>, source: "view-user.dsp");
+
+define method respond-to-get
+    (page :: <view-user-page>, #key name :: <string>)
+  let name = percent-decode(name);
+  let user = find-user(name);
+  if (user)
+    let pc = page-context();
+    set-attribute(pc, "user-name", user.user-name);
+    set-attribute(pc, "group-memberships",
+                  sort(map(group-name, user-groups(user))));
+    set-attribute(pc, "group-ownerships",
+                  sort(map(group-name, groups-owned-by-user(user))));
+    set-attribute(pc, "admin?", user.administrator?);
+    let active-user = authenticated-user();
+    set-attribute(pc, "user-email",
+                  if (active-user & (active-user = user
+                                       | administrator?(active-user)))
+                    user.user-email
+                  else
+                    "private"
+                  end);
+    next-method();
+  else
+    // should only get here via a manually typed-in URL
+    respond-to-get($non-existing-user-page, name: name);
   end;
-end method show-user;
+end method respond-to-get;
 
-define method show-edit-user (#key username)
-  dynamic-bind (*user-username* = percent-decode(username),
-                *user* = find-user(*user-username*))
-    respond-to-get(case
-                     *user* => $edit-user-page;
-                     otherwise => $non-existing-user-page;
-                   end);
+
+//// Registration Page
+
+// This is similar to Edit User except that the account MUST NOT exist yet.
+//
+define class <registration-page> (<wiki-dsp>)
+end;
+
+define constant $registration-page
+  = make(<registration-page>, source: "register.dsp");
+
+define method respond-to-get
+    (page :: <registration-page>, #key)
+  let active-user = authenticated-user();
+  if (active-user)
+    add-page-note("You are already logged in.  Log out to register a new account.");
+    respond-to-get($view-user-page, name: active-user.user-name);
+  else
+    next-method();
   end;
-end method show-edit-user;
+end method respond-to-get;
 
-define method do-save-user (#key username :: <string>)
-  with-query-values (username as new-username, password, email, comment)
-    let errors = #();
-
-    let username = percent-decode(trim(username));
-    if (empty?(username))
-      errors := add!(errors, #"username");
-    end if;
-
-    let user = find-user(username);
-    if (user)
-      // No password needed if user already logged in.
-      if (password = "")
-        password := #f;
-      end if;
-    else
-      if (~ instance?(password, <string>) | password = "")
-        errors := add!(errors, #"password");
-      end if;
-    end if;
-
-    if (~ instance?(email, <string>) | email = "")
-      errors := add!(errors, #"email");
-    end if;
-
-    if (user & new-username & new-username ~= username & new-username ~= "")
-      if (find-user(new-username))
-        errors := add!(errors, #"exists");
-      else
-        username := new-username;
-      end if;
-    end if;
-
-    if (empty?(errors))
-      save-user(username, password, email);
-      redirect-to(find-user(username));
-    else
-      current-request().request-query-values["password"] := "";
-      dynamic-bind (wf/*errors* = errors,
-                    wf/*form* = current-request().request-query-values)
-        respond-to(#"get", $edit-user-page);
+define method respond-to-post
+    (page :: <registration-page>, #key)
+  let active-user = authenticated-user();
+  if (active-user)
+    add-page-note("You are already logged in.  Log out to register a new account.");
+    respond-to-get($view-user-page, name: active-user.user-name);
+  else
+    let new-name = validate-form-field("user-name", validate-user-name);
+    if (find-user(new-name))
+      add-field-error("user-name", "A user named %s already exists.", new-name);
+    end;
+    let email = validate-form-field("email", validate-email);
+    let password = validate-form-field("password", validate-password);
+    let password2 = validate-form-field("password2", validate-password);
+    if (password ~= password2)
+      add-field-error("password2", "Passwords don't match.");
+    end;
+    let user = #f;
+    if (~page-has-errors?())
+      user := make(<wiki-user>,
+                   name: new-name,
+                   password: password,
+                   email: email,
+                   administrator?: #f);
+      block ()
+        send-new-account-email(user);
+      exception (ex :: <serious-condition>)
+        log-error("Email failed to %s (for %s): %s",
+                  user.user-email, user.user-name, ex);
+        add-field-error("email",
+                        "Unable to send confirmation email to this address.");
       end;
+    end;
+    if (page-has-errors?())
+      next-method();
+    else
+      save(user);
+      save-change(<wiki-user-change>, new-name, $create, "User created",
+                  authors: #());
+      add-page-note("User %s created.  Please follow the link in the confirmation "
+                    "email sent to %s to activate the account.",
+                    new-name, email);
+      dump-data();
+      respond-to-get($view-user-page, name: user.user-name);
     end if;
-  end with-query-values;
-end method do-save-user;
+  end if;    
+end method respond-to-post;
+
+
+//// User activation
+
+// Responder for the URL sent in confirmation email to activate the account.
+
+define function respond-to-user-activation-request
+    (#key name :: <string>, key :: <string>)
+  let name = percent-decode(name);
+  let user = find-user(name);
+  if (user)
+    if (~user.user-activated?)
+      let key = percent-decode(key);
+      if (key = user.user-activation-key)
+        user.user-activated? := #t;
+        save-change(<wiki-user-change>, name, $activate, "Account activated",
+                    authors: #());
+      end;
+    end;
+    if (user.user-activated?)
+      add-page-note("User %s activated.", name);
+    else
+      add-page-error("User activation failed.");
+    end;
+  else
+    add-page-error("User %s not found.", name);
+  end;
+  respond-to-get($view-user-page, name: name);
+end function respond-to-user-activation-request;
+
+//// Edit User
+
+// This is similar to <registration-page> except the user MUST exist.
+//
+define class <edit-user-page> (<wiki-dsp>)
+end;
+
+define constant $edit-user-page
+  = make(<edit-user-page>, source: "edit-user.dsp");
+
+define method respond-to-get
+    (page :: <edit-user-page>, #key name)
+  let name = percent-decode(name);
+  let user = find-user(name);
+  let active-user = authenticated-user();
+  let pc = page-context();
+  set-attribute(pc, "user-name", name);
+  set-attribute(pc, "button-text", iff(user, "Save", "Create"));
+  set-attribute(pc, "active-user-is-admin?",
+                active-user & administrator?(active-user));
+  if (active-user = user | administrator?(active-user))
+    set-attribute(pc, "password", user.user-password);
+    set-attribute(pc, "email", user.user-email);
+    set-attribute(pc, "admin?", user.administrator?);
+    next-method();
+  else
+    add-page-error("You don't have permission to change this user.");
+    respond-to-get($view-user-page, name: name);
+  end;
+end method respond-to-get;
+
+define method respond-to-post
+    (page :: <edit-user-page>, #key name :: <string>)
+  let name = percent-decode(name);
+  let user = find-user(name);
+  let active-user = authenticated-user();
+  if (user & (~active-user | ~(active-user = user | active-user.administrator?)))
+    add-page-error("You don't have permission to change this user.");
+    respond-to-get($view-user-page, name: name);
+  else
+    let new-name = validate-form-field("user-name", validate-user-name);
+    if (name ~= new-name & find-user(new-name))
+      add-field-error("user-name", "A user named %s already exists.", new-name);
+    end;
+    let email = validate-form-field("email", validate-email);
+    let password = validate-form-field("password", validate-password);
+    let admin? = get-query-value("admin?");
+    if (page-has-errors?())
+      next-method();  // redisplay page with errors
+    else
+      if (user)
+        let comments = make(<stretchy-vector>);
+        if (user.user-name ~= new-name)
+          remove-key!(storage(<wiki-user>), name);  // old name
+          user.user-name := new-name;
+          add!(comments, format-to-string("renamed to %s", new-name));
+        end;
+        if (user.user-password ~= password)
+          user.user-password := password;
+          add!(comments, "password changed");
+        end;
+        if (user.user-email ~= email)
+          user.user-email := email;
+          add!(comments, "email changed");
+        end;
+        if (user.administrator? ~= admin?)
+          user.administrator? := admin?;
+          add!(comments, format-to-string("%s admin status",
+                                          iff(admin?, "added", "removed")));
+        end;
+        save(user);
+        save-change(<wiki-user-change>, name, $edit, join(comments, ", "));
+        add-page-note("User %s updated.", new-name);
+      else
+        // new user
+        user := make(<wiki-user>,
+                     name: new-name,
+                     password: password,
+                     email: email,
+                     administrator?: admin?);
+        save(user);
+        save-change(<wiki-user-change>, new-name, $create, "User created");
+        add-page-note("User %s created.", new-name);
+        login(realm: *wiki-realm*);
+      end;
+      dump-data();
+      redirect-to(user);
+    end if;
+  end if;    
+end method respond-to-post;
 
 define method do-remove-user (#key username)
   let user = find-user(percent-decode(username));
@@ -333,7 +512,8 @@ define body tag with-change-author in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
   if (*change*)
-    let user = find-user(*change*.authors[0]);
+    let authors = *change*.authors;
+    let user = ~empty?(authors) & find-user(authors[0]);
     if (user)
       dynamic-bind(*user* = user)
         do-body();
@@ -377,6 +557,10 @@ end;
 define named-method can-modify-user?
     (page :: <wiki-dsp>)
   let user = authenticated-user();
-  user & (administrator?(user) | user = *user*)
+  user & (administrator?(user)
+            | begin
+                let user-name = get-attribute(page-context(), "user-name");
+                user-name & (find-user(percent-decode(user-name)) = user)
+              end)
 end;
 
