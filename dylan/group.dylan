@@ -269,7 +269,7 @@ define constant $edit-group-page
   = make(<edit-group-page>, source: "edit-group.dsp");
 
 define method respond-to-get
-    (page :: <group-page>,
+    (page :: <edit-group-page>,
      #key name :: <string>, must-exist :: <boolean> = #t)
   let name = percent-decode(name);
   let group = find-group(name);
