@@ -196,8 +196,14 @@ end;
 define method respond-to-post
     (page :: <list-users-page>, #key)
   let user-name = percent-decode(get-query-value("user-name"));
-  redirect-to(wiki-url("/users/%s/edit", user-name));
-end;
+  let user = find-user(user-name);
+  if (user)
+    respond-to-get($view-user-page, name: user-name);
+  else
+    add-field-error("user-name", "User %s not found.", user-name);
+    next-method();
+  end;
+end method respond-to-post;
 
 //// View User
 

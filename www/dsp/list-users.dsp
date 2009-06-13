@@ -17,8 +17,12 @@
       <form action="/users" method="post">
         <ul class="striped big">
           <li class="user">
-            <input type="text" name="user-name" value=""/>
-            <input type="submit" name="go" value="Create"/>
+            <input type="text" name="user-name"
+                   value="<dsp:get name='user-name' context='request,page'/>"
+                   <dsp:if-error field-name='user-name' text='class="invalid-input"'/>
+                   />
+            <input type="submit" name="go" value="Find"/>
+            <dsp:show-field-errors field-name="user-name"/>
           </li>
           <dsp:loop over="active-users" context="page" var="user">
             <li class="user">

@@ -24,8 +24,9 @@
       <form action="/pages">
         <ul class="striped big">
           <li class="page">
-            <input type="text" name="query" value=""/>
-            <input type="submit" name="go" value="Create"/>
+            <input type="text" name="query"
+                   value="<dsp:get name='query' context='request,page'/>"/>
+            <input type="submit" name="go" value="Find"/>
           </li>
           <dsp:loop over="all-page-titles" var="page-title">
             <li class="page">
