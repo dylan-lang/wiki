@@ -1,5 +1,5 @@
-<%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
+<%dsp:taglib name="wiki"/>
 <head>
   <title>Dylan Wiki: Change Members of <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>

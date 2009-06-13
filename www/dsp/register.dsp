@@ -1,5 +1,5 @@
-<%dsp:taglib name="wiki"/>
 <%dsp:include url="xhtml-start.dsp"/>
+<%dsp:taglib name="wiki"/>
 <head>
   <title>Dylan Wiki: Register New Account</title>
   <%dsp:include url="meta.dsp"/>

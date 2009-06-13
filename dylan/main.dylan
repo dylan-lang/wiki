@@ -77,7 +77,8 @@ define method process-administrator-configuration
                   name: username,
                   password: password,
                   email: email,
-                  administrator?: #t);
+                  administrator?: #t,
+                  activated?: #t);
     admin-changed? := #t;
     log-info("Administrator user (%s) created.", username);
   end;

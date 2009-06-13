@@ -1,6 +1,5 @@
-<%dsp:taglib name="wiki"/>
-
 <%dsp:include url="xhtml-start.dsp"/>
+<%dsp:taglib name="wiki"/>
 
 <head>
    <title>Dylan Wiki: <wiki:show-page-title/> -- access control</title>

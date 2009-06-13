@@ -1,6 +1,6 @@
+<%dsp:include url="xhtml-start.dsp"/>
 <%dsp:taglib name="wiki"/>
 <%dsp:taglib name="web-framework" prefix="wf"/>
-<%dsp:include url="xhtml-start.dsp"/>
 <head>
   <title>Dylan Wiki: <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>
