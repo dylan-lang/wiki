@@ -161,6 +161,10 @@ define url-map on $wiki-http-server
   url wiki-url("/register")
     action (get, post) () => $registration-page;
 
+  // Provide backward compatibility with old wiki URLs.
+  url "/wiki/view.dsp"
+    action get () => show-page-back-compatible;
+
   url wiki-url("/pages")
     action get () => do-pages,
     action get ("^(?P<title>[^/]+)/?$") =>

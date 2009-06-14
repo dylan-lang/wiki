@@ -32,7 +32,7 @@
 	    </li>
             <li id="password2">
 	      <label id="password2-label" for="password2-input">Confirm Password <em title="required">*</em></label>
-              <input id="password2-input" type="password2" name="password2"
+              <input id="password2-input" type="password" name="password2"
                      <dsp:if-error field-name="password2" text='class="invalid-input"'/>
                      value="<dsp:get name='password2' context='request,page'/>"/>
               <dsp:show-field-errors field-name="password2"/>

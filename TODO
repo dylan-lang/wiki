@@ -5,17 +5,16 @@ Anything that is a regression compared to the original wiki.
 
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
-* Most of the items in the "Users" list below.
-* Most of the items in the "Registration" list below.
 * The methods on permanent-link are incorrect.  For example, if you go
   to the "connections" page via the "versions" page, all the connection
   page links are incorrect.  Maybe transform-uris is broken.  Maybe we
   should be using <web-locator>s instead.
 * RSS or Atom feed working.
-* Redirection from old view.dsp?title=foo to /pages/foo.
 * Write all the hard-linked pages in the navigation bar (and the news items)
   in the old wiki so they're available immediately after conversion.  All
-  we need to do after conversion is add the "opendylan.org news" tag.
+  we need to do after conversion is add the "news" tag.
+* Options menu doesn't work in IE 7.  Makes it pretty useless.  (Try IE 8
+  and Opera too.)
 
 General
 -------
@@ -37,8 +36,6 @@ Tags
 Users
 -----
 * Don't store passwords in cleartext.
-* If you get an error when creating a user (e.g., don't enter a password)
-  the username isn't displayed on the followup page.
 * Show the email address if the user him/herself is viewing the page.
 * When an admin is editing a user, allow them to make the user an admin.
   (This is where the two levels of admin could come into play.)

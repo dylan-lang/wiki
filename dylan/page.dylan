@@ -86,7 +86,7 @@ define method add-author
 end method add-author;
 
 // todo -- Do this as a wiki page.
-define constant $reserved-tags :: <sequence> = #["opendylan.org news"];
+define constant $reserved-tags :: <sequence> = #["news"];
 
 define method reserved-tag?
     (tag :: <string>) => (reserved? :: <boolean>)
@@ -438,6 +438,31 @@ define method do-remove-page (#key title)
   let page = find-page(percent-decode(title));
   remove-page(page, comment: get-query-value("comment"));
   redirect-to(page);
+end;
+
+// Provide backward compatibility with old wiki URLs
+// /wiki/view.dsp?title=t&version=v
+// 
+define method show-page-back-compatible
+    (#key)
+  with-query-values (title, version)
+    let title = percent-decode(title);
+    let version = version & percent-decode(version);
+    let default = current-request().request-absolute-url;
+    let url = make(<url>,
+                   scheme: default.uri-scheme,
+                   host: default.uri-host,
+                   port: default.uri-port,
+                   // No, I don't understand the empty string either.
+                   path: concatenate(list("", "pages", title),
+                                     iff(version,
+                                         list("versions", version),
+                                         #())));
+    let location = as(<string>, url);
+    moved-permanently-redirect(location: location,
+                               header-name: "Location",
+                               header-value: location);
+  end;
 end;
 
 define method show-page (#key title :: <string>, version)
