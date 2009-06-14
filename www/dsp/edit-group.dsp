@@ -1,5 +1,6 @@
 <%dsp:include url="xhtml-start.dsp"/>
 <%dsp:taglib name="wiki"/>
+<%dsp:taglib name="web-framework" prefix="wf"/>
 <head>
    <title>Dylan Wiki: Group <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>
@@ -51,7 +52,7 @@
                   <dsp:show-field-errors field-name="group-owner"/>
                 </li>
                 <li id="description-item">
-                  <label id="description-label" for="description-input">Description: <em title="required">*</em></label>
+                  <label id="description-label" for="description-text">Description: <em title="required">*</em></label>
                   <textarea id="description-text" name="group-description" rows="3" cols="40"
                             <dsp:if-error field-name='group-description' text='class="invalid-input"'/>><dsp:get name='group-description' context='request,page'/></textarea>
                   <dsp:show-field-errors field-name="group-description"/>

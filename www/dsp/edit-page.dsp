@@ -24,7 +24,7 @@
             This page doesn't exist. You can create it by writing the page's content below.
           </p>
         </dsp:else>
-      </dsp:if-exists>
+      </dsp:if>
       <dsp:when test="can-modify-content?">
         <form action="" method="post">
           <fieldset>

@@ -1,10 +1,8 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:taglib name="web-framework" prefix="wf"/>
-<a href="/" title="Dylan">
-  <h1 id="header">
-    Dylan
-  </h1>
-</a>
+<h1 id="header">
+  <a href="/" title="Dylan">Dylan</a>
+</h1>
 <div id="search-user">
 
   <form action="http://www.google.com/cse" id="cse-search-box">

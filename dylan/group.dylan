@@ -268,34 +268,6 @@ end;
 define constant $edit-group-page
   = make(<edit-group-page>, source: "edit-group.dsp");
 
-define method respond-to-get
-    (page :: <edit-group-page>,
-     #key name :: <string>, must-exist :: <boolean> = #t)
-  let name = percent-decode(name);
-  let group = find-group(name);
-  let user = authenticated-user();
-  let pc = page-context();
-  set-attribute(pc, "group-name", name);
-  if (user)
-    set-attribute(pc, "active-user", user.user-name);
-  end;
-  if (group)
-    // Note: user must be logged in.  That check is done in the template.
-    set-attribute(pc, "group-owner", group.group-owner.user-name);
-    set-attribute(pc, "group-description", group.group-description);
-    set-attribute(pc, "group-members", sort(map(user-name, group.group-members)));
-    // non-members is for the add/remove members page
-    set-attribute(pc, "non-members", sort(key-sequence(storage(<wiki-user>))));
-    // Add all users to the page context so they can be selected
-    // for group membership.
-    set-attribute(page-context(),
-                  "all-users",
-                  sort(key-sequence(storage(<wiki-user>))));
-  end;
-  // If the group doesn't exist it will be created when the form is submitted.
-  next-method();
-end method respond-to-get;
-
 define method respond-to-post
     (page :: <edit-group-page>, #key name :: <string>)
   let name = trim(percent-decode(name));
@@ -374,11 +346,31 @@ end method respond-to-post;
 // todo -- eventually it should be possible to edit the group name, owner,
 // and members all in one page.
 
-define class <edit-group-members-page> (<group-page>)
+define class <edit-group-members-page> (<edit-group-page>)
 end;
 
 define constant $edit-group-members-page
   = make(<edit-group-members-page>, source: "edit-group-members.dsp");
+
+define method respond-to-get
+    (page :: <edit-group-members-page>,
+     #key name :: <string>, must-exist :: <boolean> = #t)
+  let name = percent-decode(name);
+  let group = find-group(name);
+  if (group)
+    // Note: user must be logged in.  That check is done in the template.
+    // non-members is for the add/remove members page
+    set-attribute(page-context(),
+                  "non-members",
+                  sort(key-sequence(storage(<wiki-user>))));
+    // Add all users to the page context so they can be selected
+    // for group membership.
+    set-attribute(page-context(),
+                  "all-users",
+                  sort(key-sequence(storage(<wiki-user>))));
+  end;
+  next-method();
+end method respond-to-get;
 
 define method respond-to-post
     (page :: <edit-group-members-page>, #key name :: <string>)
@@ -399,7 +391,7 @@ define method respond-to-post
         let members = choose(identity, map(find-user, members));
         do(rcurry(remove-member, group, comment:, comment), members);
       end if;
-      next-method();
+      respond-to-get(page, name: name);
     end;
   else
     respond-to-get($non-existing-group-page);
