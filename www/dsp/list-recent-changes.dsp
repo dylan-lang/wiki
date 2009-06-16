@@ -47,7 +47,7 @@
               </dsp:when>
               <dsp:when test="group-changed?">
                 <span class="object group">
-                  <a href="<wiki:show-group-permanent-link use-change="true"/>"><wiki:show-change-title/></a>
+                  <a href="<wiki:show-group-permanent-link/>"><wiki:show-change-title/></a>
                 </span>
                 <wiki:show-change-verb/>
               </dsp:when>

@@ -54,11 +54,12 @@ define method send-new-account-email
   let url = account-activation-url(user);
   // body contains "subject\n\n"...weird
   let body = format-to-string(
-    "Subject: Confirmation for account %s on %s\n\n"
+    "To: %s\nSubject: Confirmation for account %s on %s\n\n"
     "This message is to confirm the account '%s' you registered on %s.  "
     "Click the following URL to complete the registration process and  "
     "activate your new account: %s\n",
-    user.user-name, *site-name*, user.user-name, *site-name*, url);
+                              user.user-email, user.user-name, *site-name*,
+                              user.user-name, *site-name*, url);
 
   // Try to send the message.
   // Retry once if we get 451, to work around grey listing.

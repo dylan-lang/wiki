@@ -406,4 +406,9 @@ define named-method can-modify-group?
             | user.user-name = get-attribute(page-context(), "active-user"));
 end;
 
+define tag show-group-permanent-link in wiki
+    (page :: <wiki-dsp>)
+    ()
+  output("%s", group-permanent-link(*change*.title));
+end;
 
