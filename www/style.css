@@ -253,7 +253,7 @@ small.date {
 
 #menu:hover {
   width: auto;
-  height: inherit;
+  height: auto;
 }
 
 #menu:hover span {
