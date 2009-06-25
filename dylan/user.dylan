@@ -301,7 +301,7 @@ define method respond-to-post
     else
       save(user);
       save-change(<wiki-user-change>, new-name, $create, "User created",
-                  authors: #());
+                  authors: list(new-name));
       add-page-note("User %s created.  Please follow the link in the confirmation "
                     "email sent to %s to activate the account.",
                     new-name, email);
@@ -326,7 +326,7 @@ define function respond-to-user-activation-request
       if (key = user.user-activation-key)
         user.user-activated? := #t;
         save-change(<wiki-user-change>, name, $activate, "Account activated",
-                    authors: #());
+                    authors: list(name));
       end;
     end;
     if (user.user-activated?)

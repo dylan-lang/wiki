@@ -128,19 +128,17 @@ define constant $recent-changes-page
 
 define method respond-to-get
     (page :: <recent-changes-page>, #key)
-  // todo
+  // todo -- can remove a lot of the tags defined for this page's template
+  //         by using page context etc.
   next-method();
-end;
-
-define method respond-to-post
-    (page :: <recent-changes-page>, #key)
-  do-feed()
 end;
 
 define method wiki-changes
     ()
  => (changes :: <sequence>)
-  let change-types = list(<wiki-user-change>, <wiki-page-change>, <wiki-group-change>);
+  let change-types = list(<wiki-user-change>,
+                          <wiki-page-change>,
+                          <wiki-group-change>);
   apply(concatenate,
         map(curry(map-as, <vector>, identity),
             map(storage, change-types)));
@@ -162,9 +160,10 @@ define body tag list-changes-daily in wiki
   end;
   let day = #[];
   
-  let changes = sort(wiki-changes(), test: method (first, second)
-      first.date-published > second.date-published   
-    end);
+  let changes = sort(wiki-changes(),
+                     test: method (change1, change2)
+                             change1.date-published > change2.date-published   
+                           end);
   for (change in changes)
     let (this-year, this-month, this-day) = decode-date(change.date-published);
     let (last-year, last-month, last-day) = if (size(day) > 0)

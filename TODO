@@ -13,8 +13,6 @@ Anything that is a regression compared to the original wiki.
 * Write all the hard-linked pages in the navigation bar (and the news items)
   in the old wiki so they're available immediately after conversion.  All
   we need to do after conversion is add the "news" tag.
-* Options menu doesn't work in IE 7.  Makes it pretty useless.  (Try IE 8
-  and Opera too.)
 
 General
 -------
@@ -26,6 +24,16 @@ General
 * navigation.dsp should be able to include wiki pages so that it can
   be customizable on a per-site and/or per-user basis.
 * i18n
+
+Markup Language
+---------------
+* Support ReStructured Text as a markup language, probably doing a first
+  pass over the source to process wiki links etc and then pass the result
+  to rst2html, since it hardly seems wise to re-implement all of RST.
+  Virtually all the features/bugs listed in the old "Wiki To-Do List"
+  wiki page are solved by this.
+* Support the original markup language until all pages have been converted
+  to something newer.
 
 Tags
 ----
@@ -47,7 +55,6 @@ Users
 * Validate name, password, email.  Require a minimum level of
   security in passwords?  e.g., must not be empty, one char, all the
   same char, etc.  Maybe there's a cookbook for this.
-
 
 Registration
 ------------

@@ -1,7 +1,6 @@
 Module: wiki-internal
 
-// Responder for /recent-changes/feed
-define method do-feed ()
+define method atom-feed-responder ()
   let changes = sort(wiki-changes(),
                      test: method (change1, change2)
                              change1.date-published > change2.date-published
@@ -16,8 +15,8 @@ define method do-feed ()
   let feed = make(<feed>,
                   generator: make(<generator>,
                                   text: "wiki", version: "0.1", uri: ""),
-                  title: "TITLE",
-                  subtitle: "SUBTITLE",
+                  title: *site-name*,
+                  subtitle: "Recent Changes",
                   updated: feed-updated | current-date(),
                   author: feed-authors,
                   categories: #[]);
@@ -30,7 +29,9 @@ define method do-feed ()
 end method do-feed;
 
 define method generate-atom (change :: <wiki-change>, #key)
-  let author = find-user(first(change.authors));
+  // todo -- enforce at least one author when any <entry> is created.
+  let authors = change.authors;
+  let author = ~empty?(authors) & find-user(first(authors));
   with-xml()
     entry { 
       title(change.title),

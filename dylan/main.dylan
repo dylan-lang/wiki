@@ -142,7 +142,10 @@ define url-map on $wiki-http-server
     action (get, post) () => logout;
 
   url wiki-url("/recent-changes")
-    action (get, post) () => $recent-changes-page;
+    action get () =>
+      $recent-changes-page,
+    action get ("feed/atom") =>
+      atom-feed-responder;
 
   url wiki-url("/users")
     action (get, post) () =>
