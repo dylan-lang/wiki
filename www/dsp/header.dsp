@@ -1,8 +1,6 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:taglib name="web-framework" prefix="wf"/>
-<h1 id="header">
-  <a href="/" title="Dylan">Dylan</a>
-</h1>
+<a id="dylan-logo" href="/" title="Dylan"><img border="0" src="/images/dylan-logo.png" alt="Dylan"/></a>
 <div id="search-user">
 
   <form action="http://www.google.com/cse" id="cse-search-box">
@@ -58,7 +56,7 @@ We'll use Google custom search, at least for a while
         </wiki:with-authenticated-user>
       </dsp:then>
       <dsp:else>
-        <span>
+        <span class="not-logged-in">
           <a href="/register">register</a>
           &mdash;
           <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>

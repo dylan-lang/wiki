@@ -9,7 +9,6 @@ Anything that is a regression compared to the original wiki.
   to the "connections" page via the "versions" page, all the connection
   page links are incorrect.  Maybe transform-uris is broken.  Maybe we
   should be using <web-locator>s instead.
-* RSS or Atom feed working.
 * Write all the hard-linked pages in the navigation bar (and the news items)
   in the old wiki so they're available immediately after conversion.  All
   we need to do after conversion is add the "news" tag.
@@ -24,6 +23,23 @@ General
 * navigation.dsp should be able to include wiki pages so that it can
   be customizable on a per-site and/or per-user basis.
 * i18n
+
+Browser Compatibility
+---------------------
+
+* IE7 doesn't make all the links in the left nav menu active.
+  Something in the style sheet breaks it.  This makes it fairly
+  useless.
+* Safari: login doesn't work.  See IRC comments on 2009-06-15.
+* Test with Opera
+
+Feeds
+-----
+* Fix various problems shown by http://www.feedvalidator.org/
+* Include more info in the entry descriptions.  For pages, maybe
+  include the diff up to a certain size limit?
+* Limit feeds to a certain time period.  Not sure how this is
+  normally done yet.
 
 Markup Language
 ---------------

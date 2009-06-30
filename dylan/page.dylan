@@ -118,9 +118,7 @@ define method save-page
                     join(tags, ", ", conjunction: " and "),
                     iff(reserved-tags.size = 1, "is", "are"));
   end;
-  if (page-has-errors?())
-    respond-to-get($view-page-page, title: title);
-  else
+  if (~page-has-errors?())
     save-page-internal(page, content, comment, tags, author, action);
     dump-data();
     generate-connections-graph(page);
@@ -513,7 +511,7 @@ define method respond-to-get
 end method respond-to-get;
 
 define method respond-to-post
-    (page :: <edit-page-page>, #key title :: <string>)
+    (wiki-dsp :: <edit-page-page>, #key title :: <string>)
   let title = percent-decode(title);
   let page = find-page(title);
   with-query-values (title as new-title, content, comment, tags)
@@ -528,7 +526,7 @@ define method respond-to-post
         add-field-error("title", "A page with this title already exists.");
       else
         title := new-title;
-        rename-page(page, new-title, comment: comment);
+        page & rename-page(page, new-title, comment: comment);
       end;
     end;
 
@@ -537,7 +535,11 @@ define method respond-to-post
       respond-to-get($edit-page-page, title: title);
     else
       save-page(title, content | "", comment: comment, tags: tags);
-      redirect-to(find-page(title));
+      if (page-has-errors?())
+        next-method();
+      else
+        redirect-to(find-page(title));
+      end;
     end if;
   end;
 end method respond-to-post;

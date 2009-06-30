@@ -1,23 +1,41 @@
 Module: wiki-internal
 
-define method atom-feed-responder ()
-  let changes = sort(wiki-changes(),
+define method atom-feed-responder
+    (#key type, name)
+  let name = name & percent-decode(name);
+  let changes = select (type by \=)
+                  "users" =>
+                    wiki-changes(change-type: <wiki-user-change>, name: name);
+                  "groups" =>
+                    wiki-changes(change-type: <wiki-group-change>, name: name);
+                  "pages" =>
+                    wiki-changes(change-type: <wiki-page-change>, name: name);
+                  "tags" =>
+                    wiki-changes(change-type: <wiki-page-change>, tag: name);
+                  otherwise =>
+                    wiki-changes()
+                end;
+  let changes = sort(changes,
                      test: method (change1, change2)
                              change1.date-published > change2.date-published
                            end);
-  let feed-updated = ~empty?(changes) & first(changes).date-published;
+  let date-updated = iff(empty?(changes),
+                         current-date(),
+                         changes.first.date-published);
   let feed-authors = #[];
   for (change in changes)
     for (author in change.authors)
-      feed-authors := add-new!(feed-authors, author);
+      feed-authors := add-new!(feed-authors, author, test: \=);
     end for;
   end for;
   let feed = make(<feed>,
                   generator: make(<generator>,
-                                  text: "wiki", version: "0.1", uri: ""),
+                                  text: *site-name*,
+                                  version: $wiki-version,
+                                  uri: *site-url*),
                   title: *site-name*,
                   subtitle: "Recent Changes",
-                  updated: feed-updated | current-date(),
+                  updated: date-updated,
                   author: feed-authors,
                   categories: #[]);
   let url = build-uri(current-request().request-url);
@@ -26,7 +44,7 @@ define method atom-feed-responder ()
 
   add-header(current-response(), "Content-Type", "application/atom+xml");
   output("%s", generate-atom(feed, entries: changes));
-end method do-feed;
+end method atom-feed-responder;
 
 define method generate-atom (change :: <wiki-change>, #key)
   // todo -- enforce at least one author when any <entry> is created.

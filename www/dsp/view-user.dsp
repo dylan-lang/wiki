@@ -3,6 +3,10 @@
 <head>
   <title>Dylan Wiki: <dsp:get name="user-name"/></title>
   <%dsp:include url="meta.dsp"/>
+  <link rel="alternate"
+        type="application/atom+xml"
+        title="Dylan Wiki Atom Feed"
+        href="/feed/users/<dsp:get name='user-name'/>" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
@@ -12,7 +16,9 @@
       <%dsp:include url="user-options-menu.dsp"/>
     </dsp:when>
     <div id="body">
-      <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when></h2>
+      <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when>
+        <a href="/feed/users/<dsp:get name='user-name'/>"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom Feed"/></a>
+      </h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

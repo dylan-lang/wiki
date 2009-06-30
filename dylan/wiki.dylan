@@ -1,5 +1,7 @@
 Module: wiki-internal
 
+define constant $wiki-version :: <string> = "2009.06.27"; // YYYY.mm.dd
+
 // Prefix for all wiki URLs.  Set to "" for no prefix.
 define constant $wiki-url-prefix :: <string> = "";
 
@@ -134,21 +136,32 @@ define method respond-to-get
 end;
 
 define method wiki-changes
-    ()
+    (#key change-type :: false-or(<class>),
+          tag :: false-or(<string>),
+          name :: false-or(<string>))
  => (changes :: <sequence>)
-  let change-types = list(<wiki-user-change>,
-                          <wiki-page-change>,
-                          <wiki-group-change>);
-  apply(concatenate,
-        map(curry(map-as, <vector>, identity),
-            map(storage, change-types)));
-end;
-/*
-  let user-changes = map-as(<vector>, identity, storage(<wiki-user-change>));
-  let page-changes = map-as(<vector>, identity, storage(<wiki-page-change>));
-  let group-changes = map-as(<vector>, identity, storage(<wiki-group-change>));
-  let changes = concatenate(user-changes, page-changes, group-changes);
-*/
+  let change-types = iff(change-type,
+                         list(change-type),
+                         list(<wiki-user-change>,
+                              <wiki-page-change>,
+                              <wiki-group-change>));
+  let changes = apply(concatenate,
+                      map(curry(map-as, <vector>, identity),
+                          map(storage, change-types)));
+  local method filter (change)
+          if (tag)
+            let page = find-page(change.title);
+            // bug: this omits the deletion of a page with the tag.
+            page & member?(tag, page.latest-tags, test: \=)
+          elseif (name)
+            log-debug("change.title = %s, %s", change.title, name);
+            change.title = name
+          else
+            #t
+          end
+        end;
+  choose(filter, changes)
+end method wiki-changes;
 
 define body tag list-changes-daily in wiki
     (page :: <wiki-dsp>, do-body :: <function>)

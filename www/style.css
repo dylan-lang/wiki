@@ -19,18 +19,11 @@ fieldset {
   padding: 1em 0;
 }
 
-#header {
+#dylan-logo {
   display: inline;
   float: left;
-  margin-bottom: 0.8em;  
-  color: transparent;
-  width: 230px;
+  margin-bottom: 1.5em;
   position: relative;
-  padding: 45px 0 0 0;
-  overflow: hidden;
-  background: url(images/dylan-logo.png) no-repeat;
-  height: 0px !important;
-  height /**/:45px;
 }
 
 #search-user {
@@ -45,18 +38,16 @@ fieldset {
   content: url(images/search.png);
 }
 
-#search-user span {
-  margin-top: 1em;
-  position: absolute;
-  right: 3em;
-}
-
 #search-user a {
  border: none;
 }
 
 #search-user span.user-info::before {
   content: url(images/user.png);
+}
+
+#search-user span.not-logged-in {
+  padding-left: 20px;
 }
 
 #content {
@@ -67,6 +58,7 @@ fieldset {
 #navigation {
   float: left;
   margin: 1em;
+  list-style-type: none;
 }
 
 #body {
@@ -101,10 +93,6 @@ hr {
   padding-top: 0.2em;
 }
 
-#navigation {
-  list-style-type: none;
-}
-
 #navigation ul {
   list-style-type: square;
   list-style-position: inside;
@@ -115,6 +103,14 @@ hr {
   padding-bottom: 1em;
   list-style-type: circle;
   list-style-position: inside;
+}
+
+#navigation a {
+  border: none;   /* don't display default underline for links */
+}
+
+#navigation a:visited {
+  color: #58a;
 }
 
 #footer {
@@ -155,13 +151,14 @@ blockquote + cite + hr {
 
 a {
   color: #58a;
+  border: none;
   text-decoration: none;
   padding-bottom: 0px;
   border-bottom: 1px dotted #58a;
 }
 
 a:visited {
-  color: #58a;
+  color: #152772;
   text-decoration: none;
   padding-bottom: 0px;
   border-bottom: 1px dotted #58a;

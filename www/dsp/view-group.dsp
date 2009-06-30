@@ -3,6 +3,10 @@
 <head>
   <title>Dylan Wiki: Group <dsp:get name="group-name"/></title>
   <%dsp:include url="meta.dsp"/>
+  <link rel="alternate"
+        type="application/atom+xml"
+        title="Dylan Wiki Group Atom Feed"
+        href="/feed/groups/<dsp:get name='group-name'/>" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
@@ -12,7 +16,8 @@
       <%dsp:include url="group-options-menu.dsp"/>
     </dsp:when>
     <div id="body">
-      <h2>Group <dsp:get name="group-name"/></h2>
+      <h2>Group <dsp:get name="group-name"/> <a href="/feed/groups/<dsp:get name='group-name'/>">
+          <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for this group"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

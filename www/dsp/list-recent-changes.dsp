@@ -3,13 +3,17 @@
 <head>
   <title>Dylan Wiki: Recent Changes</title>
   <%dsp:include url="meta.dsp"/>
+  <link rel="alternate"
+        type="application/atom+xml"
+        title="Dylan Wiki Atom Feed"
+        href="/feed" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
-      <h2>Recent Changes</h2>
+      <h2>Recent Changes <a href="/feed"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom Feed"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

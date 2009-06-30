@@ -3,13 +3,17 @@
 <head>
   <title>Dylan Wiki: Users</title>
   <%dsp:include url="meta.dsp"/>
+  <link rel="alternate"
+        type="application/atom+xml"
+        title="Dylan Wiki Users Atom Feed"
+        href="/feed/users" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
-    <div id="body">               
-      <h2>Users</h2>
+    <div id="body">
+      <h2>Users <a href="/feed/users"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for user changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

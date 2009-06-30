@@ -1,6 +1,8 @@
 Module: wiki-internal
 
+// These are sent as the text and URL for the Atom feed generator element.
 define variable *site-name* :: <string> = "Dylan Wiki";
+define variable *site-url* :: <string> = "http://wiki.opendylan.org";
 
 // The realm used for authentication.  Configurable.
 define variable *wiki-realm* :: <string> = "wiki";
@@ -23,10 +25,11 @@ define sideways method process-config-element
           end;
         end;
 
-  let site-name = get-attr(node, #"site-name");
-  if (site-name)
-    *site-name* := site-name;
-  end;
+  *site-name* := get-attr(node, #"site-name") | *site-name*;
+  log-info("Site name: %s", *site-name*);
+
+  *site-url*  := get-attr(node, #"site-url")  | *site-url*;
+  log-info("Site URL: %s", *site-url*);
 
   let admin-element = child-node-named(#"administrator");
   if (~admin-element)
@@ -143,22 +146,25 @@ define url-map on $wiki-http-server
 
   url wiki-url("/recent-changes")
     action get () =>
-      $recent-changes-page,
-    action get ("feed/atom") =>
+      $recent-changes-page;
+
+  //  /feed[/type[/name]]
+  url wiki-url("/feed")
+    action get "^((?P<type>[^/]+)(/(?P<name>[^/]+))?)?" =>
       atom-feed-responder;
 
   url wiki-url("/users")
     action (get, post) () =>
       $list-users-page,
-    action get ("^(?P<name>[^/]+)/?$") =>
+    action get "^(?P<name>[^/]+)/?$" =>
       $view-user-page,
-    action (get, post) ("^(?P<name>[^/]+)/edit$") =>
+    action (get, post) "^(?P<name>[^/]+)/edit$" =>
       $edit-user-page,
-    action get ("^(?P<name>[^/]+)/remove$") =>
+    action get "^(?P<name>[^/]+)/remove$" =>
       show-remove-user,
-    action post ("^(?P<name>[^/]+)/remove$") =>
+    action post "^(?P<name>[^/]+)/remove$" =>
       do-remove-user,
-    action get ("^(?P<name>[^/]+)/activate/(?P<key>.+)$") =>
+    action get "^(?P<name>[^/]+)/activate/(?P<key>.+)$" =>
       respond-to-user-activation-request;
 
   url wiki-url("/register")
@@ -170,44 +176,40 @@ define url-map on $wiki-http-server
 
   url wiki-url("/pages")
     action get () => do-pages,
-    action get ("^(?P<title>[^/]+)/?$") =>
+    action get "^(?P<title>[^/]+)/?$" =>
       show-page,
-    action get ("^(?P<title>[^/]+)/edit$") =>
+    action get "^(?P<title>[^/]+)/edit$" =>
       $edit-page-page,
-    action post ("^(?P<title>[^/]+)(/(edit)?)?$") =>
+    action post "^(?P<title>[^/]+)(/(edit)?)?$" =>
       $edit-page-page,
-    action get ("^(?P<title>[^/]+)/remove$") =>
+    action get "^(?P<title>[^/]+)/remove$" =>
       show-remove-page,
-    action (delete, post) ("^(?P<title>[^/]+)/remove$") =>
+    action (delete, post) "^(?P<title>[^/]+)/remove$" =>
       do-remove-page,
-    // versions
-    action get ("^(?P<title>[^/]+)/versions$") => 
+    action get "^(?P<title>[^/]+)/versions$" =>
       $page-versions-page,
-    action get ("^(?P<title>[^/]+)/versions/(?P<version>\\d+)$") =>
+    action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
       show-page,
-    action get ("^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$") => 
+    action get "^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$" =>
       show-page-versions-differences,
-    // connections
-    action get ("^(?P<title>[^/]+)/connections$") => 
+    action get "^(?P<title>[^/]+)/connections$" =>
       $connections-page,
-    // authors
-    action get ("^(?P<title>[^/]+)/authors$") =>
+    action get "^(?P<title>[^/]+)/authors$" =>
       show-page-authors,
-    // access
-    action (get, post) ("^(?P<title>[^/]+)/access") =>
+    action (get, post) "^(?P<title>[^/]+)/access" =>
       $edit-access-page;
 
   url wiki-url("/groups")
     action (get, post) () =>
       $list-groups-page,
-    action get ("^(?P<name>[^/]+)/?$") =>
+    action get "^(?P<name>[^/]+)/?$" =>
       $view-group-page,
-    action (get, post) ("^(?P<name>[^/]+)/edit$") =>
+    action (get, post) "^(?P<name>[^/]+)/edit$" =>
       $edit-group-page,
-    action (get, post) ("^(?P<name>[^/]+)/remove$") =>
+    action (get, post) "^(?P<name>[^/]+)/remove$" =>
       $remove-group-page,
     // members
-    action (get, post) ("^(?P<name>[^/]+)/members$") =>
+    action (get, post) "^(?P<name>[^/]+)/members$" =>
       $edit-group-members-page;
 
 /***** We'll use Google or Yahoo custom search, at least for a while
