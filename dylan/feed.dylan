@@ -3,18 +3,26 @@ Module: wiki-internal
 define method atom-feed-responder
     (#key type, name)
   let name = name & percent-decode(name);
-  let changes = select (type by \=)
-                  "users" =>
-                    wiki-changes(change-type: <wiki-user-change>, name: name);
-                  "groups" =>
-                    wiki-changes(change-type: <wiki-group-change>, name: name);
-                  "pages" =>
-                    wiki-changes(change-type: <wiki-page-change>, name: name);
-                  "tags" =>
-                    wiki-changes(change-type: <wiki-page-change>, tag: name);
-                  otherwise =>
-                    wiki-changes()
-                end;
+  let (changes, description)
+    = select (type by \=)
+        "users" =>
+          values(wiki-changes(change-type: <wiki-user-change>, name: name),
+                 iff(name, concatenate("user ", name), "all users"));
+        "groups" =>
+          values(wiki-changes(change-type: <wiki-group-change>, name: name),
+                 iff(name, concatenate("group ", name), "all groups"));
+        "pages" =>
+          values(wiki-changes(change-type: <wiki-page-change>, name: name),
+                 iff(name, concatenate("page ", name), "all pages"));
+        "tags" =>
+          values(wiki-changes(change-type: <wiki-page-change>, tag: name),
+                 iff(name, concatenate("pages tagged ", name), "all pages"));
+        otherwise =>
+          values(wiki-changes(), "");
+      end;
+  if (~empty?(description))
+    description := concatenate(" to ", description);
+  end;
   let changes = sort(changes,
                      test: method (change1, change2)
                              change1.date-published > change2.date-published
@@ -34,7 +42,7 @@ define method atom-feed-responder
                                   version: $wiki-version,
                                   uri: *site-url*),
                   title: *site-name*,
-                  subtitle: "Recent Changes",
+                  subtitle: concatenate("Recent changes", description),
                   updated: date-updated,
                   author: feed-authors,
                   categories: #[]);

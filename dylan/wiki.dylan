@@ -135,6 +135,10 @@ define method respond-to-get
   next-method();
 end;
 
+// Return a sequence of changes of the given type.  This is used for
+// Atom feed requests, in which case there is (presumably) no authenticated
+// user so it only returns changes for publicly viewable pages in that case.
+//
 define method wiki-changes
     (#key change-type :: false-or(<class>),
           tag :: false-or(<string>),
@@ -148,13 +152,19 @@ define method wiki-changes
   let changes = apply(concatenate,
                       map(curry(map-as, <vector>, identity),
                           map(storage, change-types)));
+  let auth-user = authenticated-user();
   local method filter (change)
-          if (tag)
+          if (instance?(change, <wiki-page-change>))
             let page = find-page(change.title);
-            // bug: this omits the deletion of a page with the tag.
-            page & member?(tag, page.latest-tags, test: \=)
+            if (has-permission?(auth-user, page, $view-content))
+              // bug: this omits the deletion of a page with the tag.
+              (tag
+                & page
+                & member?(tag, page.latest-tags, test: \=))
+              | ~name
+              | change.title = name
+            end;
           elseif (name)
-            log-debug("change.title = %s, %s", change.title, name);
             change.title = name
           else
             #t
@@ -261,6 +271,16 @@ define tag show-change-version in wiki (page :: <wiki-dsp>)
     output("%d", *change*.change-version);
   end if;
 end;
+
+define tag base-url in wiki
+    (page :: <wiki-dsp>)
+    ()
+  let url = current-request().request-absolute-url; // this may make a new url
+  output("%s", build-uri(make(<url>,
+                              scheme: url.uri-scheme,
+                              host: url.uri-host,
+                              port: url.uri-port)));
+end tag base-url;
 
 define named-method group-changed? in wiki
     (page :: <wiki-dsp>)

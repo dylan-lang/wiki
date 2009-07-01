@@ -17,7 +17,9 @@
     </dsp:when>
     <div id="body">
       <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when>
-        <a href="/feed/users/<dsp:get name='user-name'/>"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom Feed"/></a>
+        <a href="/feed/users/<dsp:get name='user-name'/>">
+          <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for changes to this user"/>
+        </a>
       </h2>
 
       <dsp:show-page-errors/>

@@ -26,7 +26,6 @@ General
 
 Browser Compatibility
 ---------------------
-
 * IE7 doesn't make all the links in the left nav menu active.
   Something in the style sheet breaks it.  This makes it fairly
   useless.
@@ -35,6 +34,8 @@ Browser Compatibility
 
 Feeds
 -----
+* Is there a secure way to make page feeds respect ACLs?  For
+  now they just show publicly viewable pages.
 * Fix various problems shown by http://www.feedvalidator.org/
 * Include more info in the entry descriptions.  For pages, maybe
   include the diff up to a certain size limit?

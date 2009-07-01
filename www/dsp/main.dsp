@@ -3,6 +3,10 @@
 <head>
   <title>Dylan Wiki: Home</title>
   <%dsp:include url="meta.dsp"/>
+  <link rel="alternate"
+        type="application/atom+xml"
+        title="Dylan Wiki Atom Feed"
+        href="/feed" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
@@ -39,8 +43,7 @@
       </p>
       <p>Please feel free to <a href="/pages/Community">join us</a>!</p> 
 
-
-      <h2>News <a href="/feed/tags/news"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom Feed"/></a></h2>
+      <h2>News <a href="/feed/tags/news"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for news"/></a></h2>
       <wiki:list-pages tags="opendylan.org news" order-by="published">
         <h3 class="news summary"><a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h3>
         <small class="date"><wiki:show-page-published formatted="%d. %B %Y %H:%M"/></small>

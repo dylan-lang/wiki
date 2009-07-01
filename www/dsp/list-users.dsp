@@ -5,7 +5,7 @@
   <%dsp:include url="meta.dsp"/>
   <link rel="alternate"
         type="application/atom+xml"
-        title="Dylan Wiki Users Atom Feed"
+        title="Dylan Wiki User Changes"
         href="/feed/users" />
 </head>
 <body>

@@ -6,7 +6,7 @@
   <%dsp:include url="meta.dsp"/>
   <link rel="alternate"
         type="application/atom+xml"
-        title="Dylan Wiki Groups Atom Feed"
+        title="Dylan Wiki Group Changes"
         href="/feed/groups" />
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
-      <h2>Groups <a href="/feed/groups"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom Feed"/></a></h2>
+      <h2>Groups <a href="/feed/groups"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
