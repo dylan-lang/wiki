@@ -15,7 +15,8 @@
   <dsp-root location="trunk/libraries/network/wiki/www/dsp"/>
 
   <wiki content-directory="."
-        site-name="Dylan Wiki">
+        site-name="Dylan Wiki"
+        site-url="http://wiki.opendylan.org" >
 
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.
