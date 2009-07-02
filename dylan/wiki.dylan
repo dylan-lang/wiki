@@ -158,18 +158,18 @@ define method wiki-changes
             let page = find-page(change.title);
             if (has-permission?(auth-user, page, $view-content))
               // bug: this omits the deletion of a page with the tag.
-              (tag
-                & page
-                & member?(tag, page.latest-tags, test: \=))
-              | ~name
-              | change.title = name
-            end;
+              if (tag)
+                page & member?(tag, page.latest-tags, test: \=)
+              else
+                ~name | change.title = name
+              end
+            end
           elseif (name)
             change.title = name
           else
             #t
           end
-        end;
+        end method filter;
   choose(filter, changes)
 end method wiki-changes;
 
