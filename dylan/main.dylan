@@ -221,8 +221,7 @@ end url-map;
 
 define function restore-from-text-files
     () => (num-page-revs)
-  let cwd = locator-directory(as(<file-locator>, application-filename()));
-  let wikidata = subdirectory-locator(cwd, "wikidata");
+  let wikidata = as(<directory-locator>, "/home/cgay/wiki-data");
   let page-data = make(<stretchy-vector>);
   local method gather-page-data (directory, filename, type)
           // look for "page-<page-num>-<rev-num>.props"
@@ -263,13 +262,16 @@ define function restore-from-text-files
         let username = read-line(stream);
         let password = read-line(stream);
         let email = read-line(stream);
-        let user = make(<wiki-user>,
-                        name: username,
-                        password: password,
-                        email: email,
-                        administrator?: #f);
-        save(user);
-        inc!(user-count);
+        if (~find-user(username))
+          let user = make(<wiki-user>,
+                          name: username,
+                          password: password,
+                          email: email,
+                          administrator?: #f,
+                          activated?: #t);
+          save(user);
+          inc!(user-count);
+        end;
         assert(empty?(read-line(stream)));
       end;
     exception (ex :: <end-of-stream-error>)
@@ -278,7 +280,10 @@ define function restore-from-text-files
   end;
   do-directory(gather-page-data, wikidata);
   page-data := sort(page-data, test: less?);
-  let administrator = find-user("administrator");
+  let administrator = find-user("administrator")
+        | error("No 'administrator' user found.  Run the new wiki without "
+                "the --restore option first, so the administrator account "
+                "will be created when the config file is loaded.");
   let previous-page-num = #f;
   for (pd in page-data)
     let page-num = pd.head;
