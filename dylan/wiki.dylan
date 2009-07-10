@@ -87,6 +87,14 @@ define method save-change
 end;
 
 
+// Standard date format.  The plan is to make this customizable per user
+// and to use the user's timezone.  For now just ISO 8601...
+//
+define method standard-date-and-time
+    (date :: <date>) => (date-and-time :: <string>)
+  as-iso8601-string(date)
+end;
+
 define tag show-version-published in wiki
     (page :: <wiki-dsp>)
     (formatted :: <string>)

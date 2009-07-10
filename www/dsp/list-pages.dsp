@@ -21,29 +21,28 @@
           </wiki:list-query-tags>
         </ul>
       </dsp:when>
-      <form action="/pages">
+      <form action="/pages" method="post">
         <ul class="striped big">
           <li class="page">
             <input type="text" name="query"
                    value="<dsp:get name='query' context='request,page'/>"/>
             <input type="submit" name="go" value="Find"/>
           </li>
-          <dsp:loop over="all-page-titles" var="page-title">
+
+          <!-- display the current page of the wiki page list -->
+          <dsp:loop over="wiki-pages" context="page" var="info">
             <li class="page">
-              <a href="/pages/<dsp:get name="page-title" context="page"/>"><dsp:get name="page-title" context="page"/></a>
+              <dsp:get name="info[when-published]"/>
+              <a href="/pages/<dsp:get name='info[title]'/>"><dsp:get name="info[title]"/></a>,
+              changed by <dsp:get name="info[latest-authors]"/>
             </li>
           </dsp:loop>
 
-<dsp:comment>            
-          <wiki:list-pages use-query-tags="true">
-            <li class="page">
-              <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a>
-            </li>
-          </wiki:list-pages>
-</dsp:comment>            
-
         </ul>
       </form>
+      <!-- display the paginator for the wiki page list -->
+      <dsp:show-page-links name="wiki-pages" url="/pages?page=" query-value="page" />
+
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>

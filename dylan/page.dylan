@@ -306,7 +306,7 @@ end;
 
 define method latest-text
     (page :: <wiki-page>)
- => (text :: <string>);
+ => (text :: <string>)
   page.page-versions.last.content.content
 end;
 
@@ -314,6 +314,12 @@ define method latest-tags
     (page :: <wiki-page>)
  => (tags :: <sequence>)
   page.page-versions.last.categories
+end;
+
+define method latest-authors
+    (page :: <wiki-page>)
+ => (authors :: <sequence>)
+  page.page-versions.last.authors
 end;
 
 
@@ -327,9 +333,6 @@ define constant $view-diff-page
 
 define constant $remove-page-page
   = make (<wiki-dsp>, source: "remove-page.dsp");
-
-define constant $list-pages-page
-  = make(<wiki-dsp>, source: "list-pages.dsp");
 
 define constant $page-authors-page
   = make(<wiki-dsp>, source: "page-authors.dsp");
@@ -423,14 +426,32 @@ define body tag list-page-backlinks in wiki
 end;
 
 
-define method do-pages ()
-  case
-    get-query-value("go") => 
-      redirect-to(page-permanent-link(get-query-value("query")));
-    otherwise => 
-      process-page($list-pages-page);
+define class <list-pages-page> (<wiki-dsp>) end;
+
+define constant $list-pages-page
+  = make(<list-pages-page>, source: "list-pages.dsp");
+
+define method respond-to-get
+    (dsp :: <list-pages-page>, #key)
+  if (get-query-value("go"))
+    redirect-to(page-permanent-link(get-query-value("query")));
+  else
+    let pc = page-context();
+    local method page-info (page :: <wiki-page>)
+            table(<string-table>,
+                  "title" => page.title,
+                  "when-published" => standard-date-and-time(page.date-published),
+                  "latest-authors" => join(map(user-name, page.latest-authors), ", "))
+          end;
+    let current-page = get-query-value("page", as: <integer>) | 1;
+    let paginator = make(<paginator>,
+                         sequence: map(page-info, find-pages()),
+                         page-size: 25,
+                         current-page-number: current-page);
+    set-attribute(pc, "wiki-pages", paginator);
+    next-method();
   end;
-end;
+end method respond-to-get;
 
 define method do-remove-page (#key title)
   let page = find-page(percent-decode(title));
@@ -463,7 +484,8 @@ define method show-page-back-compatible
   end;
 end;
 
-define method show-page (#key title :: <string>, version)
+define method show-page-responder
+    (#key title :: <string>, version)
   let title = percent-decode(title);
   let page = find-page(title);
   let version = if (page & version)
@@ -480,7 +502,7 @@ define method show-page (#key title :: <string>, version)
                    end,
                    title: title);
   end;
-end method show-page;
+end method show-page-responder;
 
 define class <edit-page-page> (<wiki-dsp>)
 end;
@@ -686,11 +708,16 @@ define body tag list-page-tags in wiki
   end if;
 end;
 
+define method more-recently-published?
+    (page1 :: <wiki-page>, page2 :: <wiki-page>)
+  page1.date-published > page2.date-published
+end;
+
 define method find-pages
     (#key tags :: <sequence> = #[],  // strings
-          order-by :: false-or(<symbol>))
+          order-by :: <function> = more-recently-published?)
  => (pages :: <sequence>)
-   let pages = map-as(<vector>, identity, storage(<wiki-page>));
+   let pages = table-values(storage(<wiki-page>));
    if (~empty?(tags))
      pages := choose(method (page)
                        every?(rcurry(member?, page.page-versions.last.categories,
@@ -700,17 +727,10 @@ define method find-pages
                      pages);
    end;
    if (order-by)
-     pages := sort(pages, test: method (p1, p2)
-                                  p1.date-published > p2.date-published
-                                end);
+     pages := sort(pages, test: order-by);
    end;
    pages
 end method find-pages;
-
-define named-method all-page-titles
-    (page :: <wiki-dsp>)
-  map(title, find-pages())
-end;
 
 // This is only used is main.dsp now, and only for news.
 // May want to make a special one for news instead.
@@ -725,8 +745,7 @@ define body tag list-pages in wiki
            elseif (tags)
              parse-tags(tags);
            end if;
-  for (page in find-pages(tags: tags | #[],
-                          order-by: order-by & as(<symbol>, order-by)))
+  for (page in find-pages(tags: tags | #[]))
     dynamic-bind(*page* = page)
       do-body();
     end;

@@ -175,9 +175,10 @@ define url-map on $wiki-http-server
     action get () => show-page-back-compatible;
 
   url wiki-url("/pages")
-    action get () => do-pages,
+    action (get, post) () =>
+      $list-pages-page,
     action get "^(?P<title>[^/]+)/?$" =>
-      show-page,
+      show-page-responder,
     action get "^(?P<title>[^/]+)/edit$" =>
       $edit-page-page,
     action post "^(?P<title>[^/]+)(/(edit)?)?$" =>
@@ -189,7 +190,7 @@ define url-map on $wiki-http-server
     action get "^(?P<title>[^/]+)/versions$" =>
       $page-versions-page,
     action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
-      show-page,
+      show-page-responder,
     action get "^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$" =>
       show-page-versions-differences,
     action get "^(?P<title>[^/]+)/connections$" =>

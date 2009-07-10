@@ -61,6 +61,9 @@ Tags
 Users
 -----
 * Don't store passwords in cleartext.
+* Show non-activated accounts in the Users list (maybe only to admins?)
+  and allow admins to edit/activate the accounts.  Might be nice to have
+  an icon that indicates data that is only shown to admins.
 * Show the email address if the user him/herself is viewing the page.
 * When an admin is editing a user, allow them to make the user an admin.
   (This is where the two levels of admin could come into play.)
