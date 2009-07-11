@@ -30,8 +30,6 @@ define table $past-tense-table = {
     $remove-group-member => "removed as group member"
   };
 
-define wf/object-tests (day, change) in wiki end;
-
 define wf/error-test (exists) in wiki end;
 
 define class <wiki-page-version> (<entry>)
@@ -62,8 +60,56 @@ end;
 define class <wiki-acls-change> (<wiki-change>)
 end;
 
+// Used for css class names in the /recent-changes page.
+define generic change-type-name
+    (change :: <wiki-change>) => (type-name :: <string>);
+
+define method change-type-name
+    (change :: <wiki-user-change>) => (type-name :: <string>)
+  "user-change"
+end;
+
+define method change-type-name
+    (change :: <wiki-page-change>) => (type-name :: <string>)
+  "page-change"
+end;
+
+define method change-type-name
+    (change :: <wiki-group-change>) => (type-name :: <string>)
+  "group-change"
+end;
+
+define method change-type-name
+    (change :: <wiki-acls-change>) => (type-name :: <string>)
+  "acls-change"
+end;
+
+define method permanent-link
+    (change :: <wiki-user-change>, #key) => (url :: <url>)
+  user-permanent-link(change.title)
+end;
+
+define method permanent-link
+    (change :: <wiki-page-change>, #key) => (url :: <url>)
+  page-permanent-link(change.title)
+end;
+
+define method permanent-link
+    (change :: <wiki-group-change>, #key) => (url :: <url>)
+  group-permanent-link(change.title)
+end;
+
+define method permanent-link
+    (change :: <wiki-acls-change>, #key) => (url :: <url>)
+  page-permanent-link(change.title)
+end;
+
 // If authors: is not provided then the current authenticated user is used
 // or an error is signalled if there is no authenticated user.
+//
+// Note that the title argument is assumed by some code to be the key
+// that can be used to find the original object being modified.  e.g.,
+// the user name, the group name, or the page title.
 //
 define method save-change
     (class :: <class>, title :: <string>, action :: <symbol>, comment :: <string>,
@@ -93,6 +139,16 @@ end;
 define method standard-date-and-time
     (date :: <date>) => (date-and-time :: <string>)
   as-iso8601-string(date)
+end;
+
+define method standard-date
+    (date :: <date>) => (date :: <string>)
+  format-date("%Y.%m.%d", date)
+end;
+
+define method standard-time
+    (date :: <date>) => (time :: <string>)
+  format-date("%H:%M", date)
 end;
 
 define tag show-version-published in wiki
@@ -138,8 +194,16 @@ define constant $recent-changes-page
 
 define method respond-to-get
     (page :: <recent-changes-page>, #key)
-  // todo -- can remove a lot of the tags defined for this page's template
-  //         by using page context etc.
+  let changes = sort(wiki-changes(),
+                     test: method (change1, change2)
+                             change1.date-published > change2.date-published   
+                           end);
+  let page-number = get-query-value("page", as: <integer>) | 1;
+  let paginator = make(<paginator>,
+                       sequence: changes,
+                       page-size: 15,
+                       current-page-number: page-number);
+  set-attribute(page-context(), "recent-changes", paginator);
   next-method();
 end;
 
@@ -181,104 +245,37 @@ define method wiki-changes
   choose(filter, changes)
 end method wiki-changes;
 
-define body tag list-changes-daily in wiki
+define body tag list-recent-changes in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
-  local method bind-and-do-body (day)
-    dynamic-bind(*day* = day)
-      do-body();
-    end;
+  let pc = page-context();
+  let previous-change = #f;
+  let paginator :: <paginator> = get-attribute(pc, "recent-changes");
+  for (change in paginator)
+    set-attribute(pc, "day", standard-date(change.date-published));
+    set-attribute(pc, "previous-day",
+                  previous-change & standard-date(previous-change.date-published));
+    set-attribute(pc, "time", standard-time(change.date-published));
+    set-attribute(pc, "permalink", as(<string>, permanent-link(change)));
+    set-attribute(pc, "change-class", change.change-type-name);
+    set-attribute(pc, "title", change.title);
+    set-attribute(pc, "action", as(<string>, change.change-action));
+    set-attribute(pc, "comment", change.comments[0].content.content);
+    set-attribute(pc, "version",
+                  instance?(change, <wiki-page-change>) & change.change-version);
+    set-attribute(pc, "verb", 
+                  element($past-tense-table, change.change-action, default: #f)
+                  | as(<string>, change.change-action));
+    set-attribute(pc, "author",
+                  begin
+                    let authors = change.authors;
+                    let user = ~empty?(authors) & find-user(authors[0]);
+                    user & user.user-name
+                  end);
+    do-body();
+    previous-change := change;
   end;
-  let day = #[];
-  
-  let changes = sort(wiki-changes(),
-                     test: method (change1, change2)
-                             change1.date-published > change2.date-published   
-                           end);
-  for (change in changes)
-    let (this-year, this-month, this-day) = decode-date(change.date-published);
-    let (last-year, last-month, last-day) = if (size(day) > 0)
-        decode-date(first(day).date-published);
-      end if;
-    if (empty?(day) | (last-year & 
-     (last-year = this-year & last-month = this-month & last-day = this-day)))
-      day := add!(day, change);
-      if (change = last(changes))
-        bind-and-do-body(day);
-      end if;
-    else
-      bind-and-do-body(day);
-      day := vector(change);
-    end if;
-  end for;
-end;
-
-define body tag list-day-changes in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*day*)
-    for (change in *day*)
-      dynamic-bind(*change* = change)
-        do-body();
-      end;
-    end for;
-  end if;
-end;
-
-define tag show-day-date in wiki (page :: <wiki-dsp>)
- (formatted :: <string>)
-  if (*day*)
-    output("%s", format-date(formatted, first(*day*).date-published));
-  end if;
-end;
-
-define tag show-change-date in wiki
-    (page :: <wiki-dsp>)
-    (formatted :: <string>)
-  if (*change*)
-    output("%s", format-date(formatted, *change*.date-published));
-  end if;
-end;
-
-define tag show-change-comment in wiki
-    (page :: <wiki-dsp>)
-    ()
-  if (*change*)
-    output("%s", *change*.comments[0].content.content);
-  end if;
-end;
-
-define tag show-change-title in wiki (page :: <wiki-dsp>)
-    ()
-  if (*change*)
-    output("%s", *change*.title);
-  end if;
-end;
-
-define tag show-change-author in wiki
-    (page :: <wiki-dsp>)
-    ()
-  if (*change*)
-    output("%s", first(*change*.authors));
-  end if;
-end;
-
-define tag show-change-verb in wiki
-    (page :: <wiki-dsp>)
-    ()
-  if (*change*)
-    let verb = element($past-tense-table, *change*.change-action, default: #f)
-                 | as(<string>, *change*.change-action);
-    output("%s", verb);
-  end if;
-end;
-
-define tag show-change-version in wiki (page :: <wiki-dsp>)
-    ()
-  if (*change*)
-    output("%d", *change*.change-version);
-  end if;
-end;
+end tag list-recent-changes;
 
 define tag base-url in wiki
     (page :: <wiki-dsp>)
@@ -289,21 +286,6 @@ define tag base-url in wiki
                               host: url.uri-host,
                               port: url.uri-port)));
 end tag base-url;
-
-define named-method group-changed? in wiki
-    (page :: <wiki-dsp>)
-  instance?(*change*, <wiki-group-change>);
-end;
-
-define named-method change-action=edit? in wiki
-    (page :: <wiki-dsp>)
-  *change* & *change*.change-action = #"edit";
-end;
-
-define named-method change-action=removal? in wiki
-    (page :: <wiki-dsp>)
-  *change* & *change*.change-action = #"removal";
-end;
 
 define sideways method permission-error (action, #key)
 //  respond-to(#"get", *not-logged-in-page*);  

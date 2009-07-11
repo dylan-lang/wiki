@@ -479,13 +479,9 @@ end;
 
 define tag show-user-permanent-link in wiki (page :: <wiki-dsp>)
     (use-change :: <boolean>)
-  output("%s", if (use-change)
-                 user-permanent-link(*change*.title);
-               elseif (*user*)
-                 permanent-link(*user*)
-               else
-                 ""
-               end if);
+  if (*user*)
+    output("%s", permanent-link(*user*))
+  end;
 end;
 
 
@@ -515,26 +511,7 @@ define body tag with-authenticated-user in wiki
   end;
 end;
 
-define body tag with-change-author in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*change*)
-    let authors = *change*.authors;
-    let user = ~empty?(authors) & find-user(authors[0]);
-    if (user)
-      dynamic-bind(*user* = user)
-        do-body();
-      end;
-    end if;
-  end if;
-end;
-
-
 // named methods
-
-define named-method user-changed? in wiki (page :: <wiki-dsp>)  
-  instance?(*change*, <wiki-user-change>);
-end;
 
 define named-method logged-in? in wiki
     (page :: <wiki-dsp>)

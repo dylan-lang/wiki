@@ -51,15 +51,15 @@ end;
 
 define method permanent-link
     (page :: <wiki-page>, #key escaped?, full?)
- => (url :: <url>);
-  page-permanent-link(key(page));
+ => (url :: <url>)
+  page-permanent-link(key(page))
 end;
 
 define method page-permanent-link
     (title :: <string>)
- => (url :: <url>);
+ => (url :: <url>)
   let location = wiki-url("/pages/%s", title);
-  transform-uris(request-url(current-request()), location, as: <url>);
+  transform-uris(request-url(current-request()), location, as: <url>)
 end;
 
 define method redirect-to (page :: <wiki-page>)
@@ -71,8 +71,8 @@ end;
 
 define method find-page
     (title :: <string>)
- => (page :: false-or(<wiki-page>));
-  element(storage(<wiki-page>), title, default: #f);
+ => (page :: false-or(<wiki-page>))
+  element(storage(<wiki-page>), title, default: #f)
 end;
 
 define method add-author
@@ -616,10 +616,8 @@ define constant show-remove-page =
 
 define tag show-page-permanent-link in wiki
     (page :: <wiki-dsp>)
-    (use-change :: <boolean>)
-  if (use-change)
-    output("%s", page-permanent-link(*change*.title));
-  elseif (*page*)
+    ()
+  if (*page*)
     output("%s", permanent-link(*page*))
   end;
 end;
@@ -796,11 +794,6 @@ end;
 define named-method latest-page-version? in wiki
     (page :: <wiki-dsp>)
   *page* & (~*version* | *page*.page-versions.last = *version*)
-end;
-
-define named-method page-changed? in wiki
-    (page :: <wiki-dsp>)
-  instance?(*change*, <wiki-page-change>)
 end;
 
 define named-method page-tags in wiki

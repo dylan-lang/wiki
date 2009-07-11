@@ -18,53 +18,48 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <wiki:list-changes-daily>
-	<h3><wiki:show-day-date formatted="%d.%m.%y"/></h3>
+      <dsp:show-page-links name="recent-changes" url="/recent-changes?page=" query-value="page"/>
+
+      <wiki:list-recent-changes>
+        <dsp:if-not-equal name1="day" name2="previous-day">
+	  <h3><span class="date"><dsp:get name="day"/></span></h3>
+        </dsp:if-not-equal>
 	<dl id="changes">
-	  <wiki:list-day-changes>
-	    <dt>
-	      <span class="time"><wiki:show-change-date formatted="%H:%M"/></span>
-	      <dsp:when test="page-changed?">
-		<span class="object page">
-		  <a href="<wiki:show-page-permanent-link use-change="true"/>"><wiki:show-change-title/></a>
-		</span>
-		<dsp:unless test="change-action=removal?">
-		  [<a href="<wiki:show-page-permanent-link use-change="true" />/versions/<wiki:show-change-version/>"><wiki:show-change-version/></a>]
-		</dsp:unless>
-		<dsp:if test="change-action=edit?">
-		  <dsp:then>
-		    <a href="<wiki:show-page-permanent-link use-change="true"/>/versions/<wiki:show-change-version/>?diff"><wiki:show-change-verb/></a> 
-<!--
-		    (<a href="<wiki:show-page-permanent-link use-change="true"/>/versions/<wiki:show-change-version/>?diff"><wiki:show-change-difference/></a>) 
--->
-		  </dsp:then>
-		  <dsp:else>
-		    <wiki:show-change-verb/>
-		  </dsp:else>
-		</dsp:if>
-              </dsp:when>
-              <dsp:when test="user-changed?">
-                <span class="object user">
-  		  <a href="<wiki:show-user-permanent-link use-change="true"/>"><wiki:show-change-title/></a>
-		</span>
-		<wiki:show-change-verb/>
-              </dsp:when>
-              <dsp:when test="group-changed?">
-                <span class="object group">
-                  <a href="<wiki:show-group-permanent-link/>"><wiki:show-change-title/></a>
-                </span>
-                <wiki:show-change-verb/>
-              </dsp:when>
-              <wiki:with-change-author>
-                by <a href="<wiki:show-user-permanent-link/>"><wiki:show-user-username/></a>
-              </wiki:with-change-author>
-	    </dt>
-	    <dd>
-	      <wiki:show-change-comment/>
-	    </dd>
-	  </wiki:list-day-changes>
+	  <dt>
+	    <span class="time"><dsp:get name="time"/></span>
+	    <span class="object <dsp:get name='change-class'/>">
+	      <a href="<dsp:get name='permalink'/>"><dsp:get name="title"/></a>
+	    </span>
+
+            <!-- special case for page changes -->
+            <dsp:if-equal name1="change-class" name2="page" context2="literal">
+	      <dsp:if-not-equal name1="action" name2="removal" context2="literal">
+		[<a href="<dsp:get name='permalink'/>/versions/<dsp:get name='version'/>"><dsp:get name="version"/></a>]
+	      </dsp:if-not-equal>
+	      <dsp:if-equal name1="action" name2="edit" context2="literal">
+		<a href="<dsp:get name='permalink'/>/versions/<dsp:get name='version'/>?diff"><dsp:get name="verb"/></a> 
+              </dsp:if-equal>
+	      <dsp:if-not-equal name1="action" name2="edit" context2="literal">
+                <dsp:get name="verb"/>
+              </dsp:if-not-equal>
+            </dsp:if-equal>
+
+            <!-- non-page (i.e., user and group) changes -->
+            <dsp:if-not-equal name1="change-class" name2="page" context2="literal">
+	      <dsp:get name="verb"/>
+            </dsp:if-not-equal>
+
+            by <a href="/users/<dsp:get name='author'/>"><dsp:get name="author"/></a>
+
+	  </dt>
+	  <dd>
+	    <dsp:get name="comment"/>
+	  </dd>
 	</dl>
-      </wiki:list-changes-daily>
+      </wiki:list-recent-changes>
+
+      <dsp:show-page-links name="recent-changes" url="/recent-changes?page=" query-value="page"/>
+
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>
