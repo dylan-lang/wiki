@@ -201,7 +201,6 @@ define method respond-to-get
   let page-number = get-query-value("page", as: <integer>) | 1;
   let paginator = make(<paginator>,
                        sequence: changes,
-                       page-size: 15,
                        current-page-number: page-number);
   set-attribute(page-context(), "recent-changes", paginator);
   next-method();
