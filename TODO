@@ -110,6 +110,8 @@ Pages
   load the old content and give a warning near the Save button that you
   are editing an older revision.  "remove" probably shouldn't be there,
   and "connections" should show the connections of the older revision.
+* A way to set ACLs for multiple pages at once.  How to choose the pages?
+  By tags, by owner, by reference, by backlink?
 
 Other
 -----
