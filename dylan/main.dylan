@@ -223,6 +223,7 @@ end url-map;
 define function restore-from-text-files
     () => (num-page-revs)
   let wikidata = as(<directory-locator>, "/home/cgay/wiki-data");
+  format-out("Restoring wiki data from %s\n", as(<string>, wikidata));
   let page-data = make(<stretchy-vector>);
   local method gather-page-data (directory, filename, type)
           // look for "page-<page-num>-<rev-num>.props"
@@ -320,14 +321,12 @@ end function restore-from-text-files;
 The conversion procedure probably is like this:
 
 * Run the modified old wiki code, which will write out all the wiki
-  pages to text files.
+  pages to text files.  /home/cgay/wiki-conversion-libraries/
 * BACKUP THE WIKI DATABASE!
 * Run the new wiki code briefly, just so it can read in the config
-  file and create the administrator user.  Create some user accounts.
+  file and create the administrator user.
   The next step will use these if it finds them.  Shut down the wiki.
 * Run the new wiki code again with the --restore command-line argument.
-  Be sure the wikidata directory is in the same directory as the wiki
-  executable.
 */
 define function main
     ()
