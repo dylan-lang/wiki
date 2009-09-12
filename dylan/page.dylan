@@ -100,28 +100,19 @@ define method save-page
   let page :: false-or(<wiki-page>) = find-page(title);
   let action :: <symbol> = $edit;
   let author :: <wiki-user> = authenticated-user();
-  if (page)
-    if (~has-permission?(author, page, $modify-content))
-      add-page-error("You do not have permission to edit this page.");
-    end;
-  else
-    page := make(<wiki-page>,
-                 title: title,
-                 owner: author);
+  if (~page)
+    page := make(<wiki-page>, title: title, owner: author);
     action := $create;
   end;
-
-  let reserved-tags = choose(reserved-tag?, tags);
-  if (~empty?(reserved-tags) & ~administrator?(author))
-    add-field-error("tags", "The tag%s %s %s reserved for administrator use.",
-                    iff(reserved-tags.size = 1, "", "s"),
-                    join(tags, ", ", conjunction: " and "),
-                    iff(reserved-tags.size = 1, "is", "are"));
-  end;
-  if (~page-has-errors?())
-    save-page-internal(page, content, comment, tags, author, action);
-    dump-data();
+  save-page-internal(page, content, comment, tags, author, action);
+  dump-data();
+  block ()
     generate-connections-graph(page);
+  exception (ex :: <serious-condition>)
+    // we don't care about the graph (yet?)
+    // maybe the server doesn't have "dot" installed.
+    log-error("Error generating connections graph for page %s: %s",
+              title, ex);
   end;
 end method save-page;
 
@@ -511,16 +502,19 @@ define constant $edit-page-page
   = make(<edit-page-page>, source: "edit-page.dsp");
 
 define method respond-to-get
-    (page :: <edit-page-page>, #key title :: <string>)
+    (page :: <edit-page-page>, #key title :: <string>, previewing?)
   let title = percent-decode(title);
   if (authenticated-user())
     set-attribute(page-context(), "title", title);
+    set-attribute(page-context(), "previewing?", previewing?);
     dynamic-bind (*page* = find-page(title))
       if (*page*)
-        let content = *page*.page-versions.last.content.content;
-        set-attribute(page-context(), "content", content);
-        set-attribute(page-context(), "owner", *page*.page-owner);
-        set-attribute(page-context(), "tags", unparse-tags(*page*.latest-tags));
+        let content = get-query-value("content")
+                        | *page*.page-versions.last.content.content;
+        let pc = page-context();
+        set-attribute(pc, "content", content);
+        set-attribute(pc, "owner", *page*.page-owner);
+        set-attribute(pc, "tags", unparse-tags(*page*.latest-tags));
       end;
       next-method();
     end;
@@ -536,7 +530,7 @@ define method respond-to-post
     (wiki-dsp :: <edit-page-page>, #key title :: <string>)
   let title = percent-decode(title);
   let page = find-page(title);
-  with-query-values (title as new-title, content, comment, tags)
+  with-query-values (title as new-title, content, comment, tags, button)
     let tags = iff(tags, parse-tags(tags), #[]);
     let new-title = new-title & trim(new-title);
 
@@ -552,17 +546,27 @@ define method respond-to-post
       end;
     end;
 
-    if (page-has-errors?())
+    let author :: <wiki-user> = authenticated-user();
+    if (page & ~has-permission?(author, page, $modify-content))
+      add-page-error("You do not have permission to edit this page.");
+    end;
+
+    let reserved-tags = choose(reserved-tag?, tags);
+    if (~empty?(reserved-tags) & ~administrator?(author))
+      add-field-error("tags", "The tag%s %s %s reserved for administrator use.",
+                      iff(reserved-tags.size = 1, "", "s"),
+                      join(tags, ", ", conjunction: " and "),
+                      iff(reserved-tags.size = 1, "is", "are"));
+    end;
+
+    let previewing? = (button = "Preview");
+    if (previewing? | page-has-errors?())
       // Redisplay the page with errors highlighted.
-      respond-to-get($edit-page-page, title: title);
+      respond-to-get($edit-page-page, title: title, previewing?: #t);
     else
       save-page(title, content | "", comment: comment, tags: tags);
-      if (page-has-errors?())
-        next-method();
-      else
-        redirect-to(find-page(title));
-      end;
-    end if;
+      redirect-to(find-page(title));
+    end;
   end;
 end method respond-to-post;
 
@@ -666,19 +670,22 @@ end;
 define tag show-page-content in wiki
     (page :: <wiki-dsp>)
     (content-format :: false-or(<string>))
-  output("%s", if (*page*)
-                 let content = (*version* | *page*.page-versions.last).content.content;
-                 case
-                   content-format = "xhtml"
-                     => wiki-markup-to-html(content); // parse-wiki-markup(content);
-                   otherwise
-                     => content; 
-                 end case;
-               elseif (wf/*form* & element(wf/*form*, "content", default: #f))
-                 wf/*form*["content"];
-               else
-                 ""
-               end if);
+  let raw-content
+    = if (get-attribute(page-context(), "content"))
+        get-attribute(page-context(), "content")
+      elseif (*page*)
+        (*version* | *page*.page-versions.last).content.content
+      elseif (wf/*form* & element(wf/*form*, "content", default: #f))
+        wf/*form*["content"];
+      else
+        ""
+      end if;
+  case
+    content-format = "xhtml"
+      => output("%s", wiki-markup-to-html(raw-content)); // parse-wiki-markup(content);
+    otherwise
+      => output("%s", raw-content);
+  end case;
 end;
 
 define tag show-version in wiki

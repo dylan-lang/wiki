@@ -12,19 +12,27 @@
     <div id="body">
       <h2><wiki:show-page-title/></h2>
 
+      <dsp:when test="page?">
+        (Owned by <wiki:show-page-owner/>)
+      </dsp:when>
+
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <dsp:if test="page?">
-        <dsp:then>
-          (Owned by <wiki:show-page-owner/>)
-        </dsp:then>
-        <dsp:else>
-          <p class="hint">
-            This page doesn't exist. You can create it by writing the page's content below.
-          </p>
-        </dsp:else>
-      </dsp:if>
+      <dsp:when test="true?" name="previewing?">
+        <p><font color="red">THIS IS A PREVIEW.  DON'T FORGET TO SAVE THE PAGE.</font></p>
+        <hr/>
+        <div class="preview">
+          <%dsp:include url="view-page-content.dsp"/>
+        </div>
+        <hr/>
+      </dsp:when>
+
+      <dsp:unless test="page?">
+        <p class="hint">
+          This page doesn't exist. You can create it by writing the page's content below.
+        </p>
+      </dsp:unless>
       <dsp:when test="can-modify-content?">
         <form action="" method="post">
           <fieldset>
@@ -54,15 +62,15 @@
               </li>
             </ol>
           </fieldset>
-          <dsp:if test="page?">
-            <dsp:then>
-              <input type="submit" value="Save" />
-            </dsp:then>
-            <dsp:else>
-              <input type="submit" value="Create" />
-            </dsp:else>
-          </dsp:if>	
+          <input type="submit" name="button" value="Preview"/>
+          <dsp:when test="page?">
+            <input type="submit" name="button" value="Save"/>
+          </dsp:when>
+          <dsp:unless test="page?">
+            <input type="submit" name="button" value="Create"/>
+          </dsp:unless>
         </form>
+
       </dsp:when>
     </div>
   </div>
