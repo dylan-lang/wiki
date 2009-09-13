@@ -120,18 +120,21 @@ end method save-page;
 // old wiki to new.
 define method save-page-internal
     (page :: <wiki-page>, content :: <string>, comment :: <string>,
-     tags :: <sequence>, author :: <wiki-user>, action :: <symbol>)
+     tags :: <sequence>, author :: <wiki-user>, action :: <symbol>,
+     #key published :: false-or(<date>))
   let title = page.title;
   let version-number :: <integer> = size(page.page-versions) + 1;
   if (version-number = 1
         | content ~= page.latest-text
         | tags ~= page.latest-tags)
+    let date-published = published | current-date();
     let version = make(<wiki-page-version>,
                        content: make(<raw-content>, content: content),
                        authors: list(author),
                        version: version-number,
                        page: page,
-		       categories: tags & as(<vector>, tags));
+		       categories: tags & as(<vector>, tags),
+                       published: date-published);
     let comment = make(<comment>,
                        name: as(<string>, action),
                        authors: list(author.user-name),
@@ -146,7 +149,8 @@ define method save-page-internal
                       title: title,
                       version: version-number, 
                       action: action,
-                      authors: list(author.user-name));
+                      authors: list(author.user-name),
+                      published: date-published);
     change.comments[0] := comment;
     save(page);
     save(change);

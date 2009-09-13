@@ -310,7 +310,8 @@ define function restore-from-text-files
       end;
       let tags = #[];
       let content = file-contents(page-locator(page-num, rev-num, "content"));
-      save-page-internal(page, content, comment, tags, author, action);
+      save-page-internal(page, content, comment, tags, author, action,
+                         published: timestamp);
     end;
   end for;
   dump-data();

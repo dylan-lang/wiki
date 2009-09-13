@@ -3,8 +3,6 @@ Fix before going live
 
 Anything that is a regression compared to the original wiki.
 
-* Preserve dates during import of old pages.
-* Implement preview
 * Implement diff
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
