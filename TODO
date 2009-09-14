@@ -3,7 +3,6 @@ Fix before going live
 
 Anything that is a regression compared to the original wiki.
 
-* Implement diff
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
 * The methods on permanent-link are incorrect.  For example, if you go

@@ -20,7 +20,8 @@
 	  <li>
 	    <strong>
 	      <a href="/pages/<dsp:get name='title'/>/versions/<dsp:get name='version-number'/>">#<dsp:get name="version-number"/></a>
-	    </strong> 
+	    </strong>
+	    (<a href="/pages/<dsp:get name='title'/>/diff/<dsp:get name='version-number'/>">diff</a>)
 	    <dsp:get name="published"/> by <a href="/users/<dsp:get name='author'/>"><dsp:get name='author'/></a> - <em><dsp:get name="comment"/></em>
 	  </li>
 	</wiki:list-page-versions>

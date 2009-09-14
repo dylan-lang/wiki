@@ -2,6 +2,8 @@ Module: dylan-user
 Author: turbo24prg
 
 define library wiki
+  use collection-extensions,
+    import: { sequence-diff };
   use collections;
   use command-line-parser;
   use common-dylan,
@@ -40,6 +42,7 @@ define module wiki-internal
     rename: { published => date-published,
               label => category-label },
     exclude: { <uri> };
+  use sequence-diff;
   use command-line-parser;
   use common-extensions,
     exclude: { format-to-string };

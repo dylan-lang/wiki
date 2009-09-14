@@ -10,41 +10,16 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
-      <h2>Difference of <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+      <h2><wiki:show-page-title/> &mdash; diff of version #<dsp:get name="version1"/> and #<dsp:get name="version2"/></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <table id="diff">
-	<thead>
-	  <tr>
-	    <th>
-	      <wiki:with-other-version>
-		<h3>Version: 
-		  <a href="<wiki:show-page-permanent-link/>/versions/<wiki:show-version-number/>">#<wiki:show-version-number/></a>
-    	        </h3>
-      	        <wiki:show-version-published formatted="%e. %b %Y %H:%M:%S">:
-        	  <em><wiki:show-version-comment/></em>	
-	      </wiki:with-other-version>
-	    </th>
-	    <th>
-	      <h3>Version:
-		<a href="<wiki:show-page-permanent-link/>/versions/<wiki:show-version-number/>">#<wiki:show-version-number/></a>
-	      </h3>
-	      <wiki:show-version-published formatted="%e. %b %Y %H:%M:%S">:
-		<em><wiki:show-version-comment/></em>
-	    </th>
-	  </tr>
-	</thead>
-	<tbody>
-	  <wiki:with-diff>
-	    <tr>
-	      <td><wiki:with-other-version><wiki:show-page-content/></wiki:with-other-version></td>
-	      <td><wiki:show-page-content/></td>
-	    </tr>
-	  </wiki:with-diff>
-	</tbody>
-      </table>
+      <dsp:loop over="diffs" context="page" var="diff-entry">
+        <wiki:show-diff-entry name="diff-entry"/>
+        <p/>
+      </dsp:loop>
+
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>

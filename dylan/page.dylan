@@ -256,31 +256,6 @@ define method find-backlinks
   backlinks;
 end;
 
-define method diff
-    (version-a :: <wiki-page-version>, version-b :: <wiki-page-version>)
- => (diff-a :: <sequence>, diff-b :: <sequence>);
-  let lines-a = split(version-a.content.content, "\n");
-  let lines-b = split(version-b.content.content, "\n");
-  let diff-a = make(<stretchy-vector>);
-  let diff-b = make(<stretchy-vector>);
-/*
-  for (line-a in lines-a, line-b in lines-b, i from 0)
-    if (line-a ~= line-b)
-      let line-b-in-a = find-key(lines-a, method (line) line = line-b end, skip: i);
-      let line-a-in-b = find-key(lines-b, method (line) line = line-a end, skip: i);
-      if (line-b-in-a & ~line-a-in-b)
-        format-out("removed in version b:\n%s\n\n", line-a);
-      elseif (~line-b-in-a & line-a-in-b)
-        format-out("added in version b:\n%s\n\n", line-b);
-//      else if ()
-//        //modified?
-      end if;
-    end if;
-  end for;
-*/
-  values(diff-a, diff-b);
-end;
-
 define method discussion-page?
     (page :: <wiki-page>)
  => (is? :: <boolean>)
@@ -322,9 +297,6 @@ end;
 
 define constant $view-page-page
   = make(<wiki-dsp>, source: "view-page.dsp");
-
-define constant $view-diff-page
-  = make(<wiki-dsp>, source: "view-diff.dsp");
 
 define constant $remove-page-page
   = make (<wiki-dsp>, source: "remove-page.dsp");
@@ -574,32 +546,98 @@ define method respond-to-post
   end;
 end method respond-to-post;
 
-define method show-page-versions-differences (#key title :: <string>, a, b)
-  dynamic-bind (*page* = find-page(percent-decode(title)))
-    let version :: false-or(<wiki-page-version>)
-      = block ()
-          if (a)
-            element(*page*.page-versions, string-to-integer(a) - 1, default: #f);
-          end;
-        exception (<error>)
-          #f
+define class <view-diff-page> (<wiki-dsp>) end;
+
+define constant $view-diff-page
+  = make(<view-diff-page>, source: "view-diff.dsp");
+
+// /Title/diff/n  diffs versions n - 1 and n.
+// /Title/diff/n/m diffs versions n and m.
+// Note that in the first case n is the newer version and in the latter
+// case n is the older version.
+//
+define method respond-to-get
+    (page :: <view-diff-page>,
+     #key title :: <string>,
+          version1 :: <string>,
+          version2 :: false-or(<string>))
+  let title = percent-decode(title);
+  dynamic-bind (*page* = find-page(title))  // only for <show-page-title/>
+    if (*page*)
+      block (return)
+        let pc = page-context();
+        let ix1 = string-to-integer(version1) - 1;
+        let ix2 = iff(version2, string-to-integer(version2) - 1, ix1 - 1);
+        let (ix1, ix2) = values(min(ix1, ix2), max(ix1, ix2));
+        set-attribute(pc, "version1", ix1 + 1);
+        set-attribute(pc, "version2", ix2 + 1);
+        let old-rev = element(*page*.page-versions, ix1, default: #f);
+        let new-rev = element(*page*.page-versions, ix2, default: #f);
+        if (~old-rev)
+          add-page-error("%s revision #%s does not exist.", title, ix1 + 1);
         end;
-    let other-version :: false-or(<wiki-page-version>)
-      = block ()
-          if (version & instance?(b, <string>))
-            element(*page*.page-versions, string-to-integer(b) - 1, default: #f);
-          elseif (version)
-            element(*page*.page-versions, version.version-number - 2, default: #f);
-          end;
-        exception (<error>)
-          #f
+        if (~new-rev)
+          add-page-error("%s revision #%s does not exist.", title, ix2 + 1);
         end;
-    dynamic-bind(*version* = version,
-                 *other-version* = other-version)
-      respond-to-get($view-diff-page);
+        if (old-rev & new-rev)
+          let seq1 = split(old-rev.content.content, '\n');
+          let seq2 = split(new-rev.content.content, '\n');
+          set-attribute(pc, "diffs", sequence-diff(seq1, seq2));
+          // sequence-diff doesn't hang onto the actual lines, only indexes,
+          // so store them too...
+          set-attribute(pc, "seq1", seq1);
+          set-attribute(pc, "seq2", seq2);
+        end;
+      exception (ex :: <error>)
+        add-page-error("Invalid version number: %s", ex);
+      end;
+    else
+      add-page-error("The page does not exist: %s", title);
     end;
+    next-method();
   end;
-end method show-page-versions-differences;
+end method respond-to-get;
+
+define method print-diff-entry
+    (entry :: <insert-entry>, seq1 :: <sequence>, seq2 :: <sequence>)
+  let lineno1 = entry.source-index + 1;
+  let lineno2 = entry.element-count + entry.source-index;
+  if (lineno1 = lineno2)
+    output("Added line %d:<br/>", lineno1);
+  else
+    output("Added lines %d - %d:<br/>", lineno1, lineno2);
+  end;
+  for (line in copy-sequence(seq2, start: lineno1 - 1, end: lineno2),
+       lineno from lineno1)
+    output("%d: %s<br/>", lineno, line);
+  end;
+end method print-diff-entry;
+  
+define method print-diff-entry
+    (entry :: <delete-entry>, seq1 :: <sequence>, seq2 :: <sequence>)
+  let lineno1 = entry.dest-index + 1;
+  let lineno2 = entry.element-count + entry.dest-index;
+  if (lineno1 = lineno2)
+    output("Removed line %d:<br/>", lineno1);
+  else
+    output("Removed lines %d - %d:<br/>", lineno1, lineno2);
+  end;
+  for (line in copy-sequence(seq1, start: lineno1 - 1, end: lineno2),
+       lineno from lineno1)
+    output("%d: %s<br/>", lineno, line);
+  end;
+end method print-diff-entry;
+
+define tag show-diff-entry in wiki
+    (page :: <view-diff-page>)
+    (name :: <string>)
+  let pc = page-context();
+  let entry = get-attribute(pc, name);
+  let seq1 = get-attribute(pc, "seq1");
+  let seq2 = get-attribute(pc, "seq2");
+  print-diff-entry(entry, seq1, seq2);
+end tag show-diff-entry;
+
 
 define method redirect-to-page-or
     (page :: <page>, #key title :: <string>)
@@ -759,27 +797,6 @@ define body tag list-pages in wiki
       do-body();
     end;
   end for;
-end;
-
-define body tag with-other-version in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*page*)
-    dynamic-bind(*version* = *other-version*)
-      do-body();
-    end;
-  end if;
-end;
-
-define body tag with-diff in wiki
-    (page :: <wiki-dsp>, do-body :: <function>)
-    ()
-  if (*page*)
-    diff(*other-version*, *version*);
-    dynamic-bind(*diff-version* = #f, *diff-other-version* = #f)
-      do-body();
-    end;
-  end if;
 end;
 
 define body tag list-page-authors in wiki

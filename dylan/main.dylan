@@ -191,8 +191,8 @@ define url-map on $wiki-http-server
       $page-versions-page,
     action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
       show-page-responder,
-    action get "^(?P<title>[^/]+)/versions/(?P<a>\\d+)/diff(/(?P<b>\\d+))?$" =>
-      show-page-versions-differences,
+    action get "^(?P<title>[^/]+)/diff/(?P<version1>\\d+)(/(?P<version2>\\d+)?)?$" =>
+      $view-diff-page,
     action get "^(?P<title>[^/]+)/connections$" =>
       $connections-page,
     action get "^(?P<title>[^/]+)/authors$" =>
