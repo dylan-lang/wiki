@@ -22,7 +22,6 @@
          from which account emails are sent, so it runs a high spam risk.
       -->
     <administrator username="administrator"
-                   password="D1D1"
                    email="hackers@lists.opendylan.org"/>
     <authentication realm="dylan-wiki"/>
     <mail host="lists.opendylan.org"/>
