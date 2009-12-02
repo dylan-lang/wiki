@@ -115,8 +115,6 @@ define method process-mail-configuration
   end;
 end method process-mail-configuration;
 
-define constant $wiki-http-server = make(<http-server>);
-
 
 // There is method to this madness....  In general a GET generates a "view"
 // or "confirm" page and a POST actually performs the operation, such as modify,
@@ -134,7 +132,7 @@ define constant $wiki-http-server = make(<http-server>);
 // GET and POST, and the methods for respond-to-get and respond-to-post
 // handle the logic for the given HTTP request method.
 
-define url-map on $wiki-http-server
+define url-map $wiki-url-map ()
   url wiki-url("/")
     action get () => $main-page;
 
@@ -333,7 +331,7 @@ define function main
     ()
   if (member?("--restore", application-arguments(), test: \=))
     // need to handle the --config argument here so the content directory is set.
-    // copied from koala-main.  not intended to be pretty.
+    // Remove this when the old, pre-turbo wiki is dead.
     let parser = *argument-list-parser*;
     parse-arguments(parser, application-arguments());
     let config-file = option-value-by-long-name(parser, "config");
@@ -346,8 +344,8 @@ define function main
   else
     let filename = locator-name(as(<file-locator>, application-name()));
     if (split(filename, ".")[0] = "wiki")
-      koala-main(server: $wiki-http-server,
-                 description: "Dylan wiki")
+      let server = make(<http-server>, url-map: $wiki-url-map);
+      koala-main(server: server, description: "Dylan wiki");
     end;
   end;
 end function main;

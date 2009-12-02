@@ -33,9 +33,15 @@ define library wiki
 
   use uncommon-dylan;
 
-  // for the test suite
-  export wiki-internal;
+  export
+    wiki,
+    wiki-internal;   // for the test suite
 end library wiki;
+
+define module wiki
+  create
+    $wiki-url-map;
+end;
 
 define module wiki-internal
   use changes,
@@ -73,6 +79,7 @@ define module wiki-internal
   use web-framework,
     prefix: "wf/",
     exclude: { slot-type };
+  use wiki;
   use xml-parser,
     prefix: "xml/";
   use xml-rpc-client;
@@ -87,9 +94,7 @@ define module wiki-internal
   use graphviz-renderer,
     prefix: "gvr/";
 
-  // Exports are intended for the test suite
   export
-
     // ACLs
     <acls>,
     $view-content, $modify-content, $modify-acls,
