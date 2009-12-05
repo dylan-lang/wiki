@@ -40,7 +40,7 @@ end library wiki;
 
 define module wiki
   create
-    $wiki-url-map;
+    add-wiki-responders;
 end;
 
 define module wiki-internal

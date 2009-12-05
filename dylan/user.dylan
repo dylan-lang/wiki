@@ -29,7 +29,7 @@ in wiki end;
 
 // url
 
-define method permanent-link
+define sideways method permanent-link
     (user :: <wiki-user>, #key escaped?, full?)
  => (url :: <url>)
   user-permanent-link(user.user-name);
@@ -37,12 +37,12 @@ end;
 
 define method user-permanent-link
     (username :: <string>)
- => (url :: <url>)
+ => (uri :: <uri>)
   let location = wiki-url("/users/%s", username);
   transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
-define method redirect-to (user :: <wiki-user>)
+define sideways method redirect-to (user :: <wiki-user>)
   redirect-to(permanent-link(user));
 end;
 

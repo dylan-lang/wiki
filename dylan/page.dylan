@@ -299,7 +299,7 @@ define constant $view-page-page
   = make(<wiki-dsp>, source: "view-page.dsp");
 
 define constant $remove-page-page
-  = make (<wiki-dsp>, source: "remove-page.dsp");
+  = make(<wiki-dsp>, source: "remove-page.dsp");
 
 define constant $page-authors-page
   = make(<wiki-dsp>, source: "page-authors.dsp");

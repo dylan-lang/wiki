@@ -11,7 +11,7 @@
     <link rel="alternate"
           type="application/atom+xml"
           title="Atom feed for page <wiki:show-page-title/>"
-          href="/feed/pages/<wiki:show-page-title/>" />
+          href="<wiki:base/>/feed/pages/<wiki:show-page-title/>" />
   </dsp:if>
 </head>
 <body>
@@ -25,7 +25,7 @@
 	    <em>@ #<wiki:show-version-number/></em>
           </dsp:unless>
           <dsp:if test="can-view-content?">
-            <a href="/feed/pages/<wiki:show-page-title/>">
+            <a href="<wiki:base/>/feed/pages/<wiki:show-page-title/>">
               <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for this page"/>
             </a>
           </dsp:if>

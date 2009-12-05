@@ -6,7 +6,7 @@
   <link rel="alternate"
         type="application/atom+xml"
         title="Dylan Wiki Atom Feed"
-        href="/feed/users/<dsp:get name='user-name'/>" />
+        href="<wiki:base/>/feed/users/<dsp:get name='user-name'/>" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
@@ -17,7 +17,7 @@
     </dsp:when>
     <div id="body">
       <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when>
-        <a href="/feed/users/<dsp:get name='user-name'/>">
+        <a href="<wiki:base/>/feed/users/<dsp:get name='user-name'/>">
           <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for changes to this user"/>
         </a>
       </h2>
@@ -33,7 +33,7 @@
       <h3>Group Memberships</h3>
       <ul>
         <dsp:loop over="group-memberships" context="page" var="group-name" empty="None">
-          <li><a href="/groups/<dsp:get name='group-name' context='page'/>">
+          <li><a href="<wiki:base/>/groups/<dsp:get name='group-name' context='page'/>">
               <dsp:get name="group-name" context="page"/></a>
           </li>
         </dsp:loop>
@@ -42,7 +42,7 @@
       <h3>Group Ownerships</h3>
       <ul>
         <dsp:loop over="group-ownerships" context="page" var="group-name" empty="None">
-          <li><a href="/groups/<dsp:get name='group-name' context='page'/>">
+          <li><a href="<wiki:base/>/groups/<dsp:get name='group-name' context='page'/>">
               <dsp:get name="group-name" context="page"/></a>
           </li>
         </dsp:loop>

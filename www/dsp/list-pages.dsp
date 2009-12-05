@@ -33,7 +33,7 @@
           <dsp:loop over="wiki-pages" context="page" var="info">
             <li class="page">
               <dsp:get name="info[when-published]"/>
-              <a href="/pages/<dsp:get name='info[title]'/>"><dsp:get name="info[title]"/></a>,
+              <a href="<wiki:base/>/pages/<dsp:get name='info[title]'/>"><dsp:get name="info[title]"/></a>,
               changed by <dsp:get name="info[latest-authors]"/>
             </li>
           </dsp:loop>

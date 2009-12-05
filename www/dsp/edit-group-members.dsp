@@ -10,7 +10,7 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="group-options-menu.dsp"/>
     <div id="body">
-      <h2>Change Members of <a href="/groups/<dsp:get name='group-name'/>"><dsp:get name='group-name'/></a></h2>
+      <h2>Change Members of <a href="<wiki:base/>/groups/<dsp:get name='group-name'/>"><dsp:get name='group-name'/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

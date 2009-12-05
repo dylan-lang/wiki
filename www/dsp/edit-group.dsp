@@ -21,8 +21,8 @@
         <dsp:else>
           <!-- not logged in -->
           <p class="hint">
-            You must <a href="/register">Register</a> or
-            <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
+            You must <a href="<wiki:base/>/register">Register</a> or
+            <a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
             to edit this group.
           </p>
         </dsp:else>

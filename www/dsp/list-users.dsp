@@ -6,14 +6,14 @@
   <link rel="alternate"
         type="application/atom+xml"
         title="Dylan Wiki User Changes"
-        href="/feed/users" />
+        href="<wiki:base/>/feed/users" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">
-      <h2>Users <a href="/feed/users"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for user changes"/></a></h2>
+      <h2>Users <a href="<wiki:base/>/feed/users"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for user changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
@@ -30,7 +30,7 @@
           </li>
           <dsp:loop over="active-users" context="page" var="user">
             <li class="user">
-              <a href="/users/<dsp:get name='user[name]'/>"><dsp:get name="user[name]"/></a>
+              <a href="<wiki:base/>/users/<dsp:get name='user[name]'/>"><dsp:get name="user[name]"/></a>
               <dsp:when test="true?" name="user[admin?]">*</dsp:when>
               <dsp:if-equal name1="user[name]" name2="active-user">(you)</dsp:if-equal>
             </li>

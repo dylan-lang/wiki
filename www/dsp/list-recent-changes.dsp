@@ -6,14 +6,14 @@
   <link rel="alternate"
         type="application/atom+xml"
         title="All Dylan Wiki Changes"
-        href="/feed" />
+        href="<wiki:base/>/feed" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
-      <h2>Recent Changes <a href="/feed"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for all wiki changes"/></a></h2>
+      <h2>Recent Changes <a href="<wiki:base/>/feed"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for all wiki changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
@@ -49,7 +49,7 @@
 	      <dsp:get name="verb"/>
             </dsp:if-not-equal>
 
-            by <a href="/users/<dsp:get name='author'/>"><dsp:get name="author"/></a>
+            by <a href="<wiki:base/>/users/<dsp:get name='author'/>"><dsp:get name="author"/></a>
 
 	  </dt>
 	  <dd>

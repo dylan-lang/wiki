@@ -46,7 +46,7 @@ define method atom-feed-responder
                   updated: date-updated,
                   author: feed-authors,
                   categories: #[]);
-  let url = build-uri(current-request().request-url);
+  let url = current-request().request-url;
   feed.identifier := url;
   feed.links["self"] := make(<link>, rel: "self", href: url);
 
@@ -72,7 +72,7 @@ define method generate-atom (change :: <wiki-change>, #key)
   end;
 end;
 
-define method generate-atom (user :: <wiki-user>, #key)
+define sideways method generate-atom (user :: <wiki-user>, #key)
   with-xml()
     author {
       name(user.user-name),

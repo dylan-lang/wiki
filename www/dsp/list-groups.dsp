@@ -7,14 +7,14 @@
   <link rel="alternate"
         type="application/atom+xml"
         title="Dylan Wiki Group Changes"
-        href="/feed/groups" />
+        href="<wiki:base/>/feed/groups" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
-      <h2>Groups <a href="/feed/groups"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
+      <h2>Groups <a href="<wiki:base/>/feed/groups"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
@@ -34,13 +34,13 @@
         </form>
       </dsp:when>
       <dsp:unless test="logged-in?">
-	<a href="/register">Register</a> or
-	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
+	<a href="<wiki:base/>/register">Register</a> or
+	<a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
         to create a new group.
       </dsp:unless>
       <dsp:loop over="all-groups" context="page" var="group" header="<ul>" footer="</ul>" empty="<p>There are no groups.</p>">
         <li class="group">
-          <a href="/groups/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
+          <a href="<wiki:base/>/groups/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
           <div class="group-description"><dsp:get name="group[description]"/></div>
         </li>
       </dsp:loop>

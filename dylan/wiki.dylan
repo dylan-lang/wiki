@@ -1,14 +1,24 @@
 Module: wiki-internal
 
-define constant $wiki-version :: <string> = "2009.06.27"; // YYYY.mm.dd
+define constant $wiki-version :: <string> = "2009.12.04"; // YYYY.mm.dd
 
 // Prefix for all wiki URLs.  Set to "" for no prefix.
-define constant $wiki-url-prefix :: <string> = "";
+define variable *wiki-url-prefix* :: <string> = "/wiki";
+
+define tag base in wiki
+    (page :: <wiki-dsp>) ()
+  output("%s", *wiki-url-prefix*);
+end;
+
+define tag current in wiki
+    (page :: <wiki-dsp>) ()
+  output("%s", build-uri(request-url(current-request())));
+end;
 
 define function wiki-url
     (format-string, #rest format-args)
  => (url :: <url>)
-  parse-url(concatenate($wiki-url-prefix,
+  parse-url(concatenate(*wiki-url-prefix*,
                         apply(format-to-string, format-string, format-args)))
 end;  
 
@@ -85,7 +95,7 @@ define method change-type-name
 end;
 
 define method permanent-link
-    (change :: <wiki-user-change>, #key) => (url :: <url>)
+    (change :: <wiki-user-change>, #key) => (uri :: <uri>)
   user-permanent-link(change.title)
 end;
 

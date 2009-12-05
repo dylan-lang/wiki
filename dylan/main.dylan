@@ -2,7 +2,7 @@ Module: wiki-internal
 
 // These are sent as the text and URL for the Atom feed generator element.
 define variable *site-name* :: <string> = "Dylan Wiki";
-define variable *site-url* :: <string> = "http://wiki.opendylan.org";
+define variable *site-url* :: <string> = "";
 
 // The realm used for authentication.  Configurable.
 define variable *wiki-realm* :: <string> = "wiki";
@@ -29,7 +29,17 @@ define sideways method process-config-element
   log-info("Site name: %s", *site-name*);
 
   *site-url*  := get-attr(node, #"site-url")  | *site-url*;
+  // TODO: set site-url to http://<local host name>:<port>
   log-info("Site URL: %s", *site-url*);
+
+  // Setting this only works if you don't put your "define url-map" at
+  // top-level because then it is evaluated at load time, before this is set.
+  *wiki-url-prefix* := get-attr(node, #"url-prefix") | *wiki-url-prefix*;
+  log-info("Wiki URL prefix: %s", *wiki-url-prefix*);
+
+  *wiki-dsp-subdirectory*
+    := get-attr(node, #"dsp-subdirectory") | *wiki-dsp-subdirectory*;
+  log-info("Wiki DSP subdirectory: %s", *wiki-dsp-subdirectory*);
 
   let admin-element = child-node-named(#"administrator");
   if (~admin-element)
@@ -132,91 +142,96 @@ end method process-mail-configuration;
 // GET and POST, and the methods for respond-to-get and respond-to-post
 // handle the logic for the given HTTP request method.
 
-define url-map $wiki-url-map ()
-  url wiki-url("/")
-    action get () => $main-page;
+// This is done in a function rather than with "define url-map" so that
+// evaluation is delayed and URLs aren't added until after the server has
+// been configured.
+define function add-wiki-responders
+    (http-server :: <http-server>)
+  add-urls(http-server,
+    url wiki-url("/")
+      action get () => $main-page;
 
-  url wiki-url("/login")
-    action (get, post) () => curry(login, realm: *wiki-realm*);
+    url wiki-url("/login")
+      action (get, post) () => curry(login, realm: *wiki-realm*);
 
-  url wiki-url("/logout")
-    action (get, post) () => logout;
+    url wiki-url("/logout")
+      action (get, post) () => logout;
 
-  url wiki-url("/recent-changes")
-    action get () =>
-      $recent-changes-page;
+    url wiki-url("/recent-changes")
+      action get () =>
+        $recent-changes-page;
 
-  //  /feed[/type[/name]]
-  url wiki-url("/feed")
-    action get "^((?P<type>[^/]+)(/(?P<name>[^/]+))?)?" =>
-      atom-feed-responder;
+    //  /feed[/type[/name]]
+    url wiki-url("/feed")
+      action get "^((?P<type>[^/]+)(/(?P<name>[^/]+))?)?" =>
+        atom-feed-responder;
 
-  url wiki-url("/users")
-    action (get, post) () =>
-      $list-users-page,
-    action get "^(?P<name>[^/]+)/?$" =>
-      $view-user-page,
-    action (get, post) "^(?P<name>[^/]+)/edit$" =>
-      $edit-user-page,
-    action get "^(?P<name>[^/]+)/remove$" =>
-      show-remove-user,
-    action post "^(?P<name>[^/]+)/remove$" =>
-      do-remove-user,
-    action get "^(?P<name>[^/]+)/activate/(?P<key>.+)$" =>
-      respond-to-user-activation-request;
+    url wiki-url("/users")
+      action (get, post) () =>
+        $list-users-page,
+      action get "^(?P<name>[^/]+)/?$" =>
+        $view-user-page,
+      action (get, post) "^(?P<name>[^/]+)/edit$" =>
+        $edit-user-page,
+      action get "^(?P<name>[^/]+)/remove$" =>
+        show-remove-user,
+      action post "^(?P<name>[^/]+)/remove$" =>
+        do-remove-user,
+      action get "^(?P<name>[^/]+)/activate/(?P<key>.+)$" =>
+        respond-to-user-activation-request;
 
-  url wiki-url("/register")
-    action (get, post) () => $registration-page;
+    url wiki-url("/register")
+      action (get, post) () => $registration-page;
 
-  // Provide backward compatibility with old wiki URLs.
-  url "/wiki/view.dsp"
-    action get () => show-page-back-compatible;
+    // Provide backward compatibility with old wiki URLs.
+    url "/wiki/view.dsp"
+      action get () => show-page-back-compatible;
 
-  url wiki-url("/pages")
-    action (get, post) () =>
-      $list-pages-page,
-    action get "^(?P<title>[^/]+)/?$" =>
-      show-page-responder,
-    action get "^(?P<title>[^/]+)/edit$" =>
-      $edit-page-page,
-    action post "^(?P<title>[^/]+)(/(edit)?)?$" =>
-      $edit-page-page,
-    action get "^(?P<title>[^/]+)/remove$" =>
-      show-remove-page,
-    action (delete, post) "^(?P<title>[^/]+)/remove$" =>
-      do-remove-page,
-    action get "^(?P<title>[^/]+)/versions$" =>
-      $page-versions-page,
-    action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
-      show-page-responder,
-    action get "^(?P<title>[^/]+)/diff/(?P<version1>\\d+)(/(?P<version2>\\d+)?)?$" =>
-      $view-diff-page,
-    action get "^(?P<title>[^/]+)/connections$" =>
-      $connections-page,
-    action get "^(?P<title>[^/]+)/authors$" =>
-      show-page-authors,
-    action (get, post) "^(?P<title>[^/]+)/access" =>
-      $edit-access-page;
+    url wiki-url("/pages")
+      action (get, post) () =>
+        $list-pages-page,
+      action get "^(?P<title>[^/]+)/?$" =>
+        show-page-responder,
+      action get "^(?P<title>[^/]+)/edit$" =>
+        $edit-page-page,
+      action post "^(?P<title>[^/]+)(/(edit)?)?$" =>
+        $edit-page-page,
+      action get "^(?P<title>[^/]+)/remove$" =>
+        show-remove-page,
+      action (delete, post) "^(?P<title>[^/]+)/remove$" =>
+        do-remove-page,
+      action get "^(?P<title>[^/]+)/versions$" =>
+        $page-versions-page,
+      action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
+        show-page-responder,
+      action get "^(?P<title>[^/]+)/diff/(?P<version1>\\d+)(/(?P<version2>\\d+)?)?$" =>
+        $view-diff-page,
+      action get "^(?P<title>[^/]+)/connections$" =>
+        $connections-page,
+      action get "^(?P<title>[^/]+)/authors$" =>
+        show-page-authors,
+      action (get, post) "^(?P<title>[^/]+)/access" =>
+        $edit-access-page;
 
-  url wiki-url("/groups")
-    action (get, post) () =>
-      $list-groups-page,
-    action get "^(?P<name>[^/]+)/?$" =>
-      $view-group-page,
-    action (get, post) "^(?P<name>[^/]+)/edit$" =>
-      $edit-group-page,
-    action (get, post) "^(?P<name>[^/]+)/remove$" =>
-      $remove-group-page,
-    // members
-    action (get, post) "^(?P<name>[^/]+)/members$" =>
-      $edit-group-members-page;
+    url wiki-url("/groups")
+      action (get, post) () =>
+        $list-groups-page,
+      action get "^(?P<name>[^/]+)/?$" =>
+        $view-group-page,
+      action (get, post) "^(?P<name>[^/]+)/edit$" =>
+        $edit-group-page,
+      action (get, post) "^(?P<name>[^/]+)/remove$" =>
+        $remove-group-page,
+      // members
+      action (get, post) "^(?P<name>[^/]+)/members$" =>
+        $edit-group-members-page;
 
-/***** We'll use Google or Yahoo custom search, at least for a while
-  url wiki-url("/search")
-    action (get, post) () => $search-page;
-*/
-
-end url-map;
+    /***** We'll use Google or Yahoo custom search, at least for a while
+    url wiki-url("/search")
+      action (get, post) () => $search-page;
+    */
+           );
+end function add-wiki-responders;
 
 define function restore-from-text-files
     () => (num-page-revs)
@@ -344,8 +359,8 @@ define function main
   else
     let filename = locator-name(as(<file-locator>, application-name()));
     if (split(filename, ".")[0] = "wiki")
-      let server = make(<http-server>, url-map: $wiki-url-map);
-      koala-main(server: server, description: "Dylan wiki");
+      koala-main(description: "Dylan Wiki",
+                 before-startup: add-wiki-responders);
     end;
   end;
 end function main;

@@ -6,7 +6,7 @@
   <link rel="alternate"
         type="application/atom+xml"
         title="Dylan Wiki Group Atom Feed"
-        href="/feed/groups/<dsp:get name='group-name'/>" />
+        href="<wiki:base/>/feed/groups/<dsp:get name='group-name'/>" />
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
@@ -17,7 +17,7 @@
     </dsp:when>
     <div id="body">
       <h2>Group <dsp:get name="group-name"/>
-        <a href="/feed/groups/<dsp:get name='group-name'/>">
+        <a href="<wiki:base/>/feed/groups/<dsp:get name='group-name'/>">
           <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for this group"/>
         </a>
       </h2>

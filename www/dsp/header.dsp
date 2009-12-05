@@ -49,17 +49,17 @@ We'll use Google custom search, at least for a while
       <dsp:then>
         <wiki:with-authenticated-user>
           <span class="user-info">
-            <a id="authenticated-user-link" href="<wiki:show-user-permanent-link />"><wiki:show-user-username/></a>
+            <a id="authenticated-user-link" href="<wiki:show-user-permanent-link/>"><wiki:show-user-username/></a>
             &mdash;
-            <a href="<wf:show-logout-url redirect="true" current="true"/>">logout</a>
+            <a href="<wiki:base/>/logout?redirect=<wiki:current/>">logout</a>
           </span>
         </wiki:with-authenticated-user>
       </dsp:then>
       <dsp:else>
         <span class="not-logged-in">
-          <a href="/register">register</a>
+          <a href="<wiki:base/>/register">register</a>
           &mdash;
-          <a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
+          <a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
         </span>
       </dsp:else>
     </dsp:if>

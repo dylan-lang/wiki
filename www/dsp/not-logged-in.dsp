@@ -16,7 +16,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <p>You have to <a href="<wf:show-login-url redirect="yes" current="yes"/>">login</a> to go on.</p>
+      <p>You have to <a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a> to go on.</p>
     </div>
   </div>
   <%dsp:include url="footer.dsp"/>

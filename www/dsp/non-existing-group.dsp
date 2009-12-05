@@ -17,8 +17,8 @@
 
       <p class="hint">
         This group doesn't exist.
-	<a href="/register">Register</a> or
-	<a href="<wf:show-login-url redirect="true" current="true"/>">login</a>
+	<a href="<wiki:base/>/register">Register</a> or
+	<a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
 	to create it.
       </p>
     </div>

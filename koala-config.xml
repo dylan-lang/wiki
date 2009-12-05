@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
+
+<!-- The wiki settings are documented here.
+     See the default koala-config.xml for documentation on Koala settings.
+  -->
+
 <koala>
   <listener address="0.0.0.0" port="8000"/>
   <debug-server value="off" />
@@ -14,16 +19,32 @@
   <document-root location="trunk/libraries/network/wiki/www"/>
   <dsp-root location="trunk/libraries/network/wiki/www/dsp"/>
 
+  <!-- TODO: site-name and site-url should be in an <atom> or <feed> element. -->
+  <!--
+     content-directory
+         Where to store wiki content.
+     site-name
+         Sent as the title of Atom feeds.
+     site-url
+         Sent as the URI of Atom feeds.
+     url-prefix
+         Prefix for all wiki URLs.  Defaults to "/wiki".  May be "".
+     dsp-subdirectory
+         Directory under the <dsp-root> where the wiki should look for its .dsp files.
+     -->
   <wiki content-directory="."
         site-name="Dylan Wiki"
-        site-url="http://wiki.opendylan.org" >
-
+        site-url="http://my.domain"
+	url-prefix="/wiki"
+	dsp-subdirectory="wiki/"
+	>
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.
       -->
     <administrator username="administrator"
-                   email="hackers@lists.opendylan.org"/>
+		   password="..."
+                   email="you@yourdomain.org"/>
     <authentication realm="dylan-wiki"/>
-    <mail host="lists.opendylan.org"/>
+    <mail host="your.mail.host"/>
   </wiki>
 </koala>
