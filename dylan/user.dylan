@@ -85,6 +85,9 @@ define method account-activation-url
     (user :: <wiki-user>)
  => (url :: <string>)
   let default = current-request().request-absolute-url;
+  let prefix = iff(*wiki-url-prefix*.size = 0,
+                   #(),
+                   split(*wiki-url-prefix*, "/", remove-if-empty: #t));
   as(<string>,
      make(<url>,
           scheme: "http",
@@ -92,10 +95,11 @@ define method account-activation-url
           port: default.uri-port,
           // I totally don't get why the uri library uses an empty string
           // at the beginning of the path...
-          path: list("", "users", user.user-name, "activate",
-                     user.user-activation-key)))
+          path: concatenate(list(""),
+                            prefix,
+                            list("users", user.user-name, "activate",
+                                 user.user-activation-key))))
 end method account-activation-url;
-
 
 // This is pretty restrictive for now.  Easier to loosen the rules later
 // than to tighten them up.  The name has been pre-trimmed and %-decoded.

@@ -21,6 +21,7 @@
       <li><a href="/cgi-bin/viewcvs.cgi">Repository</a></li>
       <li><a href="http://www.opendylan.org/bugs/">Bug Tracker</a></li>
       <li><a href="<wiki:base/>/pages/Development%20Tools">Development Tools</a></li>
+      <li><a href="/cvszilla/query.cgi">Search SVN Repository</a></li>
     </ul>
   </li>
   <li>Website
