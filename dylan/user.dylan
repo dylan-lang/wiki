@@ -192,7 +192,7 @@ define method respond-to-get
                             "admin?" => user.administrator?)
                     end,
                     choose(user-activated?,
-                           table-values(storage(<wiki-user>)))));
+                           value-sequence(storage(<wiki-user>)))));
   let active-user = authenticated-user();
   set-attribute(pc, "active-user", active-user & active-user.user-name);
   next-method();

@@ -89,7 +89,7 @@ define method user-groups
   choose(method (group)
            member?(user, group.group-members)
          end,
-         table-values(storage(<wiki-group>)))
+         value-sequence(storage(<wiki-group>)))
 end;
 
 define method groups-owned-by-user
@@ -98,7 +98,7 @@ define method groups-owned-by-user
   choose(method (group)
            group.group-owner = user
          end,
-         table-values(storage(<wiki-group>)))
+         value-sequence(storage(<wiki-group>)))
 end;
 
 define method rename-group
@@ -201,7 +201,7 @@ define method respond-to-get
                 "description" => quote-html(group.group-description))
         end;
   set-attribute(page-context(), "all-groups",
-                map(group-info, table-values(storage(<wiki-group>))));
+                map(group-info, value-sequence(storage(<wiki-group>))));
   next-method();
 end method respond-to-get;
 

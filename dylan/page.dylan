@@ -764,7 +764,7 @@ define method find-pages
     (#key tags :: <sequence> = #[],  // strings
           order-by :: <function> = more-recently-published?)
  => (pages :: <sequence>)
-   let pages = table-values(storage(<wiki-page>));
+   let pages = value-sequence(storage(<wiki-page>));
    if (~empty?(tags))
      pages := choose(method (page)
                        every?(rcurry(member?, page.page-versions.last.categories,

@@ -40,7 +40,7 @@ end;
 
 define method parse-markup
     (out :: <stream>, markup :: <string>, start :: <integer>, parser-table :: <table>)
-  let leading-chars = table-keys(parser-table);
+  let leading-chars = key-sequence(parser-table);
   iterate loop (start :: <integer> = start)
     // find first occurrance of a "markup leading character"...
     if (start < markup.size)
