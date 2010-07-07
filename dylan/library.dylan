@@ -8,12 +8,12 @@ define library wiki
   use command-line-parser;
   use common-dylan,
     import: { common-extensions };
+  use dsp;
   use dylan;
   use graphviz-renderer;
   use http-common;
   use io;
-  use koala,
-    import: { dsp };
+  use koala;
   use network;
   use smtp-client;
   use strings;
@@ -60,6 +60,7 @@ define module wiki-internal
   use format-out;
   use http-common,
     exclude: { remove-attribute };
+  use koala;
   use locators,
     exclude: { <http-server>, <url> };
   use permission;
