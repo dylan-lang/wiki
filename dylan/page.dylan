@@ -58,7 +58,7 @@ end;
 define method page-permanent-link
     (title :: <string>)
  => (url :: <url>)
-  let location = wiki-url("/pages/%s", title);
+  let location = wiki-url("/page/view/%s", title);
   transform-uris(request-url(current-request()), location, as: <url>)
 end;
 
@@ -174,9 +174,7 @@ define method generate-connections-graph (page :: <wiki-page>) => ();
   let temporary-graph = gvr/generate-graph(graph, node, format: "svg");
   let graph-file = as(<file-locator>, temporary-graph);
   if (file-exists?(graph-file))
-    let destination = merge-locators(as(<file-locator>, 
-					concatenate("graphs/", page.title, ".svg")),
-  				     document-root(virtual-host(current-request())));
+    let destination = as(<file-locator>, concatenate("graphs/", page.title, ".svg"));
     rename-file(graph-file, destination, if-exists: #"replace");
   end if;
 end;
@@ -293,32 +291,11 @@ define method latest-authors
 end;
 
 
-// pages
-
-define constant $view-page-page
-  = make(<wiki-dsp>, source: "view-page.dsp");
-
-define constant $remove-page-page
-  = make(<wiki-dsp>, source: "remove-page.dsp");
-
-define constant $page-authors-page
-  = make(<wiki-dsp>, source: "page-authors.dsp");
-
-define constant $search-page
-  = make(<wiki-dsp>, source: "search-page.dsp");
-
-define constant $non-existing-page-page
-  = make(<wiki-dsp>, source: "non-existing-page.dsp");
-
-
 
 //// List Page Versions
 
 define class <page-versions-page> (<wiki-dsp>)
 end;
-
-define constant $page-versions-page
-  = make(<page-versions-page>, source: "list-page-versions.dsp");
 
 define method respond-to-get
     (page :: <page-versions-page>, #key title :: <string>)
@@ -333,7 +310,7 @@ define method respond-to-get
                   end);
     next-method()
   else
-    respond-to-get($non-existing-page-page, title: title);
+    respond-to-get(*non-existing-page-page*, title: title);
   end;
 end;
 
@@ -362,9 +339,6 @@ end tag list-page-versions;
 define class <connections-page> (<wiki-dsp>)
 end;
 
-define constant $connections-page
-  = make(<connections-page>, source: "page-connections.dsp");
-
 define method respond-to-get
     (page :: <connections-page>, #key title :: <string>)
   let title = percent-decode(title);
@@ -372,7 +346,7 @@ define method respond-to-get
     if (*page*)
       next-method();
     else
-      respond-to-get($non-existing-page-page, title: title);
+      respond-to-get(*non-existing-page-page*, title: title);
     end;
   end;
 end method respond-to-get;
@@ -394,9 +368,6 @@ end;
 
 
 define class <list-pages-page> (<wiki-dsp>) end;
-
-define constant $list-pages-page
-  = make(<list-pages-page>, source: "list-pages.dsp");
 
 define method respond-to-get
     (dsp :: <list-pages-page>, #key)
@@ -463,9 +434,9 @@ define method show-page-responder
                 *version* = version,
                 *page-title* = title)
     respond-to-get(case
-                     *page* => $view-page-page;
-                     authenticated-user() => $edit-page-page;
-                     otherwise => $non-existing-page-page;
+                     *page* => *view-page-page*;
+                     authenticated-user() => *edit-page-page*;
+                     otherwise => *non-existing-page-page*;
                    end,
                    title: title);
   end;
@@ -473,9 +444,6 @@ end method show-page-responder;
 
 define class <edit-page-page> (<wiki-dsp>)
 end;
-
-define constant $edit-page-page
-  = make(<edit-page-page>, source: "edit-page.dsp");
 
 define method respond-to-get
     (page :: <edit-page-page>, #key title :: <string>, previewing?)
@@ -498,7 +466,7 @@ define method respond-to-get
     // This shouldn't happen unless the user typed in the /edit url,
     // since the edit option shouldn't be available unless logged in.
     add-page-error("You must be logged in to edit wiki pages.");
-    respond-to-get($view-page-page, title: title)
+    respond-to-get(*view-page-page*, title: title);
   end;
 end method respond-to-get;
 
@@ -538,7 +506,7 @@ define method respond-to-post
     let previewing? = (button = "Preview");
     if (previewing? | page-has-errors?())
       // Redisplay the page with errors highlighted.
-      respond-to-get($edit-page-page, title: title, previewing?: #t);
+      respond-to-get(*edit-page-page*, title: title, previewing?: #t);
     else
       save-page(title, content | "", comment: comment, tags: tags);
       redirect-to(find-page(title));
@@ -547,9 +515,6 @@ define method respond-to-post
 end method respond-to-post;
 
 define class <view-diff-page> (<wiki-dsp>) end;
-
-define constant $view-diff-page
-  = make(<view-diff-page>, source: "view-diff.dsp");
 
 // /Title/diff/n  diffs versions n - 1 and n.
 // /Title/diff/n/m diffs versions n and m.
@@ -640,7 +605,7 @@ end tag show-diff-entry;
 
 
 define method redirect-to-page-or
-    (page :: <page>, #key title :: <string>)
+    (page :: <wiki-dsp>, #key title :: <string>)
   let title = percent-decode(title);
   dynamic-bind (*page* = find-page(title))
     if (*page*)
@@ -652,10 +617,10 @@ define method redirect-to-page-or
 end method redirect-to-page-or;
 
 define constant show-page-authors =
-  curry(redirect-to-page-or, $page-authors-page);
+  curry(redirect-to-page-or, *page-authors-page*);
 
 define constant show-remove-page =
-  curry(redirect-to-page-or, $remove-page-page);
+  curry(redirect-to-page-or, *remove-page-page*);
 
 
 // tags
@@ -668,37 +633,30 @@ define tag show-page-permanent-link in wiki
   end;
 end;
 
-// rename to main-page-permalink or something
-define tag show-page-page-permanent-link in wiki 
-    (page :: <wiki-dsp>)
-    ()
-  if (*page* & discussion-page?(*page*)) 
-    let link = permanent-link(*page*);
-    last(link.uri-path) := regex-replace(last(link.uri-path), "^Discussion: ", "");
-    output("%s", link);
+// Show the title of the main page corresponding to a discussion page.
+define tag show-main-page-title in wiki
+    (page :: <wiki-dsp>) ()
+  if (*page*)
+    let main-title = regex-replace(*page*.title, "^Discussion: ", "");
+    output("%s", escape-xml(main-title));
   end;
-end tag show-page-page-permanent-link;
+end tag show-main-page-title;
 
-define tag show-page-discussion-permanent-link in wiki
-    (page :: <wiki-dsp>)
-    ()
-  if (*page*) 
-    let link = permanent-link(*page*);
-    last(link.uri-path) := concatenate("Discussion: ", last(link.uri-path));
-    output("%s", link);
+// Show the title of the discussion page corresponding to a main page.
+define tag show-discussion-page-title in wiki
+    (page :: <wiki-dsp>) ()
+  if (*page*)
+    let discuss-title = concatenate("Discussion: ", *page*.title);
+    output("%s", escape-xml(discuss-title));
   end;
-end tag show-page-discussion-permanent-link;
+end tag show-discussion-page-title;
 
 define tag show-page-title in wiki
     (page :: <wiki-dsp>)
     ()
-  output("%s", escape-xml(if (*page*)
-                            *page*.title
-                          elseif (*page-title*)
-                            *page-title*
-                          else
-                            ""
-                          end if));
+  if (*page*)
+    output("%s", escape-xml(*page-title* | *page*.title));
+  end;
 end;
 
 define tag show-page-owner in wiki
@@ -837,9 +795,6 @@ end;
 
 define class <search-page> (<wiki-dsp>)
 end;
-
-define constant $search-page
-  = make(<search-page>, source: "search-results.dsp");
 
 // Called when the search form is submitted.
 //

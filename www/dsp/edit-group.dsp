@@ -34,7 +34,7 @@
               This group doesn't exist. Enter a comment and click Create to create it.
             </p>
           </dsp:unless>
-          <form action="" method="post">
+          <form action="<wiki:base/>/group/edit" method="post">
             <fieldset>
               <ol>
                 <li id="name-item">

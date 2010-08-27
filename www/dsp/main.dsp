@@ -33,19 +33,19 @@
         and goals</a> of the Dylan language are available in
         the <a href="/books/drm/Title">Dylan Reference Manual</a>.
         To get a quick feel of the language have a look at
-        some <a href="<wiki:base/>/pages/Fragments">code examples</a>.
+        some <a href="<wiki:base/>/page/view/Fragments">code examples</a>.
       </p>
       <p>
         We currently maintain
-        two <a href="<wiki:base/>/pages/Implementations">implementations</a> of
+        two <a href="<wiki:base/>/page/view/Implementations">implementations</a> of
         Dylan and we're working on a number
-        of <a href="<wiki:base/>/pages/Projects">projects</a>.
+        of <a href="<wiki:base/>/page/view/Projects">projects</a>.
       </p>
-      <p>Please feel free to <a href="<wiki:base/>/pages/Community">join us</a>!</p> 
+      <p>Please feel free to <a href="<wiki:base/>/page/view/Community">join us</a>!</p> 
 
       <h2>News <a href="<wiki:base/>/feed/tags/news"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for news"/></a></h2>
       <wiki:list-pages tags="news">
-        <h3 class="news summary"><a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h3>
+        <h3 class="news summary"><a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h3>
         <small class="date"><wiki:show-page-published formatted="%d. %B %Y %H:%M"/></small>
         <wiki:show-page-content format="markup"/>
       </wiki:list-pages>

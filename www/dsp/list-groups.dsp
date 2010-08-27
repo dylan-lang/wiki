@@ -20,7 +20,7 @@
       <dsp:show-page-notes/>
 
       <dsp:when test="logged-in?">
-        <form action="/groups" method="post">
+        <form action="<wiki:base/>/group/list" method="post">
           <ul class="striped big">
             <li class="group">
               <input type="text" name="group"
@@ -40,7 +40,7 @@
       </dsp:unless>
       <dsp:loop over="all-groups" context="page" var="group" header="<ul>" footer="</ul>" empty="<p>There are no groups.</p>">
         <li class="group">
-          <a href="<wiki:base/>/groups/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
+          <a href="<wiki:base/>/group/view/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
           <div class="group-description"><dsp:get name="group[description]"/></div>
         </li>
       </dsp:loop>

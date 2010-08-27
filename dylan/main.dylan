@@ -37,9 +37,11 @@ define sideways method process-config-element
   *wiki-url-prefix* := get-attr(node, #"url-prefix") | *wiki-url-prefix*;
   log-info("Wiki URL prefix: %s", *wiki-url-prefix*);
 
-  *wiki-dsp-subdirectory*
-    := get-attr(node, #"dsp-subdirectory") | *wiki-dsp-subdirectory*;
-  log-info("Wiki DSP subdirectory: %s", *wiki-dsp-subdirectory*);
+  *static-directory*
+    := as(<directory-locator>,
+          get-attr(node, #"static-directory") | *static-directory*);
+  *template-directory* := subdirectory-locator(*static-directory*, "dsp");
+  log-info("Wiki static directory: %s", *static-directory*);
 
   let admin-element = child-node-named(#"administrator");
   if (~admin-element)
@@ -124,114 +126,6 @@ define method process-mail-configuration
     *mail-port* := string-to-integer(port);
   end;
 end method process-mail-configuration;
-
-
-// There is method to this madness....  In general a GET generates a "view"
-// or "confirm" page and a POST actually performs the operation, such as modify,
-// create, edit, or delete.  The same basic scheme is used for each type of
-// object: pages, users, and groups.  Here's the example for groups:
-//   GET  /groups                => list groups
-//   GET  /groups/<name>         => view group
-//   POST /groups/<name>         => 404
-//   GET  /groups/<name>/edit    => display "edit group" form
-//   POST /groups/<name>/edit    => save group from form fields
-//   GET  /groups/<name>/remove  => display "remove group" form
-//   POST /groups/<name>/remove  => remove group
-//   ...
-// In most cases a single URL points to an instance of <wiki-dsp> for both
-// GET and POST, and the methods for respond-to-get and respond-to-post
-// handle the logic for the given HTTP request method.
-
-// This is done in a function rather than with "define url-map" so that
-// evaluation is delayed and URLs aren't added until after the server has
-// been configured.
-define function add-wiki-responders
-    (http-server :: <http-server>)
-  add-urls(http-server,
-    url wiki-url("/")
-      action get () => $main-page;
-
-    url wiki-url("/login")
-      action (get, post) () => curry(login, realm: *wiki-realm*);
-
-    url wiki-url("/logout")
-      action (get, post) () => logout;
-
-    url wiki-url("/recent-changes")
-      action get () =>
-        $recent-changes-page;
-
-    //  /feed[/type[/name]]
-    url wiki-url("/feed")
-      action get "^((?P<type>[^/]+)(/(?P<name>[^/]+))?)?" =>
-        atom-feed-responder;
-
-    url wiki-url("/users")
-      action (get, post) () =>
-        $list-users-page,
-      action get "^(?P<name>[^/]+)/?$" =>
-        $view-user-page,
-      action (get, post) "^(?P<name>[^/]+)/edit$" =>
-        $edit-user-page,
-      action get "^(?P<name>[^/]+)/remove$" =>
-        show-remove-user,
-      action post "^(?P<name>[^/]+)/remove$" =>
-        do-remove-user,
-      action get "^(?P<name>[^/]+)/activate/(?P<key>.+)$" =>
-        respond-to-user-activation-request;
-
-    url wiki-url("/register")
-      action (get, post) () => $registration-page;
-
-    // Provide backward compatibility with old wiki URLs.
-    url "/wiki/view.dsp"
-      action get () => show-page-back-compatible;
-
-    url wiki-url("/pages")
-      action (get, post) () =>
-        $list-pages-page,
-      action get "^(?P<title>[^/]+)/?$" =>
-        show-page-responder,
-      action get "^(?P<title>[^/]+)/edit$" =>
-        $edit-page-page,
-      action post "^(?P<title>[^/]+)(/(edit)?)?$" =>
-        $edit-page-page,
-      action get "^(?P<title>[^/]+)/remove$" =>
-        show-remove-page,
-      action (delete, post) "^(?P<title>[^/]+)/remove$" =>
-        do-remove-page,
-      action get "^(?P<title>[^/]+)/versions$" =>
-        $page-versions-page,
-      action get "^(?P<title>[^/]+)/versions/(?P<version>\\d+)$" =>
-        show-page-responder,
-      action get "^(?P<title>[^/]+)/diff/(?P<version1>\\d+)(/(?P<version2>\\d+)?)?$" =>
-        $view-diff-page,
-      action get "^(?P<title>[^/]+)/connections$" =>
-        $connections-page,
-      action get "^(?P<title>[^/]+)/authors$" =>
-        show-page-authors,
-      action (get, post) "^(?P<title>[^/]+)/access" =>
-        $edit-access-page;
-
-    url wiki-url("/groups")
-      action (get, post) () =>
-        $list-groups-page,
-      action get "^(?P<name>[^/]+)/?$" =>
-        $view-group-page,
-      action (get, post) "^(?P<name>[^/]+)/edit$" =>
-        $edit-group-page,
-      action (get, post) "^(?P<name>[^/]+)/remove$" =>
-        $remove-group-page,
-      // members
-      action (get, post) "^(?P<name>[^/]+)/members$" =>
-        $edit-group-members-page;
-
-    /***** We'll use Google or Yahoo custom search, at least for a while
-    url wiki-url("/search")
-      action (get, post) () => $search-page;
-    */
-           );
-end function add-wiki-responders;
 
 define function restore-from-text-files
     () => (num-page-revs)
@@ -331,6 +225,166 @@ define function restore-from-text-files
   page-data.size
 end function restore-from-text-files;
 
+
+// There is method to this madness....  In general a GET generates a "view"
+// or "confirm" page and a POST actually performs the operation, such as
+// create, edit, or delete.  The same basic scheme is used for each type of
+// object: pages, users, and groups.  Here's the example for groups:
+//   GET  /group/list           => list groups (has <form> to create group)
+//   POST /group/list           => create new group
+//   GET  /group/view/<name>    => view group
+//   GET  /group/edit/<name>    => display "edit group" form
+//   POST /group/edit/<name>    => save group from form fields
+//   GET  /group/remove/<name>  => display "remove group" form
+//   POST /group/remove/<name>  => remove group
+//   ...
+// In most cases a single URL points to an instance of <wiki-dsp> for both
+// GET and POST, and the methods for respond-to-get and respond-to-post
+// handle the logic for the given HTTP request method.
+
+define function add-wiki-responders
+    (http-server :: <http-server>)
+  initialize-pages();
+  local method add (url, resource, #rest args)
+          apply(add-resource,
+                http-server, concatenate(*wiki-url-prefix*, url), resource,
+                trailing-slash: #t,
+                args);
+        end;
+  // static files
+  // TODO: these should also be under *wiki-url-prefix*, but for now the
+  //       templates assume they're directly under /.
+  add-resource(http-server, "/", make(<directory-resource>,
+                                      directory: *static-directory*));
+
+  add("", make(<wiki-dsp>, source: "main.dsp"),
+      url-name: "wiki.home");
+  add("/login", function-resource(curry(login, realm: *wiki-realm*)),
+      url-name: "wiki.login");
+  add("/logout", function-resource(logout),
+      url-name: "wiki.logout");
+  add("/recent-changes",
+      make(<recent-changes-page>, source: "list-recent-changes.dsp"),
+      url-name: "wiki.recent-changes");
+  add("/feed/{type}/{name}", function-resource(atom-feed-responder),
+      url-name: "wiki.atom-feed");
+
+  add("/user/list", *list-users-page*,
+      url-name: "wiki.user.list");
+  add("/user/view/{name}", *view-user-page*,
+      url-name: "wiki.user.view");
+  add("/user/edit/{name}", *edit-user-page*,
+      url-name: "wiki.user.edit");
+  add("/user/remove/{name}", *remove-user-page*,
+      url-name: "wiki.user.remove");
+  add("/user/activate/{name}/{key}",
+      function-resource(respond-to-user-activation-request),
+      url-name: "wiki.user.activate");
+
+  add("/register", *registration-page*,
+      url-name: "wiki.register");
+
+  // Provide backward compatibility with old wiki URLs.
+  // Note no url-name argument since we don't want this URL generated.
+  add("/wiki/view.dsp", function-resource(show-page-back-compatible));
+
+  add("/page/list",
+      make(<list-pages-page>, source: "list-pages.dsp"),
+      url-name: "wiki.page.list");
+  add("/page/view/{title}/{version}",
+      function-resource(show-page-responder),
+      url-name: "wiki.page.view");
+  add("/page/edit/{title}/{version}",
+      make(<edit-page-page>, source: "edit-page.dsp"),
+      url-name: "wiki.page.edit");
+  // was show-remove-page and do-remove-page
+  add("/page/remove/{title}/{version}", *remove-page-page*,
+      url-name: "wiki.page.remove");
+  add("/page/versions/{title}", *page-versions-page*,
+      url-name: "wiki.page.versions");
+  add("/page/diff/{title}/{version1}/{version2}", *view-diff-page*,
+      url-name: "wiki.page.diff");
+  add("/page/connections/{title}", *connections-page*,
+      url-name: "wiki.page.connections");
+  add("/page/authors/{title}", function-resource(show-page-authors),
+      url-name: "wiki.page.authors");
+  add("/page/access/{title}", *edit-access-page*,
+      url-name: "wiki.page.access");
+
+  add("/group/list", *list-groups-page*,
+      url-name: "wiki.group.list");
+  add("/group/view/{name}", *view-group-page*,
+      url-name: "wiki.group.view");
+  add("/group/edit/{name}", *edit-group-page*,
+      url-name: "wiki.group.edit");
+  add("/group/remove/{name}", *remove-group-page*,
+      url-name: "wiki.group.remove");
+  add("/group/members/{name}", *edit-group-members-page*,
+      url-name: "wiki.group.members");
+
+    /***** We'll use Google or Yahoo custom search, at least for a while
+    url wiki-url("/search")
+      action (get, post) () => $search-page;
+    */
+
+end function add-wiki-responders;
+
+// --static-directory <dir>
+add-option-parser-by-type(*argument-list-parser*,
+                          <parameter-option-parser>,
+                          description: "Directory containing wiki static files",
+                          long-options: #("static-directory"));
+
+define function initialize-wiki
+    (server :: <http-server>)
+  let directory = option-value-by-long-name(*argument-list-parser*,
+                                            "static-directory");
+  if (directory)
+    *static-directory* := as(<directory-locator>, directory);
+    *template-directory* := subdirectory-locator(*static-directory*, "dsp");
+  end;
+  add-wiki-responders(server);
+end function initialize-wiki;
+
+// This is pretty horrifying, but the plan is to eventually make it all
+// disappear behind a somewhat less horrifying macro like "define site".
+//
+define function initialize-pages
+    ()
+  // page pages
+  *view-diff-page* := make(<view-diff-page>, source: "view-diff.dsp");
+  *edit-page-page* := make(<edit-page-page>, source: "edit-page.dsp");
+  *view-page-page* := make(<wiki-dsp>, source: "view-page.dsp");
+  *remove-page-page* := make(<wiki-dsp>, source: "remove-page.dsp");
+  *page-versions-page* := make(<page-versions-page>, source: "list-page-versions.dsp");
+  *connections-page* := make(<connections-page>, source: "page-connections.dsp");
+  *search-page* := make(<wiki-dsp>, source: "search-page.dsp");
+  *page-authors-page* := make(<wiki-dsp>, source: "page-authors.dsp");
+  *non-existing-page-page* := make(<wiki-dsp>, source: "non-existing-page.dsp");
+
+  // user pages
+  *list-users-page* := make(<list-users-page>, source: "list-users.dsp");
+  *view-user-page* := make(<view-user-page>, source: "view-user.dsp");
+  *edit-user-page* := make(<edit-user-page>, source: "edit-user.dsp");
+  *remove-user-page* := make(<wiki-dsp>, source: "remove-user.dsp");
+  *non-existing-user-page* := make(<wiki-dsp>, source: "non-existing-user.dsp");
+  *not-logged-in-page* := make(<wiki-dsp>, source: "not-logged-in.dsp");
+
+  // group pages
+  *list-groups-page* := make(<list-groups-page>, source: "list-groups.dsp");
+  *non-existing-group-page* := make(<wiki-dsp>, source: "non-existing-group.dsp");
+  *view-group-page* := make(<group-page>, source: "view-group.dsp");
+  *edit-group-page* := make(<edit-group-page>, source: "edit-group.dsp");
+  *remove-group-page* := make(<remove-group-page>, source: "remove-group.dsp");
+  *edit-group-members-page* := make(<edit-group-members-page>,
+                                    source: "edit-group-members.dsp");
+
+  // other pages
+  *registration-page* := make(<registration-page>, source: "register.dsp");
+  *edit-access-page* := make(<acls-page>, source: "edit-page-access.dsp");
+
+end function initialize-pages;
+
 /*
 The conversion procedure probably is like this:
 
@@ -360,7 +414,7 @@ define function main
     let filename = locator-name(as(<file-locator>, application-name()));
     if (split(filename, ".")[0] = "wiki")
       koala-main(description: "Dylan Wiki",
-                 before-startup: add-wiki-responders);
+                 before-startup: initialize-wiki);
     end;
   end;
 end function main;
@@ -368,4 +422,5 @@ end function main;
 begin
   main();
 end;
+
 

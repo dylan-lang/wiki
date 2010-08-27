@@ -17,7 +17,7 @@
       <wiki:search-results/>
 
     </div>
-  </div>		
+  </div>
   <%dsp:include url="footer.dsp"/>
 </body>
 </html>

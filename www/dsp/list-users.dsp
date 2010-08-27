@@ -18,7 +18,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <form action="/users" method="post">
+      <form action="<wiki:base/>/user/list" method="post">
         <ul class="striped big">
           <li class="user">
             <input type="text" name="user-name"
@@ -30,7 +30,7 @@
           </li>
           <dsp:loop over="active-users" context="page" var="user">
             <li class="user">
-              <a href="<wiki:base/>/users/<dsp:get name='user[name]'/>"><dsp:get name="user[name]"/></a>
+              <a href="<wiki:base/>/user/view/<dsp:get name='user[name]'/>"><dsp:get name="user[name]"/></a>
               <dsp:when test="true?" name="user[admin?]">*</dsp:when>
               <dsp:if-equal name1="user[name]" name2="active-user">(you)</dsp:if-equal>
             </li>

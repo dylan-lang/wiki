@@ -12,14 +12,14 @@
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <dsp:show-page-notes/>
-      <h2>Access Control for <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+      <h2>Access Control for <a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
       <dsp:if test="can-view-content?">
         <dsp:then>
-          <form action="" method="post">
+          <form action="<wiki:base/>/page/access/<wiki:show-page-title/>" method="post">
 
             <p>
             Enter user names, group names, or one of the three

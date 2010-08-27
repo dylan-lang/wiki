@@ -7,7 +7,7 @@
       <dsp:when test="exists?" name="active-user">
         <dsp:loop over="group-members" context="page" var="user-name" header="<ul>" footer="</ul>">
           <li>
-            <a href="<wiki:base/>/users/<dsp:get name='user-name' context='page'/>">
+            <a href="<wiki:base/>/user/view/<dsp:get name='user-name' context='page'/>">
             <dsp:get name="user-name" context="page"/></a>
             <dsp:if-equal name1="user-name" name2="active-user">(you)</dsp:if-equal>
             <dsp:if-equal name1="user-name" name2="group-owner">(group owner)</dsp:if-equal>

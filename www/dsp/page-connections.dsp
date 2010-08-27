@@ -10,7 +10,7 @@
     <%dsp:include url="navigation.dsp"/>
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
-      <h2>Connections to <a href="<wiki:show-page-permanent-link/>"><wiki:show-page-title/></a></h2>
+      <h2>Connections to <a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

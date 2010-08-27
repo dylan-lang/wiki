@@ -17,7 +17,7 @@ We'll use Google custom search, at least for a while
 
   <script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&lang=en"></script>
 
-  <form id="search-form" action="/search" method="get">
+  <form id="search-form" action="<wiki:base/>/search" method="get">
     <fieldset>
       <ol>
         <li>

@@ -13,7 +13,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <form method="post">
+      <form action="<wiki:base/>/register" method="post">
         <fieldset id="general" class="splitted">
           <ol>
             <li id="username">

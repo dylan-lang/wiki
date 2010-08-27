@@ -38,7 +38,7 @@ end;
 define method user-permanent-link
     (username :: <string>)
  => (uri :: <uri>)
-  let location = wiki-url("/users/%s", username);
+  let location = wiki-url("/user/view/%s", username);
   transform-uris(request-url(current-request()), location, as: <url>);
 end;
 
@@ -166,21 +166,10 @@ define method remove-user
 end;
 
 
-// pages
-
-define constant $remove-user-page
-  = make(<wiki-dsp>, source: "remove-user.dsp");
-
-define constant $non-existing-user-page
-  = make(<wiki-dsp>, source: "non-existing-user.dsp");
-
 //// List Users
 
 define class <list-users-page> (<wiki-dsp>)
 end;
-
-define constant $list-users-page
-  = make(<list-users-page>, source: "list-users.dsp");
 
 define method respond-to-get
     (page :: <list-users-page>, #key)
@@ -203,7 +192,7 @@ define method respond-to-post
   let user-name = percent-decode(get-query-value("user-name"));
   let user = find-user(user-name);
   if (user)
-    respond-to-get($view-user-page, name: user-name);
+    respond-to-get(*view-user-page*, name: user-name);
   else
     add-field-error("user-name", "User %s not found.", user-name);
     next-method();
@@ -214,9 +203,6 @@ end method respond-to-post;
 
 define class <view-user-page> (<wiki-dsp>)
 end;
-
-define constant $view-user-page
-  = make(<view-user-page>, source: "view-user.dsp");
 
 define method respond-to-get
     (page :: <view-user-page>, #key name :: <string>)
@@ -241,7 +227,7 @@ define method respond-to-get
     next-method();
   else
     // should only get here via a manually typed-in URL
-    respond-to-get($non-existing-user-page, name: name);
+    respond-to-get(*non-existing-user-page*, name: name);
   end;
 end method respond-to-get;
 
@@ -253,15 +239,12 @@ end method respond-to-get;
 define class <registration-page> (<wiki-dsp>)
 end;
 
-define constant $registration-page
-  = make(<registration-page>, source: "register.dsp");
-
 define method respond-to-get
     (page :: <registration-page>, #key)
   let active-user = authenticated-user();
   if (active-user)
     add-page-note("You are already logged in.  Log out to register a new account.");
-    respond-to-get($view-user-page, name: active-user.user-name);
+    respond-to-get(*view-user-page*, name: active-user.user-name);
   else
     next-method();
   end;
@@ -272,7 +255,7 @@ define method respond-to-post
   let active-user = authenticated-user();
   if (active-user)
     add-page-note("You are already logged in.  Log out to register a new account.");
-    respond-to-get($view-user-page, name: active-user.user-name);
+    respond-to-get(*view-user-page*, name: active-user.user-name);
   else
     let new-name = validate-form-field("user-name", validate-user-name);
     if (find-user(new-name))
@@ -310,7 +293,7 @@ define method respond-to-post
                     "email sent to %s to activate the account.",
                     new-name, email);
       dump-data();
-      respond-to-get($view-user-page, name: user.user-name);
+      respond-to-get(*view-user-page*, name: user.user-name);
     end if;
   end if;    
 end method respond-to-post;
@@ -341,7 +324,7 @@ define function respond-to-user-activation-request
   else
     add-page-error("User %s not found.", name);
   end;
-  respond-to-get($view-user-page, name: name);
+  respond-to-get(*view-user-page*, name: name);
 end function respond-to-user-activation-request;
 
 //// Edit User
@@ -351,11 +334,8 @@ end function respond-to-user-activation-request;
 define class <edit-user-page> (<wiki-dsp>)
 end;
 
-define constant $edit-user-page
-  = make(<edit-user-page>, source: "edit-user.dsp");
-
 define method respond-to-get
-    (page :: <edit-user-page>, #key name)
+    (page :: <edit-user-page>, #key name :: <string>)
   let name = percent-decode(name);
   let user = find-user(name);
   let active-user = authenticated-user();
@@ -364,14 +344,14 @@ define method respond-to-get
   set-attribute(pc, "button-text", iff(user, "Save", "Create"));
   set-attribute(pc, "active-user-is-admin?",
                 active-user & administrator?(active-user));
-  if (active-user = user | administrator?(active-user))
+  if (user & (active-user = user | (active-user & administrator?(active-user))))
     set-attribute(pc, "password", user.user-password);
     set-attribute(pc, "email", user.user-email);
     set-attribute(pc, "admin?", user.administrator?);
     next-method();
   else
     add-page-error("You don't have permission to change this user.");
-    respond-to-get($view-user-page, name: name);
+    respond-to-get(*view-user-page*, name: name);
   end;
 end method respond-to-get;
 
@@ -382,7 +362,7 @@ define method respond-to-post
   let active-user = authenticated-user();
   if (user & (~active-user | ~(active-user = user | active-user.administrator?)))
     add-page-error("You don't have permission to change this user.");
-    respond-to-get($view-user-page, name: name);
+    respond-to-get(*view-user-page*, name: name);
   else
     let new-name = validate-form-field("user-name", validate-user-name);
     if (name ~= new-name & find-user(new-name))
@@ -441,9 +421,10 @@ define method do-remove-user (#key username)
   redirect-to(user);
 end;
 
-define method redirect-to-user-or (page :: <page>, #key username)
+define method redirect-to-user-or
+    (page :: <wiki-dsp>, #key username)
   if (*user*)
-    respond-to(#"get", page);
+    respond-to-get(page);
   else
     redirect-to(user-permanent-link(percent-decode(username)));
   end if;
@@ -451,7 +432,7 @@ end;
 
 define method show-remove-user (#key username :: <string>)
   dynamic-bind(*user* = find-user(percent-decode(username)))
-    redirect-to-user-or($remove-user-page);
+    redirect-to-user-or(*remove-user-page*);
   end;
 end;
 

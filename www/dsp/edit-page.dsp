@@ -34,7 +34,7 @@
         </p>
       </dsp:unless>
       <dsp:when test="can-modify-content?">
-        <form action="" method="post">
+        <form action="<wiki:base/>/page/edit/<dsp:get name='title' context='request,page'/>" method="post">
           <fieldset>
             <ol>
               <li id="title-item">

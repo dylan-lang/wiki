@@ -50,7 +50,7 @@ define method atom-feed-responder
   feed.identifier := url;
   feed.links["self"] := make(<link>, rel: "self", href: url);
 
-  add-header(current-response(), "Content-Type", "application/atom+xml");
+  set-header(current-response(), "Content-Type", "application/atom+xml");
   output("%s", generate-atom(feed, entries: changes));
 end method atom-feed-responder;
 

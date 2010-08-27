@@ -19,7 +19,7 @@
           This user doesn't exist. You can create it below.
         </p>
       </dsp:unless>
-      <form method="post">
+      <form action="<wiki:base/>/user/edit" method="post">
         <fieldset id="general" class="splitted">
           <ol>
             <li id="username">

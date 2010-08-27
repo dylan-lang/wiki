@@ -21,7 +21,7 @@
           </wiki:list-query-tags>
         </ul>
       </dsp:when>
-      <form action="/pages" method="post">
+      <form action="<wiki:base/>/page/list" method="post">
         <ul class="striped big">
           <li class="page">
             <input type="text" name="query"
@@ -33,7 +33,7 @@
           <dsp:loop over="wiki-pages" context="page" var="info">
             <li class="page">
               <dsp:get name="info[when-published]"/>
-              <a href="<wiki:base/>/pages/<dsp:get name='info[title]'/>"><dsp:get name="info[title]"/></a>,
+              <a href="<wiki:base/>/page/view/<dsp:get name='info[title]'/>"><dsp:get name="info[title]"/></a>,
               changed by <dsp:get name="info[latest-authors]"/>
             </li>
           </dsp:loop>
@@ -41,7 +41,7 @@
         </ul>
       </form>
       <!-- display the paginator for the wiki page list -->
-      <dsp:show-page-links name="wiki-pages" url="/wiki/pages?page=" query-value="page" />
+      <dsp:show-page-links name="wiki-pages" url="<wiki:base/>/pages?page=" query-value="page" />
 
     </div>
   </div>

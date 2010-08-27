@@ -267,9 +267,6 @@ end method unparse-rule;
 define class <acls-page> (<wiki-dsp>)
 end;
 
-define constant $edit-access-page
-  = make(<acls-page>, source: "edit-page-access.dsp");
-
 define method respond-to-get
     (acls-page :: <acls-page>, #key title :: <string>)
   let wiki-page = find-page(percent-decode(title));
@@ -279,7 +276,7 @@ define method respond-to-get
       next-method()
     end;
   else
-    redirect-to($non-existing-page-page);
+    redirect-to(*non-existing-page-page*);
   end;
 end method respond-to-get;
 

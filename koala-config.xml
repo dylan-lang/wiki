@@ -7,17 +7,8 @@
 <koala>
   <listener address="0.0.0.0" port="8000"/>
   <debug-server value="off" />
-
-  <!-- dev mode makes DSP check for modified templates and reparse them. -->
   <development-mode enabled="on" />
-
   <server-root location="trunk/libraries/network/wiki"/>
-
-  <!-- For now we set the document root and dsp root explicitly.
-       They are not relative to server root due to the way the wiki is
-       started up. -->
-  <document-root location="trunk/libraries/network/wiki/www"/>
-  <dsp-root location="trunk/libraries/network/wiki/www/dsp"/>
 
   <!-- TODO: site-name and site-url should be in an <atom> or <feed> element. -->
   <!--
@@ -27,16 +18,18 @@
          Sent as the title of Atom feeds.
      site-url
          Sent as the URI of Atom feeds.
-     url-prefix
+     url-prefix  (TODO: should delete this and just use site-url)
          Prefix for all wiki URLs.  Defaults to "/wiki".  May be "".
-     dsp-subdirectory
-         Directory under the <dsp-root> where the wiki should look for its .dsp files.
+     static-directory
+         Directory where the wiki should look for its static files.
+	 This should point to the wiki project directory; the one
+	 containing the www, dylan, and dsp subdirectories.
      -->
   <wiki content-directory="."
         site-name="Dylan Wiki"
         site-url="http://my.domain"
 	url-prefix="/wiki"
-	dsp-subdirectory="wiki/"
+	static-directory=".../libraries/network/wiki/www"
 	>
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.

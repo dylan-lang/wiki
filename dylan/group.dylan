@@ -64,7 +64,7 @@ end;
 define method group-permanent-link
     (name :: <string>)
  => (url :: <url>)
-  let location = wiki-url("/groups/%s", name);
+  let location = wiki-url("/group/view/%s", name);
   transform-uris(request-url(current-request()), location, as: <url>)
 end;
 
@@ -189,9 +189,6 @@ end;
 define class <list-groups-page> (<wiki-dsp>)
 end;
 
-define constant $list-groups-page
-  = make(<list-groups-page>, source: "list-groups.dsp");
-
 define method respond-to-get
     (page :: <list-groups-page>, #key)
   local method group-info (group)
@@ -205,7 +202,7 @@ define method respond-to-get
   next-method();
 end method respond-to-get;
 
-// Posting to /groups creates a new group.
+// Posting to /group/list creates a new group.
 //
 define method respond-to-post
     (page :: <list-groups-page>, #key)
@@ -215,7 +212,7 @@ define method respond-to-post
     add-field-error("group", "A group named %s already exists.", new-name);
   end;
   if (page-has-errors?())
-    respond-to-get($list-groups-page)
+    respond-to-get(*list-groups-page*)
   else
     redirect-to(create-group(new-name));
   end;
@@ -246,18 +243,9 @@ define method respond-to-get
     next-method();
   else
     // Should only get here via a typed-in URL.
-    respond-to-get($non-existing-group-page);
+    respond-to-get(*non-existing-group-page*);
   end if;
 end method respond-to-get;
-
-define constant $non-existing-group-page
-  = make(<wiki-dsp>, source: "non-existing-group.dsp");
-
-
-//// View Group
-
-define constant $view-group-page
-  = make(<group-page>, source: "view-group.dsp");
 
 
 //// Edit Group
@@ -265,16 +253,13 @@ define constant $view-group-page
 define class <edit-group-page> (<group-page>)
 end;
 
-define constant $edit-group-page
-  = make(<edit-group-page>, source: "edit-group.dsp");
-
 define method respond-to-post
-    (page :: <edit-group-page>, #key name :: <string>)
+    (page :: <edit-group-page>, #key name)
   let name = trim(percent-decode(name));
   let group = find-group(name);
   if (~group)
     // foreign post?
-    respond-to-get($non-existing-group-page);
+    respond-to-get(*non-existing-group-page*);
   else
     let new-name = validate-form-field("group-name", validate-group-name);
     let owner-name = validate-form-field("group-owner", validate-user-name);
@@ -293,7 +278,7 @@ define method respond-to-post
     end;
     if (page-has-errors?())
       // redisplay page with errors
-      respond-to-get($edit-group-page, name: name);
+      respond-to-get(*edit-group-page*, name: name);
     else
       // todo -- the rename and save should be part of a transaction.
       if (new-name ~= name)
@@ -319,9 +304,6 @@ end method respond-to-post;
 define class <remove-group-page> (<group-page>)
 end;
 
-define constant $remove-group-page
-  = make(<remove-group-page>, source: "remove-group.dsp");
-
 define method respond-to-post
     (page :: <remove-group-page>, #key name :: <string>)
   let group-name = percent-decode(name);
@@ -334,9 +316,9 @@ define method respond-to-post
     else
       add-page-error("You do not have permission to remove this group.")
     end;
-    respond-to-get($list-groups-page);
+    respond-to-get(*list-groups-page*);
   else
-    respond-to-get($non-existing-group-page);
+    respond-to-get(*non-existing-group-page*);
   end;
 end method respond-to-post;
 
@@ -348,9 +330,6 @@ end method respond-to-post;
 
 define class <edit-group-members-page> (<edit-group-page>)
 end;
-
-define constant $edit-group-members-page
-  = make(<edit-group-members-page>, source: "edit-group-members.dsp");
 
 define method respond-to-get
     (page :: <edit-group-members-page>,
@@ -394,7 +373,7 @@ define method respond-to-post
       respond-to-get(page, name: name);
     end;
   else
-    respond-to-get($non-existing-group-page);
+    respond-to-get(*non-existing-group-page*);
   end;
 end method respond-to-post;
 

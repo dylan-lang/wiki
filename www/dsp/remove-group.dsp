@@ -17,7 +17,7 @@
 
       <%dsp:include url="view-group-body.dsp"/>
 
-      <form action="" method="post">
+      <form action="<wiki:base/>/group/remove" method="post">
 	<fieldset>
           <ol>
             <li id="comment-item">

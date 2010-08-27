@@ -199,9 +199,6 @@ end;
 define class <recent-changes-page> (<wiki-dsp>)
 end;
 
-define constant $recent-changes-page
-  = make(<recent-changes-page>, source: "list-recent-changes.dsp");
-
 define method respond-to-get
     (page :: <recent-changes-page>, #key)
   let changes = sort(wiki-changes(),
@@ -300,14 +297,11 @@ define sideways method permission-error (action, #key)
 //  respond-to(#"get", *not-logged-in-page*);  
 end;
 
+define variable *not-logged-in-page* = #f;
+
 define sideways method authentication-error (action, #key)
-  respond-to(#"get", $not-logged-in-page);
+  respond-to-get(*not-logged-in-page*);
 end;
 
-define constant $main-page
-  = make(<wiki-dsp>, source: "main.dsp");
-
-define constant $not-logged-in-page
-  = make(<wiki-dsp>, source: "not-logged-in.dsp");
 
 

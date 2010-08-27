@@ -15,6 +15,8 @@ Anything that is a regression compared to the original wiki.
 
 General
 -------
+* static files (e.g., /styles.css) should be under the dynamically
+  configured url prefix.
 * MAKE THREAD SAFE -- basically anything like removing a user, which
   modifies multiple objects, may have race conditions.  Needs careful
   thought.
@@ -95,6 +97,9 @@ Groups
 
 Pages
 -----
+* Preview doesn't work if the page is new, never saved.
+* Looks like show-page-responder doesn't respect "view" ACLs (but I could
+  be wrong because I've been away from the code for a while).
 * The "Pages" page, linked in the left margin, lists all pages.  It should
   list ~20 pages per page and put up "<< 1, 2, 3 ... n >>" links at the bottom.
   Or something.  It's a good excuse to develop a built-in mechanism for doing
