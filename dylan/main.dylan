@@ -32,8 +32,6 @@ define sideways method process-config-element
   // TODO: set site-url to http://<local host name>:<port>
   log-info("Site URL: %s", *site-url*);
 
-  // Setting this only works if you don't put your "define url-map" at
-  // top-level because then it is evaluated at load time, before this is set.
   *wiki-url-prefix* := get-attr(node, #"url-prefix") | *wiki-url-prefix*;
   log-info("Wiki URL prefix: %s", *wiki-url-prefix*);
 
