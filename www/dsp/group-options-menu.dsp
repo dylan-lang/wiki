@@ -1,3 +1,4 @@
+<%dsp:taglib name="wiki"/>
 
     <div id="menu">
       <span>options</span>

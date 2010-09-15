@@ -249,13 +249,9 @@ define function add-wiki-responders
                 trailing-slash: #t,
                 args);
         end;
-  // static files
-  // TODO: these should also be under *wiki-url-prefix*, but for now the
-  //       templates assume they're directly under /.
-  add-resource(http-server, "/", make(<directory-resource>,
-                                      directory: *static-directory*));
+  add("/static", make(<directory-resource>, directory: *static-directory*));
 
-  add("", make(<wiki-dsp>, source: "main.dsp"),
+  add("/", make(<wiki-dsp>, source: "main.dsp"),
       url-name: "wiki.home");
   add("/login", function-resource(curry(login, realm: *wiki-realm*)),
       url-name: "wiki.login");

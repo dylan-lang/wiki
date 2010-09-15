@@ -93,11 +93,9 @@ define method account-activation-url
           scheme: "http",
           host: default.uri-host,
           port: default.uri-port,
-          // I totally don't get why the uri library uses an empty string
-          // at the beginning of the path...
           path: concatenate(list(""),
                             prefix,
-                            list("users", user.user-name, "activate",
+                            list("user", "activate", user.user-name,
                                  user.user-activation-key))))
 end method account-activation-url;
 
