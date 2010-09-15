@@ -1,6 +1,6 @@
 <%dsp:taglib name="wiki"/>
 <%dsp:taglib name="web-framework" prefix="wf"/>
-<a id="dylan-logo" href="/" title="Dylan"><img border="0" src="/images/dylan-logo.png" alt="Dylan"/></a>
+<a id="dylan-logo" href="<wiki:base/>/" title="Dylan"><img border="0" src="<wiki:base/>/static/images/dylan-logo.png" alt="Dylan"/></a>
 <div id="search-user">
 
   <form action="http://www.google.com/cse" id="cse-search-box">

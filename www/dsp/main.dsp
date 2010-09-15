@@ -43,7 +43,7 @@
       </p>
       <p>Please feel free to <a href="<wiki:base/>/page/view/Community">join us</a>!</p> 
 
-      <h2>News <a href="<wiki:base/>/feed/tags/news"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for news"/></a></h2>
+      <h2>News <a href="<wiki:base/>/feed/tags/news"><img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for news"/></a></h2>
       <wiki:list-pages tags="news">
         <h3 class="news summary"><a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h3>
         <small class="date"><wiki:show-page-published formatted="%d. %B %Y %H:%M"/></small>

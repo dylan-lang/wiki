@@ -18,7 +18,7 @@
     <div id="body">
       <h2>Group <dsp:get name="group-name"/>
         <a href="<wiki:base/>/feed/groups/<dsp:get name='group-name'/>">
-          <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for this group"/>
+          <img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for this group"/>
         </a>
       </h2>
 

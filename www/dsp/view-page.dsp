@@ -26,7 +26,7 @@
           </dsp:unless>
           <dsp:if test="can-view-content?">
             <a href="<wiki:base/>/feed/pages/<wiki:show-page-title/>">
-              <img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for this page"/>
+              <img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for this page"/>
             </a>
           </dsp:if>
       </h2>

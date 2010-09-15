@@ -14,7 +14,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <form action="/files">
+      <form action="<wiki:base/>/files">
         <ul class="striped big">
           <li class="file">
             <input type="text" name="query" value=""/>

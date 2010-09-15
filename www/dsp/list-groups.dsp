@@ -14,7 +14,7 @@
   <div id="content">
     <%dsp:include url="navigation.dsp"/>
     <div id="body">               
-      <h2>Groups <a href="<wiki:base/>/feed/groups"><img border="0" src="/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
+      <h2>Groups <a href="<wiki:base/>/feed/groups"><img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
