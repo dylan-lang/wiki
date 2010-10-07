@@ -26,7 +26,7 @@ define method validate-group-name
     (name :: <string>) => (name :: <string>)
   if (empty?(name))
     error("Group is required.");
-  elseif (~regex-search("^[A-Za-z0-9_-]+$", name))
+  elseif (~regex-search(compile-regex("^[A-Za-z0-9_-]+$"), name))
     error("Group names may contain only alphanumerics, hyphens and underscores.");
   end;
   name

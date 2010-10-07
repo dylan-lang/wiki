@@ -185,7 +185,7 @@ define method extract-references
   let references = list();
   //TODO: replace by upcoming regex-search-all-strings
   let content = version.content.content;
-  let regex = "\\[\\[([^\\]]*)\\]\\]";
+  let regex = compile-regex("\\[\\[([^\\]]*)\\]\\]");
   let start = 0;
   while (regex-position(regex, content, start: start))
     let (#rest matches) = regex-search-strings(regex, copy-sequence(content, start: start));
@@ -258,7 +258,7 @@ define method discussion-page?
     (page :: <wiki-page>)
  => (is? :: <boolean>)
   let (matched?, discussion, title)
-    = regex-search-strings("(Discussion: )(.*)", page.title);
+    = regex-search-strings(compile-regex("(Discussion: )(.*)"), page.title);
   matched? = #t;
 end;
 
@@ -267,7 +267,7 @@ define function redirect-content?
  => (content :: false-or(<string>), 
      title :: false-or(<string>))
   let (content, title) = 
-    regex-search-strings("^#REDIRECT \\[\\[(.*)\\]\\]",
+    regex-search-strings(compile-regex("^#REDIRECT \\[\\[(.*)\\]\\]"),
 			 content);
   values(content, title);
 end;
@@ -637,7 +637,7 @@ end;
 define tag show-main-page-title in wiki
     (page :: <wiki-dsp>) ()
   if (*page*)
-    let main-title = regex-replace(*page*.title, "^Discussion: ", "");
+    let main-title = regex-replace(*page*.title, compile-regex("^Discussion: "), "");
     output("%s", escape-xml(main-title));
   end;
 end tag show-main-page-title;

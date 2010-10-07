@@ -106,7 +106,7 @@ define method validate-user-name
     (name :: <string>) => (name :: <string>)
   if (empty?(name))
     error("A user name is required.");
-  elseif (~regex-search("^[A-Za-z0-9_-]+$", name))
+  elseif (~regex-search(compile-regex("^[A-Za-z0-9_-]+$"), name))
     error("User names must contain only alphanumerics, hyphens and underscores.");
   end;
   name

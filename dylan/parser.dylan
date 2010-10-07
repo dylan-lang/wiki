@@ -84,7 +84,7 @@ define method parse-newline
     elseif (start + 1 < markup.size & markup[start + 1] == ' ')
       // lines preceded by space are preformatted...
       // Find next line with no leading whitespace...
-      let (epos, #rest xs) = regex-position("\n\\S", markup, start: start + 1) | markup.size;
+      let (epos, #rest xs) = regex-position(compile-regex("\n\\S"), markup, start: start + 1) | markup.size;
       write(out, "<pre>");
       //XXX more speed
       let raw-text = copy-sequence(markup, start: start, end: epos);
@@ -131,8 +131,9 @@ define method parse-header
     (out :: <stream>, markup :: <string>, start :: <integer>)
  => (end-pos :: false-or(<integer>))
   let newline = find(markup, '\n', start: start) | markup.size;
-  // let (#rest idxs) = regex-position("(==+)([^=\n]+)(==+)\\s*(\n|$)", markup,
-  let (#rest idxs) = regex-position("(==+)([^=\n]+)(==+|$)", markup,
+  // let (#rest idxs) = regex-position(compile-regex("(==+)([^=\n]+)(==+)\\s*(\n|$)"), markup,
+  let regex = compile-regex("(==+)([^=\n]+)(==+|$)");
+  let (#rest idxs) = regex-position(regex, markup,
                                     start: start, end: newline);
   if (idxs.size > 1)
     let tag = copy-sequence(markup, start: idxs[2], end: idxs[3]);
@@ -202,7 +203,7 @@ end;
 define method generate-list
     (stream, markup, start, bullet-char, tag)
  => (end-pos :: false-or(<integer>))
-  let regex1 = format-to-string("\n\\s*[^%s]", bullet-char);
+  let regex1 = compile-regex(format-to-string("\n\\s*[^%s]", bullet-char));
   let (list-end, #rest xs) = regex-position(regex1, markup, start: start);
   let lines = split(copy-sequence(markup,
                                   start: start,
@@ -210,7 +211,7 @@ define method generate-list
                     "\n", trim?: #t);
 //  write(stream, "<p>\n");
   let depth :: <integer> = 0;
-  let regex2 = format-to-string("^\\s*([%s]+)", bullet-char);
+  let regex2 = compile-regex(format-to-string("^\\s*([%s]+)", bullet-char));
   for (line in lines)
     let (#rest indexes) = regex-position(regex2, line);
     if (indexes.size > 1)
@@ -271,7 +272,7 @@ define method parse-less-than
            close + 1;
       "nowiki"
         // TODO: allow nested nowiki elements.
-        => let epos = regex-position("</nowiki>", markup,
+        => let epos = regex-position(compile-regex("</nowiki>"), markup,
                                      case-sensitive: #f,
                                      start: close)
                         | markup.size;
