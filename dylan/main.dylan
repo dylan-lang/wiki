@@ -260,7 +260,7 @@ define function add-wiki-responders
   add("/recent-changes",
       make(<recent-changes-page>, source: "list-recent-changes.dsp"),
       url-name: "wiki.recent-changes");
-  add("/feed/{type}/{name}", function-resource(atom-feed-responder),
+  add("/feed/{type?}/{name?}", function-resource(atom-feed-responder),
       url-name: "wiki.atom-feed");
 
   add("/user/list", *list-users-page*,
@@ -285,10 +285,10 @@ define function add-wiki-responders
   add("/page/list",
       make(<list-pages-page>, source: "list-pages.dsp"),
       url-name: "wiki.page.list");
-  add("/page/view/{title}/{version}",
+  add("/page/view/{title}/{version?}",
       function-resource(show-page-responder),
       url-name: "wiki.page.view");
-  add("/page/edit/{title}/{version}",
+  add("/page/edit/{title}/{version?}",
       make(<edit-page-page>, source: "edit-page.dsp"),
       url-name: "wiki.page.edit");
   // was show-remove-page and do-remove-page
