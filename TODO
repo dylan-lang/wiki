@@ -15,6 +15,8 @@ Anything that is a regression compared to the original wiki.
 
 General
 -------
+* The "Recent Changes" and "Pages" links both get an error if there
+  is nothing to list.  (minor)
 * static files (e.g., /styles.css) should be under the dynamically
   configured url prefix.
 * MAKE THREAD SAFE -- basically anything like removing a user, which
