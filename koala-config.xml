@@ -7,8 +7,7 @@
 <koala>
   <listener address="0.0.0.0" port="8000"/>
   <debug-server value="off" />
-  <development-mode enabled="on" />
-  <server-root location="trunk/libraries/network/wiki"/>
+  <development-mode enabled="yes" />
 
   <!-- TODO: site-name and site-url should be in an <atom> or <feed> element. -->
   <!--
@@ -27,17 +26,17 @@
      -->
   <wiki content-directory="."
         site-name="Dylan Wiki"
-        site-url="http://my.domain"
+        site-url="http://localhost"
 	url-prefix="/wiki"
-	static-directory=".../libraries/network/wiki/www"
+	static-directory="c:/cgay/dylan/git/wiki/www"
 	>
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.
       -->
-    <administrator username="administrator"
-		   password="..."
-                   email="you@yourdomain.org"/>
+    <administrator username="admin"
+		   password="xxxx"
+                   email="...@opendylan.org"/>
     <authentication realm="dylan-wiki"/>
-    <mail host="your.mail.host"/>
+    <mail host="localhost"/>
   </wiki>
 </koala>
