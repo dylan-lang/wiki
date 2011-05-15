@@ -1,4 +1,7 @@
-Module: wiki-internal
+Module: %wiki
+
+/*
+TODO...
 
 define method atom-feed-responder
     (#key type, name)
@@ -25,11 +28,11 @@ define method atom-feed-responder
   end;
   let changes = sort(changes,
                      test: method (change1, change2)
-                             change1.date-published > change2.date-published
+                             change1.creation-date > change2.creation-date
                            end);
   let date-updated = iff(empty?(changes),
                          current-date(),
-                         changes.first.date-published);
+                         changes.first.creation-date);
   let feed-authors = #[];
   for (change in changes)
     for (author in change.authors)
@@ -63,8 +66,8 @@ define method generate-atom (change :: <wiki-change>, #key)
       title(change.title),
 //      do(do(method(x) collect(generate-atom(x)) end, entry.links)),
       id(build-uri(change-identifier(change))),
-      published(generate-atom(change.date-published)),
-      updated(generate-atom(change.date-published)),
+      published(generate-atom(change.creation-date)),
+      updated(generate-atom(change.creation-date)),
       do(if (author) generate-atom(author) end if),
 //      do(do(method(x) collect(generate-atom(x)) end, entry.contributors)),
       do(collect(generate-atom(change.comments[0].content)))
@@ -96,4 +99,5 @@ end;
 define method change-identifier (change :: <wiki-user-change>)
   user-permanent-link(change.title)
 end;
+*/
 

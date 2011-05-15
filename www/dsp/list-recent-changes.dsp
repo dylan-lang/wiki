@@ -22,40 +22,33 @@
 
       <wiki:list-recent-changes>
         <dsp:if-not-equal name1="day" name2="previous-day">
-	  <h3><span class="date"><dsp:get name="day"/></span></h3>
+          <h3><span class="date"><dsp:get name="day"/></span></h3>
         </dsp:if-not-equal>
-	<dl id="changes">
-	  <dt>
-	    <span class="time"><dsp:get name="time"/></span>
-	    <span class="object <dsp:get name='change-class'/>">
-	      <a href="<dsp:get name='permalink'/>"><dsp:get name="title"/></a>
-	    </span>
+        <dl id="changes">
+          <dt>
+            <span class="time"><dsp:get name="time"/></span>
+            <span class="object <dsp:get name='object-type'/>">
+              <a href="<dsp:get name='newest-url'/>"><dsp:get name="title"/></a>
+            </span>
 
-            <!-- special case for page changes -->
-            <dsp:if-equal name1="change-class" name2="page" context2="literal">
-	      <dsp:if-not-equal name1="action" name2="removal" context2="literal">
-		[<a href="<dsp:get name='permalink'/>/versions/<dsp:get name='version'/>"><dsp:get name="version"/></a>]
-	      </dsp:if-not-equal>
-	      <dsp:if-equal name1="action" name2="edit" context2="literal">
-		<a href="<dsp:get name='permalink'/>/versions/<dsp:get name='version'/>?diff"><dsp:get name="verb"/></a> 
-              </dsp:if-equal>
-	      <dsp:if-not-equal name1="action" name2="edit" context2="literal">
-                <dsp:get name="verb"/>
-              </dsp:if-not-equal>
-            </dsp:if-equal>
-
-            <!-- non-page (i.e., user and group) changes -->
-            <dsp:if-not-equal name1="change-class" name2="page" context2="literal">
-	      <dsp:get name="verb"/>
-            </dsp:if-not-equal>
+            <dsp:get name="verb"/>
 
             by <a href="<wiki:base/>/user/view/<dsp:get name='author'/>"><dsp:get name="author"/></a>
 
-	  </dt>
-	  <dd>
-	    <dsp:get name="comment"/>
-	  </dd>
-	</dl>
+            <!-- only page changes show these links for now -->
+            <dsp:if-equal name1="object-type" name2="page" context2="literal">
+              <dsp:if-not-equal name1="action" name2="delete" context2="literal">
+                &mdash;
+                <a href="<dsp:get name='revision-url'/>">revision</a>,
+                <a href="<dsp:get name='diff-url'/>">diff</a>
+              </dsp:if-not-equal>
+            </dsp:if-equal>
+
+          </dt>
+          <dd>
+            <dsp:get name="comment"/>
+          </dd>
+        </dl>
       </wiki:list-recent-changes>
 
       <dsp:show-page-links name="recent-changes" url="<wiki:base/>/recent-changes?page=" query-value="page"/>

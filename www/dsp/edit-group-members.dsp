@@ -15,7 +15,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <form action="<wiki:base/>/group/members" method="post">
+      <form action="<wiki:base/>/group/members/<dsp:get name="group-name"/>" method="post">
         <fieldset>
           <table>
 	    <tr>

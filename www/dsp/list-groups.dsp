@@ -1,6 +1,5 @@
 <%dsp:include url="xhtml-start.dsp"/>
 <%dsp:taglib name="wiki"/>
-<%dsp:taglib name="web-framework" prefix="wf"/>
 <head>
   <title>Dylan Wiki: Groups</title>
   <%dsp:include url="meta.dsp"/>
@@ -40,7 +39,7 @@
       </dsp:unless>
       <dsp:loop over="all-groups" context="page" var="group" header="<ul>" footer="</ul>" empty="<p>There are no groups.</p>">
         <li class="group">
-          <a href="<wiki:base/>/group/view/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> members)
+          <a href="<wiki:base/>/group/view/<dsp:get name='group[name]' context='page'/>"><dsp:get name="group[name]" context="page"/></a> (<dsp:get name="group[count]"/> member<dsp:get name="group[s]"/>)
           <div class="group-description"><dsp:get name="group[description]"/></div>
         </li>
       </dsp:loop>

@@ -6,13 +6,24 @@
 
 <koala>
   <listener address="0.0.0.0" port="8000"/>
-  <debug-server value="off" />
-  <development-mode enabled="yes" />
+
+  <server
+      use-default-virtual-host="yes"
+      debug="no"
+      />
+
+  <dsp reparse-templates="yes" />
 
   <!-- TODO: site-name and site-url should be in an <atom> or <feed> element. -->
   <!--
-     content-directory
-         Where to store wiki content.
+     git-repository-root (required)
+         Full path of main git repository.  This is where wiki page
+	 and group data is stored.
+     git-user-repository-root (required)
+         Full path of user git repository.  This is where user data
+	 is stored.  You may want to keep this data secure.
+     git-executable (optional)
+         Full path of git executable (default: "git").
      site-name
          Sent as the title of Atom feeds.
      site-url
@@ -24,17 +35,18 @@
 	 This should point to the wiki project directory; the one
 	 containing the www, dylan, and dsp subdirectories.
      -->
-  <wiki content-directory="."
-        site-name="Dylan Wiki"
+  <wiki site-name="Dylan Wiki"
         site-url="http://localhost"
 	url-prefix="/wiki"
 	static-directory="c:/cgay/dylan/git/wiki/www"
-	>
+	git-repository-root="c:/tmp/wiki/main-storage"
+	git-user-repository-root="c:/tmp/wiki/user-storage"
+	git-executable="c:/Program Files/Git/bin/git"
+        >
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.
       -->
-    <administrator username="admin"
-		   password="xxxx"
+    <administrator password="xxxx"
                    email="...@opendylan.org"/>
     <authentication realm="dylan-wiki"/>
     <mail host="localhost"/>

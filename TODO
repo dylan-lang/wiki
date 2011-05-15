@@ -1,8 +1,10 @@
 Fix before going live
 ---------------------
 
-Anything that is a regression compared to the original wiki.
-
+* Page back links
+* Rename page/user/group need to update page references.
+* Recent changes
+* Disable UI access to unfinished TODO--* items.
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
 * The methods on permanent-link are incorrect.  For example, if you go
@@ -12,6 +14,8 @@ Anything that is a regression compared to the original wiki.
 * Write all the hard-linked pages in the navigation bar (and the news items)
   in the old wiki so they're available immediately after conversion.  All
   we need to do after conversion is add the "news" tag.
+* ATOM feeds?
+* List page revisions?
 
 General
 -------
@@ -27,6 +31,9 @@ General
 * navigation.dsp should be able to include wiki pages so that it can
   be customizable on a per-site and/or per-user basis.
 * i18n
+* Implement all dsp pages the same way: with a class and respond-to-*
+  methods.  Having some be functions and some be classes is annoying
+  because it's harder to remember the names of things.
 
 Browser Compatibility
 ---------------------
@@ -48,13 +55,25 @@ Feeds
 
 Markup Language
 ---------------
-* Support ReStructured Text as a markup language, probably doing a first
-  pass over the source to process wiki links etc and then pass the result
-  to rst2html, since it hardly seems wise to re-implement all of RST.
-  Virtually all the features/bugs listed in the old "Wiki To-Do List"
-  wiki page are solved by this.
-* Support the original markup language until all pages have been converted
-  to something newer.
+
+* Change markup language to augmented ReStructured Text.  A first pass
+  will be done, searching for wiki links of the form::
+
+    {{page: Foo, text: Bar}} -- link text "Bar" to page "Foo"
+    {{Foo,Bar}}              -- shorthand for {{page:Foo,text:Bar}}
+    {{Foo}}                  -- shorthand for {{page:Foo,text:Foo}}
+    {{page: "x,y"}}          -- names may be quoted
+    {{page: 'The "x" Page'}} -- single or double quotes work.
+    {{user: cgay, text: Carl}}  -- a user link
+    {{group: group}}            -- a group link
+    {{wiki: off}}               -- turn off wiki markup parsing
+    {{wiki: on}}                -- turn it back on
+
+  Also, in order to manage the overall layout of the page, the wiki
+  parser will need to combine the header, nav bar, footer, and main
+  page into one document before passing them to rst2html.  It can wrap
+  each part with a different <div> element, so that the layout can be
+  managed via CSS.
 
 Tags
 ----
@@ -99,6 +118,13 @@ Groups
 
 Pages
 -----
+* Currently (as I rewrite to use git as the back end) I plan for most
+  operations to execute git commands directly rather than caching
+  anything.  Ultimately that will probably be too slow as the number
+  of pages grows.  One possible way forward will be to create a <page>
+  object for each page, without filling in the content, parsing tags,
+  etc., then fill in the page content as pages are loaded on demand.
+  For full content search we'll need an index.
 * Preview doesn't work if the page is new, never saved.
 * Looks like show-page-responder doesn't respect "view" ACLs (but I could
   be wrong because I've been away from the code for a while).

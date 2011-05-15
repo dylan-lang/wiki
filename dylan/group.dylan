@@ -1,9 +1,11 @@
-Module: wiki-internal
+Module: %wiki
+Synopsis: Group maintenance
+
 
 // todo -- I don't like that these are mutable.  It makes it hard to
 //         reason about the code.  Probably goes for other objects too.
 //
-define class <wiki-group> (<object>)
+define class <wiki-group> (<wiki-object>)
   slot group-name :: <string>,
     required-init-keyword: name:;
   slot group-owner :: <wiki-user>,
@@ -13,6 +15,12 @@ define class <wiki-group> (<object>)
   slot group-description :: <string> = "",
     init-keyword: description:;
 end class <wiki-group>;
+
+define method make
+    (class == <wiki-group>, #rest args, #key members :: <sequence> = #[])
+ => (group :: <wiki-group>)
+  apply(next-method, class, members: as(<stretchy-vector>, members), args)
+end;
 
 define method initialize
     (group :: <wiki-group>, #key)
@@ -36,35 +44,17 @@ end method validate-group-name;
 define wf/error-test (name) in wiki end;
 
 
-// storage
-
-define method storage-type
-    (type == <wiki-group>)
- => (type :: <type>)
-  <string-table>
-end;
-
-// Tells web-framework under what unique (I assume) key to store this object.
-//
-define inline-only method key
-    (group :: <wiki-group>)
- => (res :: <string>)
-  group.group-name
-end;
-
-
-// url
 
 define method permanent-link
-    (group :: <wiki-group>, #key escaped?, full?)
+    (group :: <wiki-group>)
  => (url :: <url>)
-  group-permanent-link(key(group))
+  group-permanent-link(group)
 end;
 
 define method group-permanent-link
-    (name :: <string>)
+    (group :: <wiki-group>)
  => (url :: <url>)
-  let location = wiki-url("/group/view/%s", name);
+  let location = wiki-url("/group/view/%s", group.group-name);
   transform-uris(request-url(current-request()), location, as: <url>)
 end;
 
@@ -78,7 +68,7 @@ end;
 define method find-group
     (name :: <string>)
  => (group :: false-or(<wiki-group>))
-  element(storage(<wiki-group>), name, default: #f)
+  element(*groups*, as-lowercase(name), default: #f)
 end;
 
 // Find all groups that a user is a member of.
@@ -89,7 +79,7 @@ define method user-groups
   choose(method (group)
            member?(user, group.group-members)
          end,
-         value-sequence(storage(<wiki-group>)))
+         value-sequence(*groups*))
 end;
 
 define method groups-owned-by-user
@@ -98,7 +88,7 @@ define method groups-owned-by-user
   choose(method (group)
            group.group-owner = user
          end,
-         value-sequence(storage(<wiki-group>)))
+         value-sequence(*groups*))
 end;
 
 define method rename-group
@@ -115,30 +105,35 @@ define method rename-group
     (group :: <wiki-group>, new-name :: <string>,
      #key comment :: <string> = "")
  => ()
-  if (group.group-name ~= new-name)
-    if (find-group(new-name))
+  let old-lc-name = as-lowercase(group.group-name);
+  let new-lc-name = as-lowercase(new-name);
+  if (old-lc-name ~= new-lc-name)
+    if (find-group(new-lc-name))
       // todo -- raise more specific error...test...
       error("group %s already exists", new-name);
     end;
     let comment = concatenate("was: ", group.group-name, ". ", comment);
-    remove-key!(storage(<wiki-group>), group.group-name);
-    group.group-name := new-name;
-    storage(<wiki-group>)[new-name] := group;
-    save-change(<wiki-group-change>, new-name, $rename, comment);
-    save(group);
-    dump-data();
+    with-lock ($group-lock)
+      remove-key!(*groups*, old-lc-name);
+      group.group-name := new-name;
+      *groups*[new-lc-name] := group;
+    end;
+    store(*storage*, group, authenticated-user(), comment,
+          standard-meta-data(group, "rename"));
   end if;
 end method rename-group;
 
 define method create-group
     (name :: <string>, #key comment :: <string> = "")
  => (group :: <wiki-group>)
+  let author = authenticated-user();
   let group = make(<wiki-group>,
                    name: name,
-                   owner: authenticated-user());
-  save-change(<wiki-group-change>, name, $create, comment);
-  save(group);
-  dump-data();
+                   owner: author);
+  store(*storage*, group, author, comment, standard-meta-data(group, "create"));
+  with-lock ($group-lock)
+    *groups*[as-lowercase(name)] := group;
+  end;
   group
 end method create-group;
 
@@ -148,9 +143,8 @@ define method add-member
  => ()
   add-new!(group.group-members, user);
   let comment = concatenate("added ", user.user-name, ". ", comment);
-  save-change(<wiki-group-change>, group.group-name, $edit, comment);  
-  save(group);
-  dump-data();
+  store(*storage*, group, authenticated-user(), comment,
+        standard-meta-data(group, "add-members"));
 end;
 
 define method remove-member
@@ -159,30 +153,25 @@ define method remove-member
  => ()
   remove!(group.group-members, user);
   let comment = concatenate("removed ", user.user-name, ". ", comment);
-  save-change(<wiki-group-change>, group.group-name, $edit, comment);  
-  save(group);
-  dump-data();
+  store(*storage*, group, authenticated-user(), comment,
+        standard-meta-data(group, "remove-members"));
 end;
 
-// todo -- MAKE THREAD SAFE
 define method remove-group
-    (group :: <wiki-group>,
-     #key comment :: <string> = "")
-  remove-key!(storage(<wiki-group>), group.group-name);
-  for (page in storage(<wiki-page>))
-    remove-rules-for-target(page.access-controls, group);
+    (group :: <wiki-group>, comment :: <string>)
+ => ()
+  delete(*storage*, group, authenticated-user(), comment,
+         standard-meta-data(group, "delete"));
+  with-lock ($page-lock)
+    for (page in *pages*)
+      remove-rules-for-target(page.page-access-controls, group);
+    end;
   end;
-  save-change(<wiki-group-change>, group.group-name, $remove, comment);
-  dump-data();
-end;
+  with-lock ($group-lock)
+    remove-key!(*groups*, as-lowercase(group.group-name));
+  end;
+end method remove-group;
 
-
-/*
-define method permitted? (action == #"edit-page", #key)
- => (permitted? :: <boolean>);
-  (~ authenticated-user()) & error(make(<authentication-error>));
-end;
-*/
 
 //// List Groups (note not a subclass of <group-page>)
 
@@ -192,13 +181,17 @@ end;
 define method respond-to-get
     (page :: <list-groups-page>, #key)
   local method group-info (group)
-          table(<string-table>,
-                "name" => group.group-name,
-                "count" => integer-to-string(group.group-members.size),
-                "description" => quote-html(group.group-description))
+          let len = group.group-members.size;
+          make-table(<string-table>,
+                     "name" => group.group-name,
+                     "count" => integer-to-string(len),
+                     "s" => iff(len = 1, "", "s"),
+                     "description" => quote-html(group.group-description))
         end;
   set-attribute(page-context(), "all-groups",
-                map(group-info, value-sequence(storage(<wiki-group>))));
+                map(group-info, with-lock ($group-lock)
+                                  value-sequence(*groups*)
+                                end));
   next-method();
 end method respond-to-get;
 
@@ -219,17 +212,32 @@ define method respond-to-post
 end method respond-to-post;
 
 
-//// Group page
+//// View Group
 
-define class <group-page> (<wiki-dsp>)
+define class <view-group-page> (<wiki-dsp>)
 end;
 
-// Add basic group attributes to page context and display the page template.
-//
 define method respond-to-get
-    (page :: <group-page>, #key name :: <string>)
+    (dsp :: <view-group-page>,
+     #key name :: <string>, version :: false-or(<string>))
   let name = percent-decode(name);
   let group = find-group(name);
+  set-group-page-attributes(name, group);
+  if (group)
+    process-template(dsp);
+  else
+    // Should only get here via a typed-in URL.
+    respond-to-get(*non-existing-group-page*);
+  end if;
+end method respond-to-get;
+
+// Idea: Could only define a respond-to-get/post method on <wiki-dsp> and
+// have it call something like this, which could be specialized for
+// each object type, then dispatch to something like "handle-get/post".
+// I.e., have a standard way to set attributes on the page.
+//
+define function set-group-page-attributes
+    (name :: <string>, group :: false-or(<wiki-group>))
   let pc = page-context();
   set-attribute(pc, "group-name", name);
   let user = authenticated-user();
@@ -240,23 +248,32 @@ define method respond-to-get
     set-attribute(pc, "group-owner", group.group-owner.user-name);
     set-attribute(pc, "group-description", group.group-description);
     set-attribute(pc, "group-members", sort(map(user-name, group.group-members)));
-    next-method();
-  else
-    // Should only get here via a typed-in URL.
-    respond-to-get(*non-existing-group-page*);
-  end if;
-end method respond-to-get;
+  end;
+end function set-group-page-attributes;
 
 
 //// Edit Group
 
-define class <edit-group-page> (<group-page>)
+define class <edit-group-page> (<wiki-dsp>)
+end;
+
+define method respond-to-get
+    (dsp :: <edit-group-page>,
+     #key name :: <string>,
+          revision :: false-or(<string>))  // TODO:
+  let name = trim(percent-decode(name));
+  let group = find-group(name);
+  set-group-page-attributes(name, group);
+  process-template(dsp);
 end;
 
 define method respond-to-post
-    (page :: <edit-group-page>, #key name)
+    (dsp :: <edit-group-page>,
+     #key name :: <string>,
+          revision :: false-or(<string>))  // TODO:
   let name = trim(percent-decode(name));
   let group = find-group(name);
+  set-group-page-attributes(name, group);
   if (~group)
     // foreign post?
     respond-to-get(*non-existing-group-page*);
@@ -278,7 +295,7 @@ define method respond-to-post
     end;
     if (page-has-errors?())
       // redisplay page with errors
-      respond-to-get(*edit-group-page*, name: name);
+      process-template(dsp);
     else
       // todo -- the rename and save should be part of a transaction.
       if (new-name ~= name)
@@ -289,9 +306,8 @@ define method respond-to-post
             | new-owner ~= group.group-owner)
         group.group-description := description;
         group.group-owner := new-owner;
-        save(group);
-        save-change(<wiki-group-change>, name, $edit, comment);
-        dump-data();
+        store(*storage*, group, authenticated-user(), comment,
+              standard-meta-data(group, "edit"));
       end;
       redirect-to(group);
     end if;
@@ -301,21 +317,32 @@ end method respond-to-post;
 
 //// Remove Group
 
-define class <remove-group-page> (<group-page>)
+define class <remove-group-page> (<wiki-dsp>)
+end;
+
+define method respond-to-get
+    (dsp :: <remove-group-page>, #key name :: <string>)
+  let name = percent-decode(name);
+  let group = find-group(name);
+  set-group-page-attributes(name, group);
+  process-template(dsp);
 end;
 
 define method respond-to-post
     (page :: <remove-group-page>, #key name :: <string>)
-  let group-name = percent-decode(name);
-  let group = find-group(group-name);
+  let name = percent-decode(name);
+  let group = find-group(name);
+  set-group-page-attributes(name, group);
   if (group)
-    let user = authenticated-user();
-    if (user & (user = group.group-owner | administrator?(user)))
-      remove-group(group, comment: get-query-value("comment"));
-      add-page-note("Group %s removed", group-name);
+    let author = authenticated-user();
+    if (author & (author = group.group-owner | administrator?(author)))
+      remove-group(group, get-query-value("comment") | "");
+      add-page-note("Group %s removed", name);
     else
       add-page-error("You do not have permission to remove this group.")
     end;
+    // hack hack.  Should have some idea where the user wants to go via
+    // the 'redirect' parameter, or something like that.
     respond-to-get(*list-groups-page*);
   else
     respond-to-get(*non-existing-group-page*);
@@ -325,10 +352,10 @@ end method respond-to-post;
 
 //// Edit Group Members
 
-// todo -- eventually it should be possible to edit the group name, owner,
-// and members all in one page.
+// TODO: It should be possible to edit the group name, owner,
+//       and members all in one page.
 
-define class <edit-group-members-page> (<edit-group-page>)
+define class <edit-group-members-page> (<wiki-dsp>)
 end;
 
 define method respond-to-get
@@ -336,25 +363,32 @@ define method respond-to-get
      #key name :: <string>, must-exist :: <boolean> = #t)
   let name = percent-decode(name);
   let group = find-group(name);
+  set-group-page-attributes(name, group);
   if (group)
-    // Note: user must be logged in.  That check is done in the template.
-    // non-members is for the add/remove members page
-    set-attribute(page-context(),
-                  "non-members",
-                  sort(key-sequence(storage(<wiki-user>))));
-    // Add all users to the page context so they can be selected
-    // for group membership.
-    set-attribute(page-context(),
-                  "all-users",
-                  sort(key-sequence(storage(<wiki-user>))));
-  end;
+    with-lock ($user-lock)
+      // Note: user must be logged in.  That check is done in the template.
+      // non-members is for the add/remove members page
+      set-attribute(page-context(),
+                    "non-members",
+                    sort(map(user-name,
+                             choose(method (u)
+                                      ~member?(u, group.group-members)
+                                    end,
+                                    value-sequence(*users*)))));
+      // Add all users to the page context so they can be selected
+      // for group membership.
+      set-attribute(page-context(),
+                    "all-users",
+                    sort(key-sequence(*users*)));
+    end with-lock;
+  end if;
   next-method();
 end method respond-to-get;
 
 define method respond-to-post
     (page :: <edit-group-members-page>, #key name :: <string>)
-  let group-name = percent-decode(name);
-  let group = find-group(group-name);
+  let name = percent-decode(name);
+  let group = find-group(name);
   if (group)
     with-query-values (add as add?, remove as remove?, users, members, comment)
       if (add? & users)
@@ -379,7 +413,7 @@ end method respond-to-post;
 
 
 define named-method can-modify-group?
-    (page :: <group-page>)
+    (page :: <wiki-dsp>)
   let user = authenticated-user();
   user & (administrator?(user)
             | user.user-name = get-attribute(page-context(), "active-user"));

@@ -3,7 +3,7 @@
 <head>
   <title>Dylan Wiki: <wiki:show-page-title/>
     <dsp:unless test="latest-page-version?">
-      @ #<wiki:show-version-number/>
+      @ <wiki:page-creation-date/>
     </dsp:unless>
   </title>
   <%dsp:include url="meta.dsp"/>
@@ -22,7 +22,7 @@
     <div id="body">
       <h2><wiki:show-page-title/>
           <dsp:unless test="latest-page-version?">
-	    <em>@ #<wiki:show-version-number/></em>
+            <em>@ <wiki:page-creation-date/></em>
           </dsp:unless>
           <dsp:if test="can-view-content?">
             <a href="<wiki:base/>/feed/pages/<wiki:show-page-title/>">

@@ -1,37 +1,182 @@
-Module: wiki-internal
+Module: %wiki
+Synopsis: User account management.
+
+
+// User data is stored in a separate git repository so that it can
+// be maintained under stricter security than other data.
 
 define thread variable *user-username* = #f;
 
+define thread variable *authenticated-user* = #f;
 
-// class
+// The default "realm" value passed in the WWW-Authenticate header.
+//
+define variable *default-authentication-realm* :: <string> = "koala";
 
-define constant <wiki-user> = <user>;
-/*
-define class <wiki-user> (<user>)
+// Because clients (browsers) continue to send the Authentication header
+// once an authentication has been accepted (at least until the browser
+// is restarted, it seems) we need to keep track of the fact that a user
+// has logged out by storing the auth values here.
+//
+// Also, note that if the server restarts and browsers resend the auth,
+// the user is suddenly logged in again.  Yikes.
+//
+define variable *ignore-authorizations* = list();
+define variable *ignore-logins* = list();
+
+
+// TODO: options to specify which fields are visible to whom.  (acls)
+//
+define class <wiki-user> (<wiki-object>)
+
+  slot user-name :: <string>,
+    required-init-keyword: name:;
+
+  slot %user-real-name :: false-or(<string>) = #f,
+    init-keyword: real-name:;
+
+  slot user-password :: <string>,
+    required-init-keyword: password:;
+
+  slot user-email :: <string>,
+    required-init-keyword: email:;
+
+  slot administrator? :: <boolean> = #f,
+    init-keyword: administrator?:;
+
+  slot user-activation-key :: <string>,
+    init-keyword: activation-key:;
+
+  slot user-activated? :: <boolean> = #f,
+    init-keyword: activated?:;
+end class <wiki-user>;
+
+define method initialize
+    (user :: <wiki-user>, #key)
+  next-method();
+  if (~slot-initialized?(user, user-activation-key))
+    user.user-activation-key := generate-activation-key(user);
+  end;
 end;
-*/
 
-// This is set in main.dylan, via the config file.
+define generic user-real-name
+    (user :: <wiki-user>) => (real-name :: <string>);
+
+define method user-real-name
+    (user :: <wiki-user>) => (real-name :: <string>)
+  user.%user-real-name | user.user-name
+end;
+
+define function find-user
+    (name :: <string>, #key default)
+ => (user :: false-or(<wiki-user>))
+  element(*users*, as-lowercase(name), default: default)
+end;
+
+// This is set when the config file is loaded.
 define variable *admin-user* :: false-or(<wiki-user>) = #f;
+
+define method generate-activation-key
+    (user :: <wiki-user>)
+ => (key :: <string>)
+  // temporary.  should be more secure.
+  base64-encode(concatenate(user.user-name, user.user-email))
+end;
+
+// What's this for?
+define method as (class == <string>, user :: <wiki-user>)
+ => (result :: <string>)
+  user.user-name;
+end;
+
+define function authenticated-user ()
+ => (user :: false-or(<wiki-user>))
+  authenticate();
+  *authenticated-user*
+end;
+
+define method \=
+    (user1 :: <wiki-user>, user2 :: <wiki-user>)
+ => (equal? :: <boolean>)
+  user1.user-name = user2.user-name
+end;
+
+define method login
+    (#key realm :: false-or(<string>))
+  let redirect-url = get-query-value("redirect");
+  let user = check-authorization();
+  if (~user)
+    require-authorization(realm: realm);
+  elseif (member?(user, *ignore-authorizations*, test: \=) &
+          member?(user, *ignore-logins*, test: \=))
+    *ignore-authorizations* := remove!(*ignore-authorizations*, user);
+    require-authorization(realm: realm);
+  elseif (~member?(user, *ignore-authorizations*, test: \=) &
+          member?(user, *ignore-logins*, test: \=))
+    *ignore-logins* := remove!(*ignore-logins*, user);
+    redirect-url & redirect-to(redirect-url);
+  else
+    redirect-url & redirect-to(redirect-url);
+  end if;
+end;
+
+define function logout ()
+  let user = check-authorization();
+  if (user)
+    *authenticated-user* := #f;
+    *ignore-authorizations* :=
+      add!(*ignore-authorizations*, user);
+    *ignore-logins* :=
+      add!(*ignore-logins*, user);
+  end if;
+  let redirect-url = get-query-value("redirect");
+  redirect-url & redirect-to(redirect-url);
+end;
+
+// TODO: this should signal an error, which we can handle in one place
+//       and redirect to a login page.
+define function check-authorization
+    () => (user :: false-or(<wiki-user>))
+  let authorization = get-header(current-request(), "Authorization", parsed: #t);
+  if (authorization)
+    let name = head(authorization);
+    let pass = tail(authorization);
+    let user = find-user(name);
+    if (user
+          & user.user-activated?
+          & user.user-password = pass)
+      user
+    end
+  end
+end function check-authorization;
+
+define function authenticate
+    () => (user :: false-or(<wiki-user>))
+  let user = check-authorization();
+  if (user)
+    *authenticated-user*
+      := if (~member?(user, *ignore-authorizations*, test: \=)
+               & ~member?(user, *ignore-logins*, test: \=))
+           user
+         end;
+  end
+end function authenticate;
+
+define function require-authorization
+    (#key realm :: false-or(<string>))
+  let realm = realm | *default-authentication-realm*;
+  let headers = current-response().raw-headers;
+  set-header(headers, "WWW-Authenticate", concatenate("Basic realm=\"", realm, "\""));
+  unauthorized-error(headers: headers);
+end;
 
 define wf/object-test (user) in wiki end;
 
-/*
-define wf/action-tests
- (add-user, edit-user, remove-user, list-users)
-in wiki end;
-*/
+define wf/error-tests (username, password, email) in wiki end;
 
-define wf/error-tests
- (username, password, email)
-in wiki end;
-
-
-// url
 
 define sideways method permanent-link
-    (user :: <wiki-user>, #key escaped?, full?)
- => (url :: <url>)
+    (user :: <wiki-user>) => (url :: <url>)
   user-permanent-link(user.user-name);
 end;
 
@@ -46,8 +191,6 @@ define sideways method redirect-to (user :: <wiki-user>)
   redirect-to(permanent-link(user));
 end;
 
-
-// methods
 
 define method send-new-account-email
     (user :: <wiki-user>)
@@ -134,34 +277,6 @@ define method validate-email
   email
 end;
 
-/*
-define method storage-type
-    (type == <wiki-user>)
- => (type :: <type>)
-  <string-table>
-end;
-*/
-
-
-// todo -- MAKE THREAD SAFE
-define method remove-user
-    (user :: <wiki-user>, #key comment :: <string> = "")
- => ()
-  remove-key!(storage(<wiki-user>), user.user-name);
-  let message = "Automatic change due to user account removal.";
-  for (group in groups-owned-by-user(user))
-    group.group-owner := *admin-user*;
-    save-change(<wiki-user-change>,
-                user.user-name, $remove-group-owner, message)
-  end;
-  for (group in user-groups(user))
-    group.group-members := remove!(group.group-members, user);
-    save-change(<wiki-user-change>,
-                user.user-name, $remove-group-member, message);
-  end;
-  save-change(<wiki-user-change>, user.user-name, $remove, comment);
-  dump-data();
-end;
 
 
 //// List Users
@@ -174,12 +289,12 @@ define method respond-to-get
   let pc = page-context();
   set-attribute(pc, "active-users",
                 map(method (user)
-                      table(<string-table>,
-                            "name" => user.user-name,
-                            "admin?" => user.administrator?)
+                      make-table(<string-table>,
+                                 "name" => user.user-name,
+                                 "admin?" => user.administrator?)
                     end,
                     choose(user-activated?,
-                           value-sequence(storage(<wiki-user>)))));
+                           load-all(*storage*, <wiki-user>))));
   let active-user = authenticated-user();
   set-attribute(pc, "active-user", active-user & active-user.user-name);
   next-method();
@@ -192,7 +307,7 @@ define method respond-to-post
   if (user)
     respond-to-get(*view-user-page*, name: user-name);
   else
-    add-field-error("user-name", "User %s not found.", user-name);
+    add-field-error("user-name", "User '%s' not found.", user-name);
     next-method();
   end;
 end method respond-to-post;
@@ -256,22 +371,43 @@ define method respond-to-post
     respond-to-get(*view-user-page*, name: active-user.user-name);
   else
     let new-name = validate-form-field("user-name", validate-user-name);
-    if (find-user(new-name))
-      add-field-error("user-name", "A user named %s already exists.", new-name);
-    end;
     let email = validate-form-field("email", validate-email);
     let password = validate-form-field("password", validate-password);
     let password2 = validate-form-field("password2", validate-password);
     if (password ~= password2)
       add-field-error("password2", "Passwords don't match.");
     end;
-    let user = #f;
-    if (~page-has-errors?())
-      user := make(<wiki-user>,
-                   name: new-name,
-                   password: password,
-                   email: email,
-                   administrator?: #f);
+
+    // Hold this user name, by adding it to *users*, while email is being sent.
+    // It will be removed if there are any further errors.
+    let user
+      = if (find-user(new-name))
+          add-field-error("user-name", "A user named %s already exists.", new-name);
+          #f
+        else
+          with-lock ($user-lock)
+            // check again with lock held
+            if (find-user(new-name))
+              add-field-error("user-name", "A user named %s already exists.", new-name);
+              #f
+            else
+              *users*[as-lowercase(new-name)] := make(<wiki-user>,
+                                                      name: new-name,
+                                                      real-name: #f,  // TODO
+                                                      password: password,
+                                                      email: email,
+                                                      administrator?: #f);
+            end;
+          end;
+        end if;
+    if (user)
+      // Hannes commented in IRC 2009-06-12: this will probably block
+      // the responder thread while the mail is being delivered; and
+      // to circumvent greylisting you've to wait 5-10 minutes between
+      // the first and second attempt. I'd suggest a separate thread
+      // which cares about email notifications, and the responder
+      // thread to push a message to a queue which is popped by the
+      // email thread...
       block ()
         send-new-account-email(user);
       exception (ex :: <serious-condition>)
@@ -281,26 +417,38 @@ define method respond-to-post
                         "Unable to send confirmation email to this address.");
       end;
     end;
+
+    // Check again for errors since sending mail may have failed.
     if (page-has-errors?())
+      with-lock($user-lock)
+        remove-key!(*users*, as-lowercase(new-name));
+      end;
       next-method();
     else
-      save(user);
-      save-change(<wiki-user-change>, new-name, $create, "User created",
-                  authors: list(new-name));
-      add-page-note("User %s created.  Please follow the link in the confirmation "
-                    "email sent to %s to activate the account.",
-                    new-name, email);
-      dump-data();
-      respond-to-get(*view-user-page*, name: user.user-name);
+      block ()
+        store(*storage*, user, user, "New user created",
+              standard-meta-data(user, "create"));
+        with-lock ($user-lock)
+          *users*[as-lowercase(user.user-name)] := user;
+        end;
+        add-page-note("User %s created.  Please follow the link in the confirmation "
+                      "email sent to %s to activate the account.",
+                      new-name, email);
+        respond-to-get(*view-user-page*, name: user.user-name);
+      exception (ex :: <serious-condition>)
+        with-lock($user-lock)
+          remove-key!(*users*, as-lowercase(new-name));
+        end;
+      end;
     end if;
   end if;    
 end method respond-to-post;
 
 
-//// User activation
+//// User activation/deactivation
 
 // Responder for the URL sent in confirmation email to activate the account.
-
+//
 define function respond-to-user-activation-request
     (#key name :: <string>, key :: <string>)
   let name = percent-decode(name);
@@ -310,8 +458,8 @@ define function respond-to-user-activation-request
       let key = percent-decode(key);
       if (key = user.user-activation-key)
         user.user-activated? := #t;
-        save-change(<wiki-user-change>, name, $activate, "Account activated",
-                    authors: list(name));
+        store(*storage*, user, *admin-user*, "Account activated",
+              standard-meta-data(user, "activate"));
       end;
     end;
     if (user.user-activated?)
@@ -324,6 +472,37 @@ define function respond-to-user-activation-request
   end;
   respond-to-get(*view-user-page*, name: name);
 end function respond-to-user-activation-request;
+
+define class <deactivate-user-page> (<wiki-dsp>)
+end;
+
+define method respond-to-get
+    (dsp :: <deactivate-user-page>, #key name :: <string>)
+  dynamic-bind (*user* = find-user(name))
+    next-method();
+  end;
+end;
+
+define method respond-to-post
+    (dsp :: <deactivate-user-page>, #key name :: <string>)
+  dynamic-bind (*user* = find-user(name))
+    let author = authenticated-user();
+    if (author
+        & (author = *user* | author.administrator?)
+        & (*user* ~= *admin-user*))
+      let comment = get-query-value("comment") | "Deactivated";
+      store(*storage*, *user*, author, comment,
+            standard-meta-data(*user*, "deactivate"));
+      *user*.user-activated? := #f;
+      add-page-note("User '%s' deactivated", *user*.user-name);
+      respond-to-get(*list-users-page*);
+    else
+      add-page-error("You don't have permission to deactivate this user.");
+      respond-to-get(*view-user-page*, name: name);
+    end;
+  end;
+end method respond-to-post;
+
 
 //// Edit User
 
@@ -375,9 +554,9 @@ define method respond-to-post
       if (user)
         let comments = make(<stretchy-vector>);
         if (user.user-name ~= new-name)
-          remove-key!(storage(<wiki-user>), name);  // old name
-          user.user-name := new-name;
-          add!(comments, format-to-string("renamed to %s", new-name));
+          let comment = sformat("Rename to %s", new-name);
+          rename-user(user, new-name, comment);
+          add!(comments, comment);
         end;
         if (user.user-password ~= password)
           user.user-password := password;
@@ -392,8 +571,8 @@ define method respond-to-post
           add!(comments, format-to-string("%s admin status",
                                           iff(admin?, "added", "removed")));
         end;
-        save(user);
-        save-change(<wiki-user-change>, name, $edit, join(comments, ", "));
+        store(*storage*, user, active-user, join(comments, ", "),
+              standard-meta-data(user, "edit"));
         add-page-note("User %s updated.", new-name);
       else
         // new user
@@ -402,22 +581,33 @@ define method respond-to-post
                      password: password,
                      email: email,
                      administrator?: admin?);
-        save(user);
-        save-change(<wiki-user-change>, new-name, $create, "User created");
+        store(*storage*, user, active-user, "User created",
+              standard-meta-data(user, "create"));
+        with-lock ($user-lock)
+          *users*[as-lowercase(new-name)] := user;
+        end;
         add-page-note("User %s created.", new-name);
         login(realm: *wiki-realm*);
       end;
-      dump-data();
       redirect-to(user);
     end if;
   end if;    
 end method respond-to-post;
 
-define method do-remove-user (#key username)
-  let user = find-user(percent-decode(username));
-  remove-user(user, comment: get-query-value("comment"));
-  redirect-to(user);
-end;
+define function rename-user
+    (user :: <wiki-user>, new-name :: <string>, comment :: <string>)
+ => ()
+  let author = authenticated-user();
+  let revision = rename(*storage*, user, new-name, author, comment,
+                        standard-meta-data(user, "rename"));
+  let old-name = user.user-name;
+  with-lock ($user-lock)
+    remove-key!(*users*, as-lowercase(old-name));
+    *users*[as-lowercase(new-name)] := user;
+  end;
+  user.user-name := new-name;
+  // user.user-revision := revision;
+end function rename-user;
 
 define method redirect-to-user-or
     (page :: <wiki-dsp>, #key username)
@@ -428,36 +618,22 @@ define method redirect-to-user-or
   end if;
 end;
 
-define method show-remove-user (#key username :: <string>)
-  dynamic-bind(*user* = find-user(percent-decode(username)))
-    redirect-to-user-or(*remove-user-page*);
-  end;
-end;
 
 // tags
 
 define tag show-user-username in wiki (page :: <wiki-dsp>)
     ()
-  output("%s", if (*user*)
-                 escape-xml(*user*.user-name)
-               elseif (wf/*form* & element(wf/*form*, "username", default: #f))
-                 escape-xml(wf/*form*["username"])
-               elseif (*user-username*)
-                 *user-username*
-               else
-                 ""
-               end if);
+  output("%s", (*user* & escape-xml(*user*.user-name))
+               | get-query-value("username")
+               | *user-username*
+               | "");
 end;
 
 define tag show-user-email in wiki (page :: <wiki-dsp>)
     ()
-  output("%s", if (*user*)
-                 escape-xml(*user*.user-email);
-               elseif (wf/*form* & element(wf/*form*, "email", default: #f))
-                 escape-xml(wf/*form*["email"]);
-               else
-                 ""
-               end if);
+  output("%s", (*user* & escape-xml(*user*.user-email))
+               | get-query-value("email")
+               | "");
 end;
 
 define tag show-user-permanent-link in wiki (page :: <wiki-dsp>)
@@ -473,12 +649,11 @@ end;
 define body tag list-users in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
-  let users = storage(<wiki-user>);
-  if (users.size == 0)
+  if (*users*.size == 0)
     // todo -- quick hack.  replace wiki:list-users with dsp:do
     output("<li>No users</li>");
   else
-    for (user in users)
+    for (user in *users*)
       dynamic-bind(*user* = user)
         do-body();
       end;
@@ -530,4 +705,37 @@ define named-method can-modify-user?
                 user-name & (find-user(percent-decode(user-name)) = user)
               end)
 end;
+
+
+define tag show-login-url in wiki (page :: <dylan-server-page>)
+    (redirect :: type-union(<string>, <boolean>), current :: <boolean>)
+  let url = parse-url("/login");
+  if (redirect)
+    url.uri-query["redirect"] := if (current) 
+                                   build-uri(request-url(current-request()))
+                                 else 
+                                   redirect
+                                 end;
+  end if;
+  output("%s", url);
+end;
+
+define tag show-logout-url in wiki (page :: <dylan-server-page>)
+    (redirect :: type-union(<string>, <boolean>), current :: <boolean>)
+  let url = parse-url("/logout");
+  if (redirect)
+    url.uri-query["redirect"] := if (current) 
+                                   build-uri(request-url(current-request())) 
+                                 else
+                                   redirect
+                                 end;
+  end if;
+  output("%s", url);
+end;
+
+
+define named-method authenticated? in wiki (page :: <dylan-server-page>)
+  authenticated-user()
+end;
+
 

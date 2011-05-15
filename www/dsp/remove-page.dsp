@@ -17,7 +17,7 @@
 
       <dsp:if test="can-modify-content?">
         <dsp:then>
-          <form action="<wiki:base/>/page/remove" method="post">
+          <form action="<wiki:base/>/page/remove/<wiki:show-page-title/>" method="post">
             <fieldset>
               <ol>
                 <li id="comment-item">

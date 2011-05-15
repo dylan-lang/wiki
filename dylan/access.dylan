@@ -1,4 +1,4 @@
-Module: wiki-internal
+Module: %wiki
 
 //// Access Control Lists
 
@@ -23,7 +23,7 @@ three pre-defined groups:
 
 Any access rule may be negated, so that for example "deny anyone"
 or "deny <user>" may be specified.  In the code this is represented
-as a sequence such as #(deny:, <user>).
+as a sequence such as #($deny, <user>).
 
 If no ACLs are set for a page then the default ACLs are used instead.
 (The defaults need to be made configurable.)
@@ -45,13 +45,16 @@ grants or denies the permission.  For example, if an admin or the
 page owner wants to quickly disable a page they could simply add
 "deny anyone" at the front of the ACLs.
 
-Note that admins are always allowed all access.
+Note that admins are always allowed all access.  There is also no
+mechanism to deny access to the owner of a page via acls.  If you
+need to do that, disable the owner's account or change the ownership
+of the page.
 
 Example: Anyone but cgay and group1 can view content
 
-  view-content: list(list(deny:, <user cgay>),
-                     list(deny:, <group group1>),
-                     list(allow:, $anyone))
+  view-content: list(list($deny, <user cgay>),
+                     list($deny, <group group1>),
+                     list($allow, $anyone))
 
 */
 
@@ -65,6 +68,9 @@ define constant $anyone = #"anyone";
 define constant $trusted = #"trusted";
 define constant $owner = #"owner";
 
+define constant $allow = #"allow";
+define constant $deny = #"deny";
+
 // The compiler barfs on this when I uncomment things.
 //
 define constant <rule-target> //:: <type>
@@ -73,17 +79,14 @@ define constant <rule-target> //:: <type>
                <wiki-group>);
 
 define class <rule> (<object>)
-  constant slot rule-action :: one-of(allow:, deny:),
+  constant slot rule-action :: one-of($allow, $deny),
     required-init-keyword: action:;
   constant slot rule-target :: <rule-target>,
     required-init-keyword: target:;
 end;
 
-// temp, for debugging dood problem
-define constant $acls-lock :: <simple-lock> = make(<simple-lock>);
-
 define class <acls> (<object>)
-  // Must hold this lock before modifying the the values in any
+  // Must hold this lock before modifying the values in any
   // of the other slots.
   //constant slot acls-lock :: <simple-lock> = make(<simple-lock>);
 
@@ -102,11 +105,11 @@ define method make
     (class :: subclass(<acls>), #key view-content, modify-content, modify-acls)
  => (object :: <acls>)
   // Make sure the ACLs can't be modified by mutating the sequences
-  // after creation.  Is there a better way to write this?
+  // after creation.
   apply(next-method, class,
-        view-content: copy-sequence(view-content | #()),
-        modify-content: copy-sequence(modify-content | #()),
-        modify-acls: copy-sequence(modify-acls | #()),
+        view-content:   slice(view-content, 0, #f),
+        modify-content: slice(modify-content, 0, #f),
+        modify-acls:    slice(modify-acls, 0, #f),
         #())
 end method make;
 
@@ -115,11 +118,11 @@ define method remove-rules-for-target
   local method not-for-target (rule)
           rule.rule-target ~= target
         end;
-  with-lock ($acls-lock /* acls.acls-lock */)
+  //with-lock ($acls-lock /* acls.acls-lock */)
     acls.view-content-rules := choose(not-for-target, acls.view-content-rules);
     acls.modify-content-rules := choose(not-for-target, acls.modify-content-rules);
     acls.modify-acls-rules := choose(not-for-target, acls.modify-acls-rules);
-  end;
+  //end;
 end method remove-rules-for-target;
 
 // Default access controls applied to pages that don't otherwise specify
@@ -127,12 +130,12 @@ end method remove-rules-for-target;
 //
 define constant $default-access-controls
   = make(<acls>,
-         view-content: list(make(<rule>, action: allow:, target: $anyone)),
-         modify-content: list(make(<rule>, action: allow:, target: $trusted)),
-         modify-acls: list(make(<rule>, action: allow:, target: $owner)));
+         view-content:   list(make(<rule>, action: $allow, target: $anyone)),
+         modify-content: list(make(<rule>, action: $allow, target: $trusted)),
+         modify-acls:    list(make(<rule>, action: $allow, target: $owner)));
 
 define method has-permission?
-    (user :: false-or(<user>),
+    (user :: false-or(<wiki-user>),
      page :: false-or(<wiki-page>),
      requested-operation :: <acl-operation>)
  => (has-permission? :: <boolean>)
@@ -154,7 +157,7 @@ define method has-permission?
     #t
   else
     let acls :: <acls> = iff(page,
-                             page.access-controls,
+                             page.page-access-controls,
                              $default-access-controls);
     let rules :: <sequence> = select (requested-operation)
                                 $view-content => acls.view-content-rules;
@@ -173,7 +176,7 @@ define method has-permission?
                         | (target = $owner & page & page.page-owner = user)
                         | (instance?(target, <wiki-group>)
                              & member?(user, target.group-members)))))
-          return(action = allow:)
+          return(action = $allow)
         end if;
       end for;
       #f          // default is no permission if no rule matches
@@ -215,10 +218,10 @@ define method parse-rule
     (rule :: <string>)
  => (rule, errors? :: <boolean>)
   let rule = trim(rule);
-  let action = allow:;
+  let action = $allow;
   if (rule.size > 0)
     if (rule[0] = '!')
-      action := deny:;
+      action := $deny;
       rule := copy-sequence(rule, start: 1);
     end;
     if (rule.size > 0)
@@ -253,12 +256,12 @@ define method unparse-rule
   let action = rule.rule-action;
   let target = rule.rule-target;
   concatenate(select (action)
-                allow: => "";
-                deny:  => "!";
+                $allow => "";
+                $deny  => "!";
               end,
               select (target by instance?)
                 <symbol> => as-lowercase(as(<string>, target));
-                <user> => target.user-name;
+                <wiki-user> => target.user-name;
                 <wiki-group> => target.group-name;
                 otherwise => error("Invalid rule target: %s", target);
               end)
@@ -269,7 +272,7 @@ end;
 
 define method respond-to-get
     (acls-page :: <acls-page>, #key title :: <string>)
-  let wiki-page = find-page(percent-decode(title));
+  let wiki-page = find-or-load-page(percent-decode(title));
   if (wiki-page)
     set-attribute(page-context(), "owner-name", wiki-page.page-owner.user-name);
     dynamic-bind (*page* = wiki-page)
@@ -288,7 +291,7 @@ end method respond-to-get;
 //
 define method respond-to-post
     (acls-page :: <acls-page>, #key title :: <string>)
-  let wiki-page = find-page(percent-decode(title));
+  let wiki-page = find-or-load-page(percent-decode(title));
   if (~wiki-page)
     // Someone used an old URL or typed it in by hand...
     resource-not-found-error(url: request-url(current-request()));
@@ -318,19 +321,17 @@ define method respond-to-post
       note-errors(vc-rules, "view-content");
       note-errors(mc-rules, "modify-content");
       note-errors(ma-rules, "modify-acls");
-      dynamic-bind (wf/*form* = current-request().request-query-values)
-        respond-to-get(acls-page, title: title);
-      end;
+      respond-to-get(acls-page, title: title);
     else
       // todo -- Probably should save a <wiki-change> of some sort.
       //         I haven't figured out what the Master Plan was yet.
       if (new-owner & new-owner ~= wiki-page.page-owner)
         wiki-page.page-owner := new-owner;
       end;
-      wiki-page.access-controls := make(<acls>,
-                                        view-content: vc-rules,
-                                        modify-content: mc-rules,
-                                        modify-acls: ma-rules);
+      wiki-page.page-access-controls := make(<acls>,
+                                             view-content: vc-rules,
+                                             modify-content: mc-rules,
+                                             modify-acls: ma-rules);
       redirect-to(wiki-page);
     end;
   end;
@@ -351,7 +352,7 @@ define tag show-rules in wiki
   if (text)
     output("%s", quote-html(text));
   else
-    let acls = *page*.access-controls;
+    let acls = *page*.page-access-controls;
     output("%s", unparse-rules(select (name by \=)
                                  "view-content" => acls.view-content-rules;
                                  "modify-content" => acls.modify-content-rules;

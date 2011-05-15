@@ -1,10 +1,10 @@
-Module: wiki-internal
+Module: %wiki
 Synopsis: An ad-hoc parser for wiki markup
 Author: Carl Gay
 Copyright: This code is in the public domain.
 
 
-define variable *wiki-link-url* = wiki-url("/pages/");
+define variable *wiki-link-url* = wiki-url("/page/view/");
 
 // This table maps the leading character of any markup that can occur
 // top-level (i.e., anywhere in the wiki page) to a function that
@@ -176,7 +176,7 @@ define method make-link
       format(out, "<a href=\"%s%s\">%s%s</a>",
              *wiki-link-url*,
              title,
-             if (find-page(title)) "" else "[?]" end,
+             if (find-or-load-page(title)) "" else "[?]" end,
              title);
     else
       let bar = find(markup, '|', start: start, end: close);

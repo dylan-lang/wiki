@@ -1,4 +1,3 @@
-<%dsp:taglib name="web-framework" prefix="wf"/>
 <%dsp:taglib name="wiki"/>
 
       <dsp:get name="group-description"/>

@@ -1,4 +1,4 @@
-module: wiki-internal
+module: %wiki
 
 define thread variable *file-filename* = #f;
 
@@ -20,17 +20,6 @@ in wiki end;
 
 define error-test (filename) in wiki end;
 
-
-// verbs
-
-*change-verbs*[<wiki-file-change>] :=
-  table(#"edit" => "edited",
-	#"removal" => "removed",
-	#"renaming" => "renamed",
-	#"add" => "uploaded");
-
-
-// url
 
 define method permanent-link
     (file :: <wiki-file>, #key escaped?, full?)
@@ -207,8 +196,8 @@ define method do-save-file (#key filename)
     redirect-to(find-user(username));
   else
     current-request().request-query-values["password"] := "";
-    dynamic-bind (*errors* = errors, *form* = current-request().request-query-values)
-      respond-to(#"get", *edit-user-page*);
+    dynamic-bind (*errors* = errors)
+      respond-to-get(*edit-user-page*);
     end;
   end if;
 */
@@ -237,13 +226,10 @@ define constant show-remove-file =
 
 define tag show-file-filename in wiki (page :: <wiki-dsp>)
  ()
-  output("%s", if (*file*)
-      escape-xml(*file*.file-filename)
-    elseif (*form* & element(*form*, "filename", default: #f))
-      escape-xml(*form*["filename"])
-    elseif (*file-filename*)
-      *file-filename*
-    else "" end if);
+  output("%s", (*file* & escape-xml(*file*.file-filename))
+               | get-query-value("filename")
+               | *file-filename*
+               | "");
 end;
 
 define tag show-file-permanent-link in wiki (page :: <wiki-dsp>)

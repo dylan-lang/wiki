@@ -41,7 +41,7 @@
 
       </dsp:loop>
 
-      <form action="<wiki:base/>/user/remove" method="post">
+      <form action="<wiki:base/>/user/deactivate/<wiki:show-user-username/>" method="post">
 	<fieldset>
           <ol>
             <li id="comment-item">
@@ -50,7 +50,7 @@
             </li>
           </ol>
         </fieldset>        	
-        <input type="submit" value="Remove '<wiki:show-user-username/>'"/>  
+        <input type="submit" value="Deactivate '<wiki:show-user-username/>'"/>  
       </form>
     </div>
   </div>

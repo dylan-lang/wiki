@@ -1,3 +1,5 @@
 library: wiki-test-suite
 files: library.dylan
-       wiki-test-suite.dylan
+       test-storage.dylan
+       test-acls.dylan
+       main.dylan

@@ -1,4 +1,4 @@
-Module: wiki-internal
+Module: %wiki
 
 // These are sent as the text and URL for the Atom feed generator element.
 define variable *site-name* :: <string> = "Dylan Wiki";
@@ -10,11 +10,25 @@ define variable *wiki-realm* :: <string> = "wiki";
 define variable *mail-host* = #f;
 define variable *mail-port* :: <integer> = $default-smtp-port;
 
+define constant $administrator-user-name :: <string> = "administrator";
+
+/// This is called when the <wiki> element in the config file is
+/// processed.
 define sideways method process-config-element
     (server :: <http-server>, node :: xml/<element>, name == #"wiki")
-  // set the content-directory
-  process-config-element(server, node, #"web-framework");
-  
+
+  let git-exe = get-attr(node, #"git-executable")
+                | "git";
+  let main-root = get-attr(node, #"git-repository-root")
+                  | error("The git-repository-root setting is required.");
+  let user-root = get-attr(node, #"git-user-repository-root")
+                  | error("The git-user-repository-root setting is required.");
+  *storage* := make(<git-storage>,
+                    repository-root: as(<directory-locator>, main-root),
+                    user-repository-root: as(<directory-locator>, user-root),
+                    executable: as(<file-locator>, git-exe));
+  initialize-storage-for-reads(*storage*);
+
   local method child-node-named (name)
           block (return)
             for (child in xml/node-children(node))
@@ -24,6 +38,19 @@ define sideways method process-config-element
             end;
           end;
         end;
+
+  let admin-element = child-node-named(#"administrator");
+  if (~admin-element)
+    error("An <administrator> element must be specified in the config file.");
+  end;
+  let (admin-user, changed?) = process-administrator-configuration(admin-element);
+  initialize-storage-for-writes(*storage*, admin-user);
+  if (changed?)
+    store(*storage*, admin-user, admin-user, "Change due to config file edit",
+          standard-meta-data(admin-user, "edit"));
+  end;
+  *admin-user* := admin-user;
+  *users*[as-lowercase(admin-user.user-name)] := admin-user;
 
   *site-name* := get-attr(node, #"site-name") | *site-name*;
   log-info("Site name: %s", *site-name*);
@@ -41,12 +68,6 @@ define sideways method process-config-element
   *template-directory* := subdirectory-locator(*static-directory*, "dsp");
   log-info("Wiki static directory: %s", *static-directory*);
 
-  let admin-element = child-node-named(#"administrator");
-  if (~admin-element)
-    error("An <administrator> element must be specified in the config file.");
-  end;
-  process-administrator-configuration(admin-element);
-
   let auth-element = child-node-named(#"authentication");
   if (auth-element)
     process-authentication-configuration(auth-element);
@@ -58,48 +79,44 @@ define sideways method process-config-element
   else
     error("A <mail> element must be specified in the config file.");
   end;
+
 end method process-config-element;
 
 define method process-administrator-configuration
     (admin-element :: xml/<element>)
-  let username = get-attr(admin-element, #"username");
   let password = get-attr(admin-element, #"password");
   let email = get-attr(admin-element, #"email");
-  if (~(username & password & email))
+  if (~(password & email))
     error("The <administrator> element must be specified in the config file "
-          "with a username, password, and email.");
+          "with a password and email.");
   end;
-  let username = validate-user-name(username);
   let password = validate-password(password);
   let email = validate-email(email);
-  let admin = find-user(username);
+  let admin = find-user($administrator-user-name);
   let admin-changed? = #f;
   if (admin)
     if (admin.user-password ~= password)
       admin.user-password := password;
       admin-changed? := #t;
-      log-info("Administrator user (%s) password changed.", username);
+      log-info("Administrator user (%s) password changed.", $administrator-user-name);
     end;
     if (admin.user-email ~= email)
       admin.user-email := email;
       admin-changed? := #t;
-      log-info("Administrator user (%s) email changed to %=.", username, email);
+      log-info("Administrator user (%s) email changed to %=.",
+               $administrator-user-name, email);
     end;
   else
     admin := make(<wiki-user>,
-                  name: username,
+                  name: $administrator-user-name,
                   password: password,
                   email: email,
                   administrator?: #t,
                   activated?: #t);
     admin-changed? := #t;
-    log-info("Administrator user (%s) created.", username);
+    log-info("Administrator user (%s) created.", $administrator-user-name);
   end;
-  if (admin-changed?)
-    save(admin);
-    dump-data();
-  end;
-  *admin-user* := admin;
+  values(*admin-user* := admin, admin-changed?)
 end method process-administrator-configuration;
 
 define method process-authentication-configuration
@@ -176,7 +193,8 @@ define function restore-from-text-files
                           email: email,
                           administrator?: #f,
                           activated?: #t);
-          save(user);
+          store(*storage*, user, *admin-user*, "New user",
+                standard-meta-data(user, "create"));
           inc!(user-count);
         end;
         assert(empty?(read-line(stream)));
@@ -198,28 +216,19 @@ define function restore-from-text-files
     with-open-file(stream = page-locator(page-num, rev-num, "props"))
       let title = parse-line(stream);
       let author = find-user(parse-line(stream)) | administrator;
-      // as-iso8601-string and make(<date>, iso8601-string ...) are not inverses??
-      let timestamp = make(<date>,
-                           iso8601-string: choose(method(x)
-                                                    ~member?(x, "-:")
-                                                  end,
-                                                  parse-line(stream)));
+      let timestamp = parse-iso8601-string(parse-line(stream));
       let comment = parse-line(stream);
-      let action = #"edit";
       let page = find-page(title);
       if (~page)
+        let content = file-contents(page-locator(page-num, rev-num, "content"));
         page := make(<wiki-page>,
                      title: title,
+                     content: content,
                      owner: author);
-        action := #"add";
       end;
-      let tags = #[];
-      let content = file-contents(page-locator(page-num, rev-num, "content"));
-      save-page-internal(page, content, comment, tags, author, action,
-                         published: timestamp);
+      store(*storage*, page, author, comment, standard-meta-data(page, "create"));
     end;
   end for;
-  dump-data();
   page-data.size
 end function restore-from-text-files;
 
@@ -246,7 +255,6 @@ define function add-wiki-responders
   local method add (url, resource, #rest args)
           apply(add-resource,
                 http-server, concatenate(*wiki-url-prefix*, url), resource,
-                trailing-slash: #t,
                 args);
         end;
   add("/static", make(<directory-resource>, directory: *static-directory*));
@@ -260,20 +268,24 @@ define function add-wiki-responders
   add("/recent-changes",
       make(<recent-changes-page>, source: "list-recent-changes.dsp"),
       url-name: "wiki.recent-changes");
+  /* TODO:
   add("/feed/{type?}/{name?}", function-resource(atom-feed-responder),
       url-name: "wiki.atom-feed");
+  */
 
   add("/user/list", *list-users-page*,
       url-name: "wiki.user.list");
-  add("/user/view/{name}", *view-user-page*,
+  // TODO: support the {revision?} path element.  Requires a revision
+  //       slot in wiki-object.
+  add("/user/view/{name}/{revision?}", *view-user-page*,
       url-name: "wiki.user.view");
   add("/user/edit/{name}", *edit-user-page*,
       url-name: "wiki.user.edit");
-  add("/user/remove/{name}", *remove-user-page*,
-      url-name: "wiki.user.remove");
   add("/user/activate/{name}/{key}",
       function-resource(respond-to-user-activation-request),
       url-name: "wiki.user.activate");
+  add("/user/deactivate/{name}", *deactivate-user-page*,
+      url-name: "wiki.user.deactivate");
 
   add("/register", *registration-page*,
       url-name: "wiki.register");
@@ -285,29 +297,28 @@ define function add-wiki-responders
   add("/page/list",
       make(<list-pages-page>, source: "list-pages.dsp"),
       url-name: "wiki.page.list");
-  add("/page/view/{title}/{version?}",
-      function-resource(show-page-responder),
+  add("/page/view/{title}/{version?}", *view-page-page*,
       url-name: "wiki.page.view");
+  // TODO: rename {version} to {revision}
   add("/page/edit/{title}/{version?}",
       make(<edit-page-page>, source: "edit-page.dsp"),
       url-name: "wiki.page.edit");
-  // was show-remove-page and do-remove-page
-  add("/page/remove/{title}/{version}", *remove-page-page*,
+  add("/page/remove/{title}/{version?}", *remove-page-page*,
       url-name: "wiki.page.remove");
-  add("/page/versions/{title}", *page-versions-page*,
+  add("/page/history/{title}/{revision?}", *page-history-page*,
       url-name: "wiki.page.versions");
-  add("/page/diff/{title}/{version1}/{version2}", *view-diff-page*,
+  add("/page/diff/{title}/{version1}", *view-diff-page*,
       url-name: "wiki.page.diff");
   add("/page/connections/{title}", *connections-page*,
       url-name: "wiki.page.connections");
-  add("/page/authors/{title}", function-resource(show-page-authors),
-      url-name: "wiki.page.authors");
   add("/page/access/{title}", *edit-access-page*,
       url-name: "wiki.page.access");
 
   add("/group/list", *list-groups-page*,
       url-name: "wiki.group.list");
-  add("/group/view/{name}", *view-group-page*,
+  // TODO: support the {revision?} path element.  Requires a revision
+  //       slot in wiki-object.
+  add("/group/view/{name}/{revision?}", *view-group-page*,
       url-name: "wiki.group.view");
   add("/group/edit/{name}", *edit-group-page*,
       url-name: "wiki.group.edit");
@@ -338,7 +349,22 @@ define function initialize-wiki
     *template-directory* := subdirectory-locator(*static-directory*, "dsp");
   end;
   add-wiki-responders(server);
+  preload-wiki-data();
 end function initialize-wiki;
+
+define function preload-wiki-data ()
+  // Load all wiki data.  Not serving yet, so no lock needed.
+  for (user in load-all(*storage*, <wiki-user>))
+    *users*[as-lowercase(user.user-name)] := user;
+  end;
+  for (group in load-all(*storage*, <wiki-group>))
+    *groups*[as-lowercase(group.group-name)] := group;
+  end;
+  // TODO: This won't scale.
+  for (page in load-all(*storage*, <wiki-page>))
+    *pages*[page.page-title] := page;
+  end;
+end function preload-wiki-data;
 
 // This is pretty horrifying, but the plan is to eventually make it all
 // disappear behind a somewhat less horrifying macro like "define site".
@@ -348,26 +374,25 @@ define function initialize-pages
   // page pages
   *view-diff-page* := make(<view-diff-page>, source: "view-diff.dsp");
   *edit-page-page* := make(<edit-page-page>, source: "edit-page.dsp");
-  *view-page-page* := make(<wiki-dsp>, source: "view-page.dsp");
-  *remove-page-page* := make(<wiki-dsp>, source: "remove-page.dsp");
-  *page-versions-page* := make(<page-versions-page>, source: "list-page-versions.dsp");
+  *view-page-page* := make(<view-page-page>, source: "view-page.dsp");
+  *remove-page-page* := make(<remove-page-page>, source: "remove-page.dsp");
+  *page-history-page* := make(<page-history-page>, source: "view-page-history.dsp");
   *connections-page* := make(<connections-page>, source: "page-connections.dsp");
   *search-page* := make(<wiki-dsp>, source: "search-page.dsp");
-  *page-authors-page* := make(<wiki-dsp>, source: "page-authors.dsp");
   *non-existing-page-page* := make(<wiki-dsp>, source: "non-existing-page.dsp");
 
   // user pages
   *list-users-page* := make(<list-users-page>, source: "list-users.dsp");
   *view-user-page* := make(<view-user-page>, source: "view-user.dsp");
   *edit-user-page* := make(<edit-user-page>, source: "edit-user.dsp");
-  *remove-user-page* := make(<wiki-dsp>, source: "remove-user.dsp");
+  *deactivate-user-page* := make(<deactivate-user-page>, source: "deactivate-user.dsp");
   *non-existing-user-page* := make(<wiki-dsp>, source: "non-existing-user.dsp");
   *not-logged-in-page* := make(<wiki-dsp>, source: "not-logged-in.dsp");
 
   // group pages
   *list-groups-page* := make(<list-groups-page>, source: "list-groups.dsp");
   *non-existing-group-page* := make(<wiki-dsp>, source: "non-existing-group.dsp");
-  *view-group-page* := make(<group-page>, source: "view-group.dsp");
+  *view-group-page* := make(<view-group-page>, source: "view-group.dsp");
   *edit-group-page* := make(<edit-group-page>, source: "edit-group.dsp");
   *remove-group-page* := make(<remove-group-page>, source: "remove-group.dsp");
   *edit-group-members-page* := make(<edit-group-members-page>,
@@ -407,6 +432,7 @@ define function main
   else
     let filename = locator-name(as(<file-locator>, application-name()));
     if (split(filename, ".")[0] = "wiki")
+      // This eventually causes process-config-element (above) to be called.
       koala-main(description: "Dylan Wiki",
                  before-startup: initialize-wiki);
     end;

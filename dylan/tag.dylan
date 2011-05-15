@@ -1,4 +1,4 @@
-Module: wiki-internal
+Module: %wiki
 
 // Pages can have a set of tags associated with them, which are
 // arbitrary strings and are stored in the "categories" slot of

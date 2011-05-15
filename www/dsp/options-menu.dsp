@@ -11,7 +11,7 @@
 	  </li>
 	</dsp:when>
         <dsp:when test="can-view-content?">
-	  <li><a href="<wiki:base/>/page/versions/<wiki:show-page-title/>">versions</a></li>
+	  <li><a href="<wiki:base/>/page/history/<wiki:show-page-title/>">history</a></li>
 	  <li><a href="<wiki:base/>/page/connections/<wiki:show-page-title/>">connections</a></li>
 	</dsp:when>
 	<dsp:if test="is-discussion-page?">

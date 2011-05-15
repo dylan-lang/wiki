@@ -1,6 +1,5 @@
 Library: wiki
 Files: library
-       dsp
        wiki
        tag
        user
@@ -9,6 +8,7 @@ Files: library
        parser
        page
        feed
+       git-storage
        main
 Other-files: ../README.rst
 	     ../koala-config.xml

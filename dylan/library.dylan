@@ -1,10 +1,12 @@
 Module: dylan-user
-Author: turbo24prg
+Author: turbo24prg, Carl Gay
 
 define library wiki
+  use base64;
   use collection-extensions,
     import: { sequence-diff };
-  use collections;
+  use collections,
+    import: { set, table-extensions };
   use command-line-parser;
   use common-dylan,
     import: { common-extensions };
@@ -19,36 +21,46 @@ define library wiki
   use strings;
   use string-extensions;
   use system,
-    import: { locators, threads, date, file-system };
+    import: {
+      date,
+      file-system,
+      locators,
+      operating-system,
+      threads
+      };
   use regular-expressions;
   use uri;
   use web-framework;
   use xml-parser;
   use xml-rpc-client;
 
-  use source-location;
+/* for the monday parser, currently unused
   use grammar;
   use simple-parser;
   use regular;
+*/
 
   use uncommon-dylan;
 
   export
     wiki,
-    wiki-internal;   // for the test suite
+    %wiki;
 end library wiki;
 
+/// External module
+///
 define module wiki
   create
     add-wiki-responders;
 end;
 
-define module wiki-internal
+/// Internal module, for test suite
+///
+define module %wiki
+  use base64;
   use changes,
-    rename: { published => date-published,
-              label => category-label },
+    prefix: "wf/",
     exclude: { <uri> };
-  use sequence-diff;
   use command-line-parser;
   use common-extensions,
     exclude: { format-to-string };
@@ -63,34 +75,36 @@ define module wiki-internal
   use koala;
   use locators,
     exclude: { <http-server>, <url> };
+  use operating-system;
   use permission;
+  use sequence-diff;
+  use set,
+    import: { <set> };
   use simple-xml;
   use smtp-client;
-  use storage;
   use streams;
   use strings,
     import: { trim };
   use substring-search;
-  use table-extensions;
+  use table-extensions,
+    rename: { table => make-table };
   use threads;
   use regular-expressions;
   use uncommon-dylan;
   use uri;
-  use users;
   use web-framework,
-    prefix: "wf/",
-    exclude: { slot-type };
+    prefix: "wf/";
   use wiki;
   use xml-parser,
     prefix: "xml/";
   use xml-rpc-client;
 
-  // for the parser
+  // for the monday parser, currently unused
+/*
   use simple-parser;
-  use source-location;
-  use source-location-rangemap;
   use grammar;
   use simple-lexical-scanner;
+*/
 
   use graphviz-renderer,
     prefix: "gvr/";
@@ -101,10 +115,64 @@ define module wiki-internal
     $view-content, $modify-content, $modify-acls,
     $anyone, $trusted, $owner,
     $default-access-controls,
-    has-permission?,
-    
-    <wiki-user>,
-    <wiki-page>;
+    view-content-rules,
+    modify-content-rules,
+    modify-acls-rules,
+    <rule>,
+    rule-action,
+    rule-target,
+    has-permission?;
 
-end module wiki-internal;
+  // Storage
+  export
+    *storage*,
+    <storage>,
+    <git-storage>,
+    <storage-error>,
+    initialize-storage-for-reads,
+    initialize-storage-for-writes,
+    load,
+    load-all,
+    find-or-load-pages-with-tags,
+    store,
+    delete,
+    rename,
+    standard-meta-data;
+    
+  // Groups
+  export
+    *groups*, $group-lock,
+    <wiki-group>,
+    group-name,
+    group-owner,
+    group-members,
+    group-description;
+
+  // Pages
+  export
+    *pages*, $page-lock,
+    <wiki-page>,
+    page-title,
+    page-content,
+    page-comment,
+    page-owner,
+    page-author,
+    page-tags,
+    page-access-controls,
+    page-revision;
+
+  // Users
+  export
+    *users*, $user-lock,
+    <wiki-user>,
+    user-real-name,
+    user-name,
+    user-password,
+    user-email,
+    administrator?,
+    user-activation-key,
+    user-activated?,
+    *admin-user*;
+
+end module %wiki;
 

@@ -1,6 +1,6 @@
 Module: wiki-test-suite
 
-define suite acl-test-suite ()
+define suite acls-test-suite ()
   test test-default-access-controls;
   test test-has-permission?;
   test test-invalid-acls;
@@ -9,19 +9,19 @@ define suite acl-test-suite ()
 end;
 
 define constant $owner-user = make(<wiki-user>,
-                                   username: "owner",
+                                   name: "owner",
                                    password: "owner",
                                    email: "owner",
                                    administrator?: #f);
 
 define constant $plain-user = make(<wiki-user>,
-                                   username: "plain",
+                                   name: "plain",
                                    password: "plain",
                                    email: "admin",
                                    administrator?: #f);
 
 define constant $admin-user = make(<wiki-user>,
-                                   username: "admin",
+                                   name: "admin",
                                    password: "admin",
                                    email: "admin",
                                    administrator?: #t);
@@ -87,7 +87,7 @@ define test test-invalid-acls ()
   check-condition("create acls with bad target",
                   <error>,
                   make(<acls>, modify-acls: list(vector(allow:, foo:))));
-end;
+end test test-invalid-acls;
 
 define test test-no-deny-owner ()
   // todo -- make sure that if the owner is a member of a denied group they
@@ -96,7 +96,7 @@ define test test-no-deny-owner ()
                        make(<acls>, view-content: list(list(deny:, $owner-user))));
   check-true("owner still has permission even if explicitly denied",
              has-permission?($owner-user, page, $view-content));
-end;
+end test test-no-deny-owner;
 
 define test test-has-permission? ()
 /*
@@ -134,27 +134,4 @@ define test test-has-permission? ()
                 has-permission?(user, page, acl-operation));
   end;
 */
-end;
-
-define test save-user-test ()
-end;
-
-define suite storage-test-suite ()
-  test save-user-test;
-end suite storage-test-suite;
-
-define suite wiki-test-suite ()
-  suite storage-test-suite;
-  suite acl-test-suite;
-end suite wiki-test-suite;
-
-define method main () => ()
-  let filename = locator-name(as(<file-locator>, application-name()));
-  if (split(filename, ".")[0] = "wiki-test-suite")
-    run-test-application(wiki-test-suite);
-  end;
-end method main;
-
-begin
-  main()
-end;
+end test test-has-permission?;
