@@ -37,19 +37,18 @@
           <h3>Note that any groups owned by this user will become owned by the
             "administrator" user.</h3>
         </dsp:when>
-</dsp;when>
 
       </dsp:loop>
 
       <form action="<wiki:base/>/user/deactivate/<wiki:show-user-username/>" method="post">
-	<fieldset>
+        <fieldset>
           <ol>
             <li id="comment-item">
               <label id="comment-label" for="comment-input">Comment:</label>
               <input id="comment-input" type="text" name="comment" value=""/>
             </li>
           </ol>
-        </fieldset>        	
+        </fieldset>
         <input type="submit" value="Deactivate '<wiki:show-user-username/>'"/>  
       </form>
     </div>

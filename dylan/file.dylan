@@ -140,8 +140,8 @@ end;
 define method show-file (#key filename)
   dynamic-bind (*file-filename* = percent-decode(filename))
     respond-to(#"get", case
-	                 //TODO: *file* => *view-file-page*;
-			 otherwise => *edit-file-page*;
+                         //TODO: *file* => *view-file-page*;
+                         otherwise => *edit-file-page*;
                        end case);
   end;
 end method show-file;
@@ -149,8 +149,8 @@ end method show-file;
 define method show-edit-file (#key filename)
   dynamic-bind (*file-filename* = percent-decode(filename))
     respond-to(#"get", case
-	                 *file* => *edit-file-page*;
-			 otherwise => *non-existing-file-page*;
+                         *file* => *edit-file-page*;
+                         otherwise => *non-existing-file-page*;
                        end case);
   end;
 end method show-edit-file;

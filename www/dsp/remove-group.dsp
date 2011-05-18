@@ -18,7 +18,7 @@
       <%dsp:include url="view-group-body.dsp"/>
 
       <form action="<wiki:base/>/group/remove" method="post">
-	<fieldset>
+        <fieldset>
           <ol>
             <li id="comment-item">
               <label id="comment-label" for="comment-input">Comment:</label>
@@ -26,7 +26,7 @@
                      value="<dsp:get name='comment' context='request'/>"/>
             </li>
           </ol>
-        </fieldset>        	
+        </fieldset>             
         <input type="submit" value="Remove Group"/>
       </form>
     </div>

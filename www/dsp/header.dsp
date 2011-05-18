@@ -21,22 +21,22 @@ We'll use Google custom search, at least for a while
       <ol>
         <li>
           <select name="search-type" size="1">
-	    <option>*</option>
+            <option>*</option>
             <option selected="selected">Page</option>
-	    <option>User</option>
-	    <option>Group</option>
-	    <option>File</option>
-	  </select>
-	</li>
+            <option>User</option>
+            <option>Group</option>
+            <option>File</option>
+          </select>
+        </li>
         <li>
           <input id="search-text" type="text" name="query" value="<dsp:get name="query" context="request"/>"/>
-	</li>
-	<li>
+        </li>
+        <li>
           <input type="submit" name="search" value="Search"/>
-	</li>
-	<li>
+        </li>
+        <li>
           <input type="submit" name="go" value="Go"/>
-	</li>
+        </li>
       </ol>
     </fieldset>
   </form>

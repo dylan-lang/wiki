@@ -18,29 +18,29 @@
       <form action="<wiki:base/>/group/members/<dsp:get name="group-name"/>" method="post">
         <fieldset>
           <table>
-	    <tr>
+            <tr>
               <td id="users-item">
                 <label id="users-label" for="users-list">Users:</label>
-	        <select id="users-list" name="users" multiple="multiple">
+                <select id="users-list" name="users" multiple="multiple">
                   <dsp:loop over="non-members" context="page" var="user-name">
                     <option><dsp:get name="user-name"/></option>
-		  </dsp:loop>
+                  </dsp:loop>
                 </select>
-	      </td>
+              </td>
               <td id="members-item">
                 <label id="members-label" for="members-list">Members:</label>
                 <select id="members-list" name="members" multiple="multiple">
                   <dsp:loop over="group-members" var="user-name" context="page">
                     <option><dsp:get name="user-name"/></option>
                   </dsp:loop>
-	        </select>
+                </select>
               </td>
-	    </tr>
-	    <tr>
-	      <td><input type="submit" name="add" value="Add" /></td>
-	      <td><input type="submit" name="remove" value="Remove" /></td>
-	    </tr>
-	    <tr>
+            </tr>
+            <tr>
+              <td><input type="submit" name="add" value="Add" /></td>
+              <td><input type="submit" name="remove" value="Remove" /></td>
+            </tr>
+            <tr>
               <td id="comment-item" colspan="2">
                 <label id="comment-label" for="comment-input">Comment:</label>
                 <input id="comment-input" type="text" name="comment"

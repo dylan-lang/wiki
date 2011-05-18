@@ -16,9 +16,9 @@
 
       <p class="hint">
         This group doesn't exist.
-	<a href="<wiki:base/>/register">Register</a> or
-	<a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
-	to create it.
+        <a href="<wiki:base/>/register">Register</a> or
+        <a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
+        to create it.
       </p>
     </div>
   </div>

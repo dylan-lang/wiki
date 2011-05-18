@@ -33,7 +33,7 @@ define function parse-wiki-markup
         add!(chunks, slice(markup, start, #f));
       else
         add!(chunks, slice(markup, start, markup-bpos));
-	let in-bpos = markup-bpos + *markup-prefix*.size;
+        let in-bpos = markup-bpos + *markup-prefix*.size;
         let markup-epos = iterate loop (start = in-bpos)
                             case
                               start >= markup.size =>
@@ -46,12 +46,12 @@ define function parse-wiki-markup
                           end;
         if (markup-epos)
           // For now only handle {{Page Name}}
-	  let title = trim(slice(markup, in-bpos, markup-epos));
-	  add!(chunks, make-page-anchor(title, title));
-	  loop(markup-epos + *markup-suffix*.size);
-	else
-	  error("Wiki markup close tag (%=) not found at index %d in page %s",
-	        *markup-suffix*, markup-bpos, title);
+          let title = trim(slice(markup, in-bpos, markup-epos));
+          add!(chunks, make-page-anchor(title, title));
+          loop(markup-epos + *markup-suffix*.size);
+        else
+          error("Wiki markup close tag (%=) not found at index %d in page %s",
+                *markup-suffix*, markup-bpos, title);
         end;
       end if;
     end if;

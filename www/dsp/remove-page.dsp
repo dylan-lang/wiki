@@ -25,7 +25,7 @@
                   <input id="comment-input" type="text" name="comment" value=""/>
                 </li>
               </ol>
-            </fieldset>        	
+            </fieldset>
             <input type="submit" value="Remove '<wiki:show-page-title/>'"/>  
           </form>
         </dsp:then>

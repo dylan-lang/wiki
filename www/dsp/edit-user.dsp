@@ -30,19 +30,19 @@
               <dsp:show-field-errors field-name="user-name"/>
             </li>
             <li id="password">
-	      <label id="password-label" for="password-input">Password <em title="required">*</em></label>
+              <label id="password-label" for="password-input">Password <em title="required">*</em></label>
               <input id="password-input" type="password" name="password"
                      <dsp:if-error field-name="password" text='class="invalid-input"'/>
                      value="<dsp:get name='password' context='request,page'/>"/>
               <dsp:show-field-errors field-name="password"/>
-	    </li>
+            </li>
             <li id="email">
               <label id="email-label" for="email-input">E-Mail <em title="required">*</em></label>
               <input id="email-input" type="text" name="email"
                      <dsp:if-error field-name="email" text='class="invalid-input"'/>
                      value="<dsp:get name='email' context='request,page'/>"/>
               <dsp:show-field-errors field-name="email"/>
-	    </li>
+            </li>
             <dsp:when test="true?" name="active-user-is-admin?">
               <li id="admin">
                 <label id="admini-label" for="admin-input">Administrator?</label>
@@ -51,7 +51,7 @@
                        <dsp:when test="true?" name="admin?" context="request,page">checked="checked"</dsp:when>
                        <dsp:if-error field-name="admin?" text='class="invalid-input"'/> />
                 <dsp:show-field-errors field-name="admin?"/>
-	      </li>
+              </li>
             </dsp:when>
           </ol>
         </fieldset>

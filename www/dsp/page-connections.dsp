@@ -16,9 +16,9 @@
       <dsp:show-page-notes/>
 
       <ul class="striped big">
-	<wiki:list-page-backlinks>
+        <wiki:list-page-backlinks>
           <li><a href="<dsp:get name='backlink-url' context='page'/>"><dsp:get name="backlink" context="page"/></a></li>
-	</wiki:list-page-backlinks>
+        </wiki:list-page-backlinks>
       </ul>
     </div>
   </div>

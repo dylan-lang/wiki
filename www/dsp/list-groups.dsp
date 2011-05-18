@@ -33,8 +33,8 @@
         </form>
       </dsp:when>
       <dsp:unless test="logged-in?">
-	<a href="<wiki:base/>/register">Register</a> or
-	<a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
+        <a href="<wiki:base/>/register">Register</a> or
+        <a href="<wiki:base/>/login?redirect=<wiki:current/>">login</a>
         to create a new group.
       </dsp:unless>
       <dsp:loop over="all-groups" context="page" var="group" header="<ul>" footer="</ul>" empty="<p>There are no groups.</p>">

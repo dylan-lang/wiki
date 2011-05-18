@@ -23,15 +23,15 @@
         <p><font color="red">THIS IS A PREVIEW.  DON'T FORGET TO SAVE THE PAGE.</font></p>
         <hr/>
         <div class="preview">
-	  <dsp:if test="can-view-content?">
-	    <dsp:then>
-	      <wiki:show-page-preview/>
-	      <%dsp:include url="view-page-tags.dsp"/>
-	    </dsp:then>
-	    <dsp:else>
-	      You do not have permission to view this page.
-	    </dsp:else>
-	  </dsp:if>
+          <dsp:if test="can-view-content?">
+            <dsp:then>
+              <wiki:show-page-preview/>
+              <%dsp:include url="view-page-tags.dsp"/>
+            </dsp:then>
+            <dsp:else>
+              You do not have permission to view this page.
+            </dsp:else>
+          </dsp:if>
         </div>
         <hr/>
       </dsp:when>
