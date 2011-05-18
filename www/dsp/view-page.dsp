@@ -34,7 +34,15 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <%dsp:include url="view-page-content.dsp"/>
+      <dsp:if test="can-view-content?">
+        <dsp:then>
+          <wiki:show-page-content/>
+          <%dsp:include url="view-page-tags.dsp"/>
+        </dsp:then>
+        <dsp:else>
+          You do not have permission to view this page.
+        </dsp:else>
+      </dsp:if>
 
     </div>
   </div>

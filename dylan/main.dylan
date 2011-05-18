@@ -80,6 +80,15 @@ define sideways method process-config-element
     error("A <mail> element must be specified in the config file.");
   end;
 
+  *python-executable* := get-attr(node, #"python-executable")
+    | error("The 'python-executable' attribute must be specified in the 'wiki' "
+            "config file element.");
+  *rst2html* := get-attr(node, #"rst2html")
+    | error("The 'rst2html' attribute must be specified in the 'wiki' "
+            "config file element.");
+  *rst2html-template* := get-attr(node, #"rst2html-template")
+    | error("The 'rst2html-template' attribute must be specified in the 'wiki' "
+            "config file element.");
 end method process-config-element;
 
 define method process-administrator-configuration

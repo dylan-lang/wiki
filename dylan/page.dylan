@@ -79,6 +79,11 @@ define method find-page
   element(*pages*, title, default: #f)
 end;
 
+define method page-exists?
+    (title :: <string>) => (exists? :: <boolean>)
+  find-page(title) & #t
+end;
+
 // The latest revisions of all pages are loaded at startup for now (to
 // simplify searches and iteration over lists of pages) so this will only
 // load anything if the 'revision' arg is supplied.  Note that 'revision'
@@ -451,6 +456,13 @@ define method respond-to-get
   end;
 end method respond-to-get;
 
+define tag show-page-content in wiki
+    (page :: <wiki-dsp>)
+    ()
+  let xhtml = wiki-markup-to-html(*page*.page-content, *page*.page-title);
+  output("%s", xhtml);
+end;
+
 
 
 //// Edit Page
@@ -532,6 +544,15 @@ define method respond-to-post
     end;
   end;
 end method respond-to-post;
+
+define tag show-page-preview in wiki
+    (page :: <edit-page-page>)
+    ()
+  let markup = get-query-value("content");
+  let title = get-query-value("title");
+  output("%s", wiki-markup-to-html(markup, title));
+end;
+
 
 
 //// View Diff
@@ -649,21 +670,6 @@ define tag show-page-owner in wiki
   if (*page*)
     output("%s", escape-xml(*page*.page-owner.user-name))
   end;
-end;
-
-define tag show-page-content in wiki
-    (page :: <wiki-dsp>)
-    (content-format :: false-or(<string>))
-  let raw-content = get-attribute(page-context(), "content")
-                    | (*page* & *page*.page-content)
-                    | get-query-value("content")
-                    | "";
-  case
-    content-format = "xhtml"
-      => output("%s", wiki-markup-to-html(raw-content)); // parse-wiki-markup(content);
-    otherwise
-      => output("%s", raw-content);
-  end case;
 end;
 
 define tag show-version in wiki

@@ -47,7 +47,7 @@
       <wiki:list-pages tags="news">
         <h3 class="news summary"><a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h3>
         <small class="date"><wiki:show-page-published formatted="%d. %B %Y %H:%M"/></small>
-        <wiki:show-page-content format="markup"/>
+        <wiki:show-page-xhtml/>
       </wiki:list-pages>
 
     </div>

@@ -183,3 +183,40 @@ Backlinks (Page References)
 Use for: users to see what points to a page
 
 Update page = update backlink file for all pages it references or dereferences.
+
+
+Markup Language
+===============
+
+The markup language is an augmented version of `ReStructured Text
+(RST) <http://docutils.sourceforge.net/rst.html>`.  An initial pass is
+made over the markup source to resolve wiki-specific markup and then
+the resulting text is passed directly to rst2html.
+
+All wiki directives start with ``{{`` and ends with ``}}``.  Because
+page links are expected to be the most common by far, they have an
+optional shortened syntax::
+
+    {{page: Foo, text: Bar}}    -- link text "Bar" to page "Foo"
+    {{Foo,Bar}}                 -- shorthand for {{page:Foo,text:Bar}}
+    {{Foo}}                     -- shorthand for {{page:Foo,text:Foo}}
+    {{page: "x,y"}}             -- names may be quoted
+    {{page: 'The "x" Page'}}    -- single or double quotes work.
+    {{user: jdoe, text: Jon}}   -- a user link
+    {{group: group}}            -- a group link
+    {{wiki: off}}               -- turn off wiki markup parsing
+    {{wiki: on}}                -- turn it back on
+    {{escape: "[[" "]]"}}       -- use [[ and ]] instead of {{ and }}
+
+The wiki pre-parser knows nothing about RST parsing.  It simply
+searches the raw markup for ``{{`` and assumes that's a wiki
+directive.  If you need to put a literal ``{{`` or ``}}`` in the
+generated output it can be done like this::
+
+  {{wiki:off}}{{{{wiki:on}}
+
+or by changing the escape character sequences::
+
+  {{escape: "[[" "]]"}}
+  Now {{ and }} are just normal text and [[Foo]] is a page link.
+  [[escape: "{{" "}}"]]

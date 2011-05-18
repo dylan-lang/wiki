@@ -42,6 +42,8 @@
 	git-repository-root="c:/tmp/wiki/main-storage"
 	git-user-repository-root="c:/tmp/wiki/user-storage"
 	git-executable="c:/Program Files/Git/bin/git"
+	python-executable="c:/python27/python.exe"
+	rst2html="c:/docutils/tools/rst2html.py"
         >
     <!-- Note that the administrator's email address will be the one
          from which account emails are sent, so it runs a high spam risk.

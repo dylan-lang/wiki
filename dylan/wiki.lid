@@ -5,11 +5,12 @@ Files: library
        user
        group
        access
-       parser
+       rst-parser
        page
        feed
        git-storage
        main
 Other-files: ../README.rst
-	     ../koala-config.xml
-	     ../TODO
+             ../koala-config.xml
+             ../TODO
+             ../rst2html-template.txt
