@@ -87,9 +87,10 @@ end function rst2html;
 /// Make an RST link to the page with the given title.
 define function make-page-anchor
     (title :: <string>, text :: <string>) => (link :: <string>)
+  // Note that the space before the '<' is required by the RST parser.
   format-to-string("`%s %s<%s/page/view/%s>`_",
                    text,
-                   iff(page-exists?(title), "", "[?]"),
+                   iff(page-exists?(title), "", "(?) "),
                    *wiki-url-prefix*,
                    percent-encode($uri-pchar, title))
 end;
