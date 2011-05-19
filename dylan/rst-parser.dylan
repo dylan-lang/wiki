@@ -28,22 +28,13 @@ define function parse-wiki-markup
   let chunks :: <sequence> = make(<stretchy-vector>);
   iterate loop (start :: <integer> = 0)
     if (start < markup.size)
-      let markup-bpos = subsequence-position(markup, *markup-prefix*, start: start);
+      let markup-bpos = index-of(markup, *markup-prefix*, start: start);
       if (~markup-bpos)
         add!(chunks, slice(markup, start, #f));
       else
         add!(chunks, slice(markup, start, markup-bpos));
         let in-bpos = markup-bpos + *markup-prefix*.size;
-        let markup-epos = iterate loop (start = in-bpos)
-                            case
-                              start >= markup.size =>
-                                #f;
-                              equal?(markup, *markup-suffix*, start1: start) =>
-                                start;
-                              otherwise =>
-                                loop(start + 1);
-                            end;
-                          end;
+        let markup-epos = index-of(markup, *markup-suffix*, start: in-bpos);
         if (markup-epos)
           // For now only handle {{Page Name}}
           let title = trim(slice(markup, in-bpos, markup-epos));
@@ -79,9 +70,7 @@ define function rst2html
     end;
     force-output(stdin);
     close(stdin);
-    log-debug("wrote markup chunks");
     html := read-to-end(stdout);
-    log-debug("read stdout %d bytes", html.size);
     error := read-to-end(stderr);
     log-debug("read stderr %d bytes", error.size);
   cleanup
@@ -95,12 +84,13 @@ define function rst2html
 end function rst2html;
 
 
+/// Make an RST link to the page with the given title.
 define function make-page-anchor
-    (title :: <string>, text :: <string>) => (html-anchor :: <string>)
-  if (page-exists?(title))
-    format-to-string("<a href=\"/page/view/%s\">%s</a>", title, text)
-  else
-    format-to-string("%s <a href=\"/page/view/%s\">[?]</a>", text, title)
-  end
+    (title :: <string>, text :: <string>) => (link :: <string>)
+  format-to-string("`%s %s<%s/page/view/%s>`_",
+                   text,
+                   iff(page-exists?(title), "", "[?]"),
+                   *wiki-url-prefix*,
+                   percent-encode($uri-pchar, title))
 end;
 
