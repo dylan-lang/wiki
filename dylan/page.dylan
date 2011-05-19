@@ -357,27 +357,33 @@ end;
 
 define class <list-pages-page> (<wiki-dsp>) end;
 
+/// GET lists the pages in alphabetical order
+///
 define method respond-to-get
     (dsp :: <list-pages-page>, #key)
-  if (get-query-value("go"))
-    redirect-to(page-permanent-link(get-query-value("query")));
-  else
-    let pc = page-context();
-    local method page-info (page :: <wiki-page>)
-            make-table(<string-table>,
-                       "title" => page.page-title,
-                       "when-published" => standard-date-and-time(page.creation-date),
-                       "latest-authors" => page.page-author.user-name)
-          end;
-    let current-page = get-query-value("page", as: <integer>) | 1;
-    let paginator = make(<paginator>,
-                         sequence: map(page-info, find-pages()),
-                         page-size: $default-list-size,
-                         current-page-number: current-page);
-    set-attribute(pc, "wiki-pages", paginator);
-    next-method();
-  end;
+  let pc = page-context();
+  local method page-info (page :: <wiki-page>)
+          make-table(<string-table>,
+                     "title" => page.page-title,
+                     "when-published" => standard-date-and-time(page.creation-date),
+                     "latest-authors" => page.page-author.user-name)
+        end;
+  let current-page = get-query-value("page", as: <integer>) | 1;
+  let paginator = make(<paginator>,
+                       sequence: map(page-info, find-pages()),
+                       page-size: $default-list-size,
+                       current-page-number: current-page);
+  set-attribute(pc, "wiki-pages", paginator);
+  next-method();
 end method respond-to-get;
+
+/// POST finds a particular page (the 'query') and displays it.
+///
+define method respond-to-post
+    (dsp :: <list-pages-page>, #key)
+  redirect-to(page-permanent-link(get-query-value("query")));
+end;
+
 
 
 //// Remove page
