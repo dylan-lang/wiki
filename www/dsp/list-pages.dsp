@@ -41,7 +41,7 @@
         </ul>
       </form>
       <!-- display the paginator for the wiki page list -->
-      <dsp:show-page-links name="wiki-pages" url="/wiki/pages?page=" query-value="page" />
+      <dsp:show-page-links name="wiki-pages" url="/wiki/page/list?page=" query-value="page" />
 
     </div>
   </div>
