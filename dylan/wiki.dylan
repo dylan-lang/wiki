@@ -111,6 +111,8 @@ define constant $page-lock :: <lock> = make(<lock>);
 //// General-use DSP tags
 
 // Prefix for all wiki URLs.  Set to "" for no prefix.
+// Note that some templates still hard-code this value,
+// until URL generation works.
 define variable *wiki-url-prefix* :: <string> = "/wiki";
 
 // This shouldn't be needed once generate-url is working.

@@ -18,7 +18,7 @@
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>
 
-      <dsp:show-page-links name="recent-changes" url="<wiki:base/>/recent-changes?page=" query-value="page"/>
+      <dsp:show-page-links name="recent-changes" url="/wiki/recent-changes?page=" query-value="page"/>
 
       <wiki:list-recent-changes>
         <dsp:if-not-equal name1="day" name2="previous-day">
@@ -51,7 +51,7 @@
         </dl>
       </wiki:list-recent-changes>
 
-      <dsp:show-page-links name="recent-changes" url="<wiki:base/>/recent-changes?page=" query-value="page"/>
+      <dsp:show-page-links name="recent-changes" url="/wiki/recent-changes?page=" query-value="page"/>
 
     </div>
   </div>
