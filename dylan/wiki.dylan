@@ -325,13 +325,13 @@ end;
 /// Values:
 ///   changes - a sequence of <wiki-change> objects representing object
 ///             creations, edits, deletions, or renames.
-//
+///
 define method find-recent-changes
     (#key for-type :: subclass(<wiki-object>) = <wiki-object>,
           start :: false-or(<string>),
           name :: false-or(<string>))
  => (changes :: <sequence>)
-  find-changes(*storage*, for-type, start: start, name: name)
+  find-changes(*storage*, for-type, start: start, name: name, count: 300)
 end;
 
 define body tag list-recent-changes in wiki
