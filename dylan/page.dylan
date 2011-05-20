@@ -140,7 +140,8 @@ end;
 
 define function title-less?
     (p1 :: <wiki-page>, p2 :: <wiki-page>) => (less? :: <boolean>)
-  p1.page-title < p2.page-title
+  as-lowercase(p1.page-title) < as-lowercase(p2.page-title)
+  //case-insensitive-less?(p1.page-title, p2.page-title)
 end;
 
 define function creation-date-newer?
