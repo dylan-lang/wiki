@@ -637,21 +637,35 @@ define function call-git
   log-debug("Running command in cwd = %s: %s",
             as(<string>, cwd),
             command);
-  let (exit-code, signal, child, stdout-stream, stderr-stream)
-    = run-application(command,
-                      asynchronous?: #f,
-                      working-directory: cwd,
-                      output: #"stream",
-                      error: #"stream");
-  // TODO:
-  // I'm not going to worry about buffering problems this might run into
-  // due to massive amounts of output right now, but something more robust
-  // will be needed eventually.
-  let stdout = read-to-end(stdout-stream);
-  let stderr = read-to-end(stderr-stream);
+
+  let process = #f;
+  let stdout = #f;
+  let stderr = #f;
+  let exit-code = #f;
+  let signal = #f;
+  block ()
+    let (_, _, child, stdout-stream, stderr-stream)
+      = run-application(command,
+                        asynchronous?: #t,
+                        working-directory: cwd,
+                        output: #"stream",
+                        error: #"stream");
+    process := child;
+    // TODO:
+    // I'm not going to worry about buffering problems this might run into
+    // due to massive amounts of output right now, but something more robust
+    // will be needed eventually.
+    stdout := read-to-end(stdout-stream);
+    stderr := read-to-end(stderr-stream);
+  cleanup
+    let (code, sig) = wait-for-application-process(process);
+    exit-code := code;
+    signal := sig;
+  end block;
+
   if (debug?)
-    log-debug("exit-code: %s\nstdout:\n%s\nstderr:\n%s",
-              exit-code, stdout, stderr);
+    log-debug("exit-code: %s (%s)\nstdout:\n%s\nstderr:\n%s",
+              exit-code, signal, stdout, stderr);
   end;
   if (error? & (exit-code ~= 0))
     git-error("Error running git command %=:\n"
