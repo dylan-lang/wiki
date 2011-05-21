@@ -268,7 +268,7 @@ define function add-wiki-responders
         end;
   add("/static", make(<directory-resource>, directory: *static-directory*));
 
-  add("/", make(<wiki-dsp>, source: "main.dsp"),
+  add("/", make(<redirecting-resource>, target: wiki-url("/page/view/Home")),
       url-name: "wiki.home");
   add("/login", function-resource(curry(login, realm: *wiki-realm*)),
       url-name: "wiki.login");
