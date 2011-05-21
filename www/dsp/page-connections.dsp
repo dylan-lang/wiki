@@ -7,7 +7,9 @@
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
-    <%dsp:include url="navigation.dsp"/>
+    <div id="navigation">
+      <wiki:include-page title="Wiki Left Nav"/>
+    </div>
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <h2>Connections to <a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h2>

@@ -11,7 +11,9 @@
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
-    <%dsp:include url="navigation.dsp"/>
+    <div id="navigation">
+      <wiki:include-page title="Wiki Left Nav"/>
+    </div>
     <div id="body">               
       <h2>Groups <a href="<wiki:base/>/feed/groups"><img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for group changes"/></a></h2>
 

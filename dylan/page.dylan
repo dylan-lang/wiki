@@ -685,6 +685,17 @@ define tag show-version in wiki
   output("%s", *page*.page-revision);
 end;
 
+define tag include-page in wiki
+    (dsp :: <wiki-dsp>)
+    (title :: <string>)
+  let page = find-or-load-page(title);
+  if (page)
+    output("%s", wiki-markup-to-html(page.page-content, title));
+  else
+    output("PAGE '%S' NOT FOUND", title);
+  end;
+end;
+
 
 // body tags 
 

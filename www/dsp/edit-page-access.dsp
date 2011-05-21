@@ -8,7 +8,9 @@
 <body>
   <%dsp:include url="header.dsp"/>
   <div id="content">
-    <%dsp:include url="navigation.dsp"/>
+    <div id="navigation">
+      <wiki:include-page title="Wiki Left Nav"/>
+    </div>
     <%dsp:include url="options-menu.dsp"/>
     <div id="body">
       <dsp:show-page-notes/>
