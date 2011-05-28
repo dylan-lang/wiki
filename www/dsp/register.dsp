@@ -6,11 +6,11 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
-    <div id="body">
+    <div id="content">
 
       <dsp:show-page-errors/>
       <dsp:show-page-notes/>

@@ -10,14 +10,14 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
     <dsp:when test="exists?" name="active-user">
       <%dsp:include url="group-options-menu.dsp"/>
     </dsp:when>
-    <div id="body">
+    <div id="content">
       <h2>Group <dsp:get name="group-name"/>
         <a href="<wiki:base/>/feed/groups/<dsp:get name='group-name'/>">
           <img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for this group"/>

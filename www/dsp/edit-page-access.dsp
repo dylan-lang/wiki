@@ -7,12 +7,12 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
     <%dsp:include url="options-menu.dsp"/>
-    <div id="body">
+    <div id="content">
       <dsp:show-page-notes/>
       <h2>Access Control for <a href="<wiki:base/>/page/view/<wiki:show-page-title/>"><wiki:show-page-title/></a></h2>
 

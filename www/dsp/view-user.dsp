@@ -10,14 +10,14 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
     <dsp:when test="logged-in?">
       <%dsp:include url="user-options-menu.dsp"/>
     </dsp:when>
-    <div id="body">
+    <div id="content">
       <h2>User <dsp:get name="user-name"/><dsp:when test="true?" name="admin?"> (administrator)</dsp:when>
         <a href="<wiki:base/>/feed/users/<dsp:get name='user-name'/>">
           <img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for changes to this user"/>

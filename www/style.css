@@ -1,3 +1,20 @@
+/*
+ * Basic page layout looks like this:
+ * ----------------------------------------
+ * | header-left             header-right |
+ * ----------------------------------------
+ * | navigation |     options menu        |
+ * |            | ----------------------- |
+ * |            |                         |
+ * |            |        content          |
+ * |            |                         |
+ * ----------------------------------------
+ * |           footer                     |
+ * ----------------------------------------
+ *
+ * The entire section between the header and footer is called the "midsection".
+ */
+
 body {
   font-size: 0.8em;
   font-family: "Lucida Grande", Verdana, Arial, sans-serif;
@@ -19,72 +36,65 @@ fieldset {
   padding: 1em 0;
 }
 
-#dylan-logo {
+#logo {
   display: inline;
   float: left;
   margin-bottom: 1.5em;
   position: relative;
+  border-bottom: 1px;  /* remove dotted underline */
 }
 
-#search-user {
+#header-left {
+  float: left;
+}
+#header-right {
   float: right;
 }
-
-#search-user form {
+#header-right form {
   margin: 0;
 }
-
-#search-user form::before {
+#header-right form::before {
   content: url(images/search.png);
 }
-
-#search-user a {
- border: none;
+#header-right a {
+  border: none;
 }
-
-#search-user span.user-info::before {
+#header-right span.user-info::before {
   content: url(images/user.png);
 }
-
-#search-user span.not-logged-in {
+#header-right span.not-logged-in {
   padding-left: 20px;
 }
 
 #content {
+  width: 70%;
+  float: left;
+  display: inline-block;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+#midsection {
   clear: both;
   padding-top: 1em;
 }
 
-#navigation {
-  float: left;
-  margin: 1em;
-  list-style-type: none;
-}
-
-#body {
-  padding-left: 16em;
-}
-
-hr {
-  clear: right;
-}
-
-#content > ul {
-  padding: 0;
-}
-
-#navigation li {
-  font-weight: bold;
-}
-
-#navigation li li {
-  font-weight: normal;
-}
-
-#content > ul ul, #content > ul ul ul {
+#midsection > ul ul, #midsection > ul ul ul {
   padding-left: 1em;
 }
 
+hr {
+  clear: both;
+}
+
+#midsection > ul {
+  padding: 0;
+}
+
+#navigation {
+  float: left;
+}
 #navigation > li {
   margin-bottom: 2em;
 }
@@ -95,14 +105,12 @@ hr {
 
 #navigation ul {
   list-style-type: square;
-  list-style-position: inside;
 } 
 
 #navigation ul ul {
   padding-top: 0.3em;
   padding-bottom: 1em;
   list-style-type: circle;
-  list-style-position: inside;
 }
 
 #navigation a {
@@ -192,7 +200,7 @@ body hr {
   display: block;
 }
 
-h2, #content, body hr {
+h2, #midsection, body hr {
   border-top: 0.1em dashed #ccc;
 }
 

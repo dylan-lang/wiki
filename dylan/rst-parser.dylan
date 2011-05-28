@@ -52,7 +52,7 @@ end function parse-wiki-markup;
 
 define function rst2html
     (rst-chunks :: <sequence>) => (html :: <string>)
-  let command = format-to-string("%s %s --template %s --no-doc-title",
+  let command = format-to-string("%s %s --template %s --no-doc-title --link-stylesheet",
                                  *python-executable*, *rst2html*, *rst2html-template*);
   let error = #f;
   let html = "";

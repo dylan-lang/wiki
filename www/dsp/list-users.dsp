@@ -10,11 +10,11 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
-    <div id="body">
+    <div id="content">
       <h2>Users <a href="<wiki:base/>/feed/users"><img border="0" src="<wiki:base/>/static/images/feed-icon-14x14.png" alt="Atom feed for user changes"/></a></h2>
 
       <dsp:show-page-errors/>

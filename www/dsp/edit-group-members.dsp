@@ -6,12 +6,12 @@
 </head>
 <body>
   <%dsp:include url="header.dsp"/>
-  <div id="content">
+  <div id="midsection">
     <div id="navigation">
       <wiki:include-page title="Wiki Left Nav"/>
     </div>
     <%dsp:include url="group-options-menu.dsp"/>
-    <div id="body">
+    <div id="content">
       <h2>Change Members of <a href="<wiki:base/>/group/view/<dsp:get name='group-name'/>"><dsp:get name='group-name'/></a></h2>
 
       <dsp:show-page-errors/>
