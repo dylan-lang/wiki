@@ -700,7 +700,7 @@ end function git-load-blob;
 define function store-blob
     (file :: <file-locator>, blob :: <string>)
  => ()
-  with-open-file (stream = file, direction: #"output", if-exists: #"overwrite")
+  with-open-file (stream = file, direction: #"output", if-exists: #"replace")
     write(stream, blob);
   end;
 end function store-blob;
