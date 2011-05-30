@@ -160,11 +160,8 @@ Other
 - icon for groups
 - icon for files
 - renaming users/groups/pages
-- atom feed
 - file upload
 - user page: edited pages
   * each page: list of versions
 - page: authors
   * each user: list of versions  
-- 304 (not modified)
-  * compare request etag with page version timestamp
