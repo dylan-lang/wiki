@@ -3,19 +3,20 @@ Fix before going live
 
 * Page back links
 * Rename page/user/group need to update page references.
-* Recent changes
 * Disable UI access to unfinished TODO--* items.
 * Convert the content in www.opendylan.org to wiki pages and make
   them only editable by the dylan-hackers group.
-* The methods on permanent-link are incorrect.  For example, if you go
-  to the "connections" page via the "versions" page, all the connection
-  page links are incorrect.  Maybe transform-uris is broken.  Maybe we
-  should be using <web-locator>s instead.
-* Write all the hard-linked pages in the navigation bar (and the news items)
-  in the old wiki so they're available immediately after conversion.  All
-  we need to do after conversion is add the "news" tag.
-* ATOM feeds?
-* List page revisions?
+* Careful by-hand test of all existing features.
+* Implement at least these markup features::
+
+    {{page: Foo, text: Bar}} -- link text "Bar" to page "Foo"
+    {{Foo,Bar}}              -- shorthand for {{page:Foo,text:Bar}}
+    {{Foo}}                  -- shorthand for {{page:Foo,text:Foo}}
+    {{page: "x,y"}}          -- names may be quoted
+    {{page: 'The "x" Page'}} -- single or double quotes work.
+    {{user: cgay, text: Carl}}  -- a user link
+    {{group: group}}            -- a group link
+
 
 General
 -------
@@ -28,8 +29,6 @@ General
   thought.
 * Convert specialized DSP tags to use <dsp:loop> and improve <dsp:loop>
   as needed.
-* navigation.dsp should be able to include wiki pages so that it can
-  be customizable on a per-site and/or per-user basis.
 * i18n
 * Implement all dsp pages the same way: with a class and respond-to-*
   methods.  Having some be functions and some be classes is annoying
