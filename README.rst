@@ -22,20 +22,20 @@ Configuration
 
 You will need to tweak these values in the config file:
 
-* **koala.wiki.repository** -- Make it point to the root directory of
-  your wiki git repository.  Example::
+* **koala.wiki.git-repository-root** -- Make it point to the root
+  directory of your wiki git repository.  Example::
 
      $ cd
      $ mkdir wiki-data
      $ cd wiki-data
      $ git init
 
-     <wiki repository = "/home/you/wiki-data" ...>
+     <wiki git-repository-root = "/home/you/wiki-data" ...>
 
-* **koala.wiki.user-repository** -- Make this point to the root directory
-  of the user data repository.  This is separate from the page and group
-  data so that it can easily be backed-up separately (e.g., by pushing
-  to a different remote).  Example::
+* **koala.wiki.git-user-repository-root** -- Make this point to the
+  root directory of the user data repository.  This is separate from
+  the page and group data so that it can easily be backed-up
+  separately (e.g., by pushing to a different remote).  Example::
 
      $ cd
      $ mkdir wiki-user-data
@@ -55,6 +55,8 @@ You will need to tweak these values in the config file:
 
 * **koala.wiki.administrator.password** -- Choose a password you like.
 
+* **koala.wiki.rst2html** -- Path to the rst2html executable.
+
 
 Startup
 =======
@@ -63,6 +65,42 @@ Build the library and then run it like this::
 
    wiki --config config.xml
 
+
+Markup Language
+===============
+
+The markup language is an augmented version of `ReStructured Text
+(RST) <http://docutils.sourceforge.net/rst.html>`.  An initial pass is
+made over the markup source to resolve wiki-specific markup and then
+the resulting text is passed directly to rst2html.
+
+All wiki directives start with ``{{`` and ends with ``}}``.  Because
+page links are expected to be the most common by far, they have an
+optional shortened syntax::
+
+    {{page: Foo, text: Bar}}    -- link text "Bar" to page "Foo"
+    {{Foo,Bar}}                 -- shorthand for {{page:Foo,text:Bar}}
+    {{Foo}}                     -- shorthand for {{page:Foo,text:Foo}}
+    {{page: "x,y"}}             -- names may be quoted
+    {{page: 'The "x" Page'}}    -- single or double quotes work.
+    {{user: jdoe, text: Jon}}   -- a user link
+    {{group: group}}            -- a group link
+    {{wiki: off}}               -- turn off wiki markup parsing
+    {{wiki: on}}                -- turn it back on
+    {{escape: "[[" "]]"}}       -- use [[ and ]] instead of {{ and }}
+
+The wiki pre-parser knows nothing about RST parsing.  It simply
+searches the raw markup for ``{{`` and assumes that's a wiki
+directive.  If you need to put a literal ``{{`` or ``}}`` in the
+generated output it can be done like this::
+
+  {{wiki:off}}{{{{wiki:on}}
+
+or by changing the escape character sequences::
+
+  {{escape: "[[" "]]"}}
+  Now {{ and }} are just normal text and [[Foo]] is a page link.
+  [[escape: "{{" "}}"]]
 
 
 Data File Layouts
@@ -176,47 +214,3 @@ acls
     Passwords are stored in base-64 for now, to be slightly better
     than clear text.  This must be improved.  Email is also in
     base-64.
-
-Backlinks (Page References)
-===========================
-
-Use for: users to see what points to a page
-
-Update page = update backlink file for all pages it references or dereferences.
-
-
-Markup Language
-===============
-
-The markup language is an augmented version of `ReStructured Text
-(RST) <http://docutils.sourceforge.net/rst.html>`.  An initial pass is
-made over the markup source to resolve wiki-specific markup and then
-the resulting text is passed directly to rst2html.
-
-All wiki directives start with ``{{`` and ends with ``}}``.  Because
-page links are expected to be the most common by far, they have an
-optional shortened syntax::
-
-    {{page: Foo, text: Bar}}    -- link text "Bar" to page "Foo"
-    {{Foo,Bar}}                 -- shorthand for {{page:Foo,text:Bar}}
-    {{Foo}}                     -- shorthand for {{page:Foo,text:Foo}}
-    {{page: "x,y"}}             -- names may be quoted
-    {{page: 'The "x" Page'}}    -- single or double quotes work.
-    {{user: jdoe, text: Jon}}   -- a user link
-    {{group: group}}            -- a group link
-    {{wiki: off}}               -- turn off wiki markup parsing
-    {{wiki: on}}                -- turn it back on
-    {{escape: "[[" "]]"}}       -- use [[ and ]] instead of {{ and }}
-
-The wiki pre-parser knows nothing about RST parsing.  It simply
-searches the raw markup for ``{{`` and assumes that's a wiki
-directive.  If you need to put a literal ``{{`` or ``}}`` in the
-generated output it can be done like this::
-
-  {{wiki:off}}{{{{wiki:on}}
-
-or by changing the escape character sequences::
-
-  {{escape: "[[" "]]"}}
-  Now {{ and }} are just normal text and [[Foo]] is a page link.
-  [[escape: "{{" "}}"]]
