@@ -85,18 +85,13 @@ optional shortened syntax::
     {{page: 'The "x" Page'}}    -- single or double quotes work.
     {{user: jdoe, text: Jon}}   -- a user link
     {{group: group}}            -- a group link
-    {{wiki: off}}               -- turn off wiki markup parsing
-    {{wiki: on}}                -- turn it back on
     {{escape: "[[" "]]"}}       -- use [[ and ]] instead of {{ and }}
 
 The wiki pre-parser knows nothing about RST parsing.  It simply
 searches the raw markup for ``{{`` and assumes that's a wiki
 directive.  If you need to put a literal ``{{`` or ``}}`` in the
-generated output it can be done like this::
-
-  {{wiki:off}}{{{{wiki:on}}
-
-or by changing the escape character sequences::
+generated output it can be done by changing the escape character
+sequences::
 
   {{escape: "[[" "]]"}}
   Now {{ and }} are just normal text and [[Foo]] is a page link.

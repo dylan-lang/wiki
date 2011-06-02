@@ -71,6 +71,11 @@ define method find-group
   element(*groups*, as-lowercase(name), default: #f)
 end;
 
+define method group-exists?
+    (name :: <string>) => (exists? :: <boolean>)
+  find-group(name) & #t
+end;
+
 // Find all groups that a user is a member of.
 //
 define method user-groups

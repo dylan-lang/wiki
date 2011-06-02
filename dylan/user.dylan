@@ -73,6 +73,11 @@ define function find-user
   element(*users*, as-lowercase(name), default: default)
 end;
 
+define method user-exists?
+    (name :: <string>) => (exists? :: <boolean>)
+  find-user(name) & #t
+end;
+
 // This is set when the config file is loaded.
 define variable *admin-user* :: false-or(<wiki-user>) = #f;
 
