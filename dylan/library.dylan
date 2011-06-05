@@ -175,5 +175,13 @@ define module %wiki
     user-activated?,
     *admin-user*;
 
+  // Parser
+  export
+    skip-whitespace,
+    parse-string-token,
+    tokenize,
+    parse-markup-element,
+    parse-wiki-markup;
+
 end module %wiki;
 

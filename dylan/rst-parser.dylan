@@ -8,8 +8,13 @@ define variable *python-executable* :: <string> = "python";
 define variable *rst2html*          :: <string> = "rst2html.py";
 define variable *rst2html-template* :: <string> = "rst2html-template.txt";
 
-define variable *markup-prefix* :: <string> = "{{";
-define variable *markup-suffix* :: <string> = "}}";
+// These will only change when the config file is loaded.
+define variable *default-markup-prefix* :: <string> = "{{";
+define variable *default-markup-suffix* :: <string> = "}}";
+
+// These are rebound when each page is parsed.
+define thread variable *markup-prefix* :: <string> = *default-markup-prefix*;
+define thread variable *markup-suffix* :: <string> = *default-markup-suffix*;
 
 
 /// External entry point to the parser.
@@ -22,30 +27,40 @@ define method wiki-markup-to-html
   rst2html(chunks)
 end method wiki-markup-to-html;
 
+/// Parse one unit of wiki markup.  Normally that means a page.  When
+/// one page is included in another, the included page is not part of
+/// the "parent" unit; it comprises its own unit.  This is important
+/// mainly to define the way that the {{escape: <pre> <post>}} markup
+/// is processed.  It applies to a single "markup unit" and the escape
+/// affixes are restored to their previous values when the parser is
+/// done processing a given unit.
+///
 define function parse-wiki-markup
     (markup :: <string>, title :: <string>)
  => (rst-chunks :: <sequence>)
-  // Note that the values of *markup-prefix* and *markup-suffix* may change
-  // during this loop so their values/sizes must be recomputed every time
-  // they're used.
   let chunks :: <sequence> = make(<stretchy-vector>);
-  iterate loop (start :: <integer> = 0)
-    if (start < markup.size)
-      let markup-bpos = index-of(markup, *markup-prefix*, start: start);
-      if (~markup-bpos)
-        add!(chunks, slice(markup, start, #f));
-      else
-        add!(chunks, slice(markup, start, markup-bpos));
-        // Save markup suffix size.  It may change in parse-markup-element
-        // but the suffix in effect when the prefix was parsed must be used
-        // for parsing this element.
-        let markup-suffix-size = *markup-suffix*.size;
-        let (text, epos) = parse-markup-element(markup, markup-bpos + *markup-prefix*.size);
-        add!(chunks, text);
-        loop(epos + markup-suffix-size);
+  // Save the two bindings and restore them to their original
+  // values when this markup unit is done being processed.
+  dynamic-bind (*markup-prefix* = *default-markup-prefix*,
+                *markup-suffix* = *default-markup-suffix*)
+    iterate loop (start :: <integer> = 0)
+      if (start < markup.size)
+        let markup-bpos = index-of(markup, *markup-prefix*, start: start);
+        if (~markup-bpos)
+          add!(chunks, slice(markup, start, #f));
+        else
+          add!(chunks, slice(markup, start, markup-bpos));
+          // Save markup suffix size.  It may change in parse-markup-element
+          // but the suffix in effect when the prefix was parsed must be used
+          // for parsing this element.
+          let markup-suffix-size = *markup-suffix*.size;
+          let (text, epos) = parse-markup-element(markup, markup-bpos + *markup-prefix*.size);
+          add!(chunks, text);
+          loop(epos + markup-suffix-size);
+        end if;
       end if;
-    end if;
-  end iterate;
+    end iterate;
+  end;
   chunks
 end function parse-wiki-markup;
 
@@ -87,11 +102,14 @@ define function tokenize
   end-delims[1] := *markup-suffix*[0];
   end-delims[2] := ':';
   iterate loop (bpos :: <integer> = 0, tokens :: <list> = #())
+    if (~empty?(tokens) & tokens.head = "")
+      tokens := tokens.tail;
+    end;
     let bpos = skip-whitespace(text, bpos);
     if (bpos = text.size)  // nothing left to parse
       reverse!(tokens)
     else
-      let char1 = text[0];
+      let char1 = text[bpos];
       if (char1 = '"')
         let (token, epos) = parse-string-token(text, bpos + 1, "\"");
         loop(epos, pair(token, tokens))
@@ -115,7 +133,7 @@ define function skip-whitespace
     (text :: <string>, bpos :: <integer>) => (epos :: <integer>)
   let len :: <integer> = text.size;
   iterate loop (i = bpos)
-    if (i = len)
+    if (i >= len)
       len
     else
       let ch :: <character> = text[i];
@@ -146,9 +164,14 @@ define function parse-string-token
   iterate loop (i = bpos)
     case
       i = len =>
-        values(slice(text, bpos, #f), i, '\0');
+        values(trim(slice(text, bpos, #f)), i, '\0');
       member?(text[i], end-delims) =>
-        values(slice(text, bpos, i), i + 1, text[i]);
+        let tok = slice(text, bpos, i);
+        let delim = text[i];
+        if (delim ~= '"' & delim ~= '\'')
+          tok := trim(tok);
+        end;
+        values(tok, i + 1, text[i]);
       otherwise =>
         loop(i + 1)
     end
@@ -239,12 +262,37 @@ end method handle-markup;
 define method handle-markup
     (token == #"escape", #rest more-tokens) => (rst :: <string>)
   if (more-tokens.size = 2)
-    // TODO: setting these globals is terrible.  Return values or pass
-    // in a closure to set the locals in the caller.
-    *markup-prefix* := more-tokens[1];
-    *markup-suffix* := more-tokens[2];
+    *markup-prefix* := more-tokens[0];
+    *markup-suffix* := more-tokens[1];
+    ""
   else
     "INVALID 'escape:' WIKI MARKUP"
+  end
+end method handle-markup;
+
+/// Handle markup of the form {{include: "Page"}}
+///
+define method handle-markup
+    (token == #"include", #rest more-tokens) => (rst :: <string>)
+  if (empty?(more-tokens))
+    "INVALID 'include:' WIKI MARKUP"
+  else
+    let title = more-tokens[0];
+    let page = find-page(title);
+    if (page)
+      // Undo any change to the markup suffixes done via the "escape"
+      // directive.
+      dynamic-bind (*markup-prefix* = *default-markup-prefix*,
+                    *markup-suffix* = *default-markup-suffix*)
+        join(parse-wiki-markup(page.page-content, page.page-title), "")
+      end
+    else
+      // Display the standard markup for a not-yet-written page, with
+      // <hr>s around it.
+      concatenate("\n****\n\n",
+                  handle-markup(#"page", title),
+                  "\n\n****\n")
+    end
   end
 end method handle-markup;
 

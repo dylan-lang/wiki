@@ -5,6 +5,7 @@ Author: Carl Gay
 define suite wiki-test-suite ()
   suite storage-test-suite;
   suite acls-test-suite;
+  suite rst-parser-test-suite;
 end;
 
 define method main () => ()
