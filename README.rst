@@ -66,6 +66,25 @@ Build the library and then run it like this::
    wiki --config config.xml
 
 
+Admin
+=====
+
+The wiki repositories (main content and user data) make use of the
+"git notes" feature to store meta-data about each commit.  Becaues of
+this they need some special attention when pushing/pulling.
+
+Push::
+
+  $ git push origin
+  $ git push origin refs/notes/commits
+
+Pull::
+
+  $ git pull origin
+  $ git pull origin refs/notes/commits:refs/notes/commits
+
+
+
 Markup Language
 ===============
 
