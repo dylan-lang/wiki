@@ -917,7 +917,7 @@ define function git-load-changes
           end
         end;
   // The basic idea here is that each commit is delimited by the commit hash
-  // in three places: on first line and after the any multi-line field, namely
+  // in three places: on first line and after any multi-line field, namely
   // the comment (%s) and the notes (%N).  That way it can be used to find the
   // end of multi-line fields.
   let (stdout, stderr, exit-code)
@@ -928,7 +928,7 @@ define function git-load-changes
                        "%H%n%ci%n%an%n%s%n%H%n%N%H",
                        revision,
                        path));
-  iterate loop (lines = as(<list>, split(stdout, "\n")),
+  iterate loop (lines = as(<list>, split(stdout, $newline-regex)),
                 changes = #())
     if (changes.size = count | lines.size <= 4)
       reverse!(changes)
