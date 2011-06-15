@@ -12,9 +12,8 @@ following features:
   * Access controls -- each page in the wiki can be restricted to
     being viewed or edited by specific sets of users.
 
-Currently the parser is very rudimentary.  The plan is to replace it,
-possibly with an augmented version of Restructured Text so that the
-page source is as readable as possible.
+  * Page markup based on `ReStructured Text (RST)
+    <http://docutils.sourceforge.net/rst.html>`_
 
 
 Configuration
@@ -66,25 +65,6 @@ Build the library and then run it like this::
    wiki --config config.xml
 
 
-Admin
-=====
-
-The wiki repositories (main content and user data) make use of the
-"git notes" feature to store meta-data about each commit.  Becaues of
-this they need some special attention when pushing/pulling.
-
-Push::
-
-  $ git push origin
-  $ git push origin refs/notes/commits
-
-Pull::
-
-  $ git pull origin
-  $ git pull origin refs/notes/commits:refs/notes/commits
-
-
-
 Markup Language
 ===============
 
@@ -117,8 +97,30 @@ sequences::
   [[escape: "{{" "}}"]]
 
 
+Dev Guide
+=========
+
+Admin
+-----
+
+The wiki repositories (main content and user data) make use of the
+"git notes" feature to store meta-data about each commit.  Becaues of
+this they need some special attention when pushing/pulling.
+
+Push::
+
+  $ git push origin
+  $ git push origin refs/notes/commits
+
+Pull::
+
+  $ git pull origin
+  $ git pull origin refs/notes/commits:refs/notes/commits
+
+
+
 Data File Layouts
-=================
+-----------------
 
 All wiki data are stored in a git repository.  "Public" data is stored
 in one repository and "private" data in another.  The only private
@@ -228,3 +230,4 @@ acls
     Passwords are stored in base-64 for now, to be slightly better
     than clear text.  This must be improved.  Email is also in
     base-64.
+
