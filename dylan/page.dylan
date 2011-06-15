@@ -509,25 +509,9 @@ define method respond-to-post
     (wiki-dsp :: <edit-page-page>, #key title :: <string>)
   let title = percent-decode(title);
   let page = find-or-load-page(title);
-  with-query-values (title as new-title, content, comment, tags, button)
+  with-query-values (content, comment, tags, button)
     let tags = iff(tags, parse-tags(tags), #[]);
-    let new-title = new-title & trim(new-title);
     let previewing? = (button = "Preview");
-
-    // Handle page renaming.
-    // TODO: potential race conditions here.  Should really lock the old and
-    //       new pages around the find-page and rename-page. Low priority now.
-    if (new-title & ~empty?(new-title) & new-title ~= title)
-      if (find-or-load-page(new-title))
-        add-field-error("title", "A page with this title already exists.");
-      else
-        if (page & ~previewing?)
-          title := new-title;
-          rename-page(page, new-title, comment | "");
-        end;
-      end;
-    end;
-
     let author = authenticated-user();
     if (page & ~has-permission?(author, page, $modify-content))
       add-page-error("You do not have permission to edit this page.");
@@ -543,7 +527,7 @@ define method respond-to-post
 
     if (previewing? | page-has-errors?())
       set-attribute(page-context(), "previewing?", #t);
-      set-attribute(page-context(), "original-title", title);
+      set-attribute(page-context(), "title", title);
       process-template(wiki-dsp);
     else
       let page = save-page(title, content | "", comment, tags);

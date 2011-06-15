@@ -44,16 +44,9 @@
         </p>
       </dsp:unless>
       <dsp:when test="can-modify-content?">
-        <form action="<wiki:base/>/page/edit/<dsp:get name='original-title' context='page'/>" method="post">
+        <form action="<wiki:base/>/page/edit/<dsp:get name='title' context='page'/>" method="post">
           <fieldset>
             <ol>
-              <li id="title-item">
-                <label id="title-label" for="title-input">Title: <em title="required">*</em></label>
-                <input id="title-input" type="text" name="title"
-                       <dsp:if-error field-name="title" text='class="invalid-input"'/>
-                       value="<dsp:get name='title' context='request,page'/>"/>
-                <dsp:show-field-errors field-name="title" tag="span"/>
-              </li>
               <li id="content-item">
                 <label id="content-label" for="content-text">Content:</label>
                 <textarea id="content-text" name="content" rows="20" cols="80"><dsp:get name="content" context="request,page"/></textarea>
