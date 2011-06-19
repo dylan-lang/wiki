@@ -13,15 +13,15 @@ define class <wiki-page> (<wiki-object>)
   slot page-title :: <string>,
     required-init-keyword: title:;
 
-  slot page-source :: <string>,
+  constant slot page-source :: <string>,
     required-init-keyword: source:;
 
   // A sequence of <string>s (of RST source) or <wiki-reference>s.
-  slot page-parsed-source :: <sequence>,
+  constant slot page-parsed-source :: <sequence>,
     required-init-keyword: parsed-source:;
 
   // Comment entered by the user describing the changes for this revision.
-  slot page-comment :: <string>,
+  constant slot page-comment :: <string>,
     required-init-keyword: comment:;
 
   // The owner has special rights over the page, depending on the ACLs.
@@ -31,11 +31,11 @@ define class <wiki-page> (<wiki-object>)
     required-init-keyword: owner:;
 
   // The author is the one who saved this particular revision of the page.
-  slot page-author :: <wiki-user>,
+  constant slot page-author :: <wiki-user>,
     required-init-keyword: author:;
 
   // Tags (strings) entered by the author when the page was saved.
-  slot page-tags :: <sequence>,
+  constant slot page-tags :: <sequence>,
     required-init-keyword: tags:;
 
   slot page-access-controls :: <acls>,
@@ -324,23 +324,39 @@ define method rename-page
 end method rename-page;
 
 
-define generic find-backlinks
-    (object :: <object>)
- => (backlinks :: <stretchy-vector>); 
+/// Find references to the given wiki object.  Currently this cannot handle
+/// references to specific revisions of objects; all references are assumed
+/// to be to the latest revision.
+/// Values:
+///   backlinks - A sequence of <wiki-objects>s.  In reality these will only
+///     be <wiki-page>s or <wiki-group>s because <wiki-user>s can't reference
+///     other wiki objects.
+define generic find-references
+    (object :: <wiki-object>)
+ => (backlinks :: <sequence>);
 
-define method find-backlinks
-    (page :: <wiki-page>)
- => (backlinks :: <stretchy-vector>);
-  find-backlinks(page.page-title);
-end;
-
-define method find-backlinks
-    (title :: <string>)
- => (backlinks :: <stretchy-vector>)
-  let backlinks = make(<stretchy-vector>);
-  TODO--maintain-page-backlink-info;
-  backlinks
-end;
+/// Find references to wiki pages.  These refs can only come from other pages.
+/// For now do the stoopid thing and scan the entire wiki for refs.
+///
+define method find-references
+    (target-page :: <wiki-page>)
+ => (backlinks :: <sequence>)
+  let refs :: <stretchy-vector> = make(<stretchy-vector>);
+  let target-name :: <string> = target-page.page-title;
+  for (wiki-page in *pages*)
+    block (skip-rest-of-page)
+      for (chunk in wiki-page.page-parsed-source)
+        if (instance?(chunk, <page-reference>)
+              & chunk.reference-name = target-name)
+          log-debug("Page %s refers to page %s", chunk.reference-name, target-name);
+          add!(refs, wiki-page);
+          skip-rest-of-page();
+        end;
+      end;
+    end block;
+  end;
+  refs
+end method find-references;
 
 define method discussion-page?
     (page :: <wiki-page>)
@@ -389,7 +405,7 @@ end;
 
 
 
-//// Page connections (backlinks)
+//// Page references (connections, backlinks)
 
 define class <connections-page> (<wiki-dsp>)
 end;
@@ -409,13 +425,14 @@ end method respond-to-get;
 define body tag list-page-backlinks in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
-  let backlinks = find-backlinks(*page*);
+  let backlinks = find-references(*page*);
   if (empty?(backlinks))
     output("There are no connections to this page.");
   else
+    let pc = page-context();
     for (backlink in backlinks)
-      set-attribute(page-context(), "backlink", backlink.page-title);
-      set-attribute(page-context(), "backlink-url", permanent-link(backlink));
+      set-attribute(pc, "backlink", backlink.page-title);
+      set-attribute(pc, "backlink-url", as(<string>, permanent-link(backlink)));
       do-body();
     end for;
   end if;
