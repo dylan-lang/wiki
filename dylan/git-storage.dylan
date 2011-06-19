@@ -117,7 +117,6 @@ end method initialize-storage-for-reads;
 
 define method initialize-storage-for-writes
     (storage :: <git-storage>, admin :: <wiki-user>) => ()
-  log-debug("initialize-storage-for-writes");
   // Commits are all done by Administrator, with the Author set to the
   // user making the change.
   let set-name = sformat("config --global user.name \"%s\"", admin.user-name);
@@ -138,8 +137,6 @@ define method load
     (storage :: <git-storage>, class == <wiki-page>, title :: <string>,
      #key revision :: <string> = "HEAD")
  => (page :: <wiki-page>)
-  log-debug("Loading page %=", title);
-
   let prefix = title-prefix(title);
   let etitle = git-encode-title(title);
   let page-dir = subdirectory-locator(*pages-directory*,
@@ -366,8 +363,6 @@ define method load-all
           with-open-file(stream = pathname, direction: #"input")
             let creation-date = read-line(stream, on-end-of-stream: #f);
             let line = read-line(stream, on-end-of-stream: #f);
-            log-debug("creation-date = %=", creation-date);
-            log-debug("line = %=", line);
             users := pair(git-parse-user(creation-date, line),
                           users);
           end;
@@ -624,7 +619,7 @@ define function call-git
      #key error? :: <boolean> = #t,
           format-args,
           working-directory,
-          debug? = #t)
+          debug? = #f)
  => (stdout :: <string>,
      stderr :: <string>,
      exit-code :: <integer>)
@@ -635,9 +630,10 @@ define function call-git
                       apply(sformat, command-fmt, format-args),
                       command-fmt));
   let cwd = working-directory | storage.git-repository-root;
-  log-debug("Running command in cwd = %s: %s",
-            as(<string>, cwd),
-            command);
+
+  if (debug?)
+    log-debug("Running command in cwd = %s: %s", as(<string>, cwd), command);
+  end;
 
   let process = #f;
   let stdout = #f;
@@ -668,6 +664,7 @@ define function call-git
     log-debug("exit-code: %s (%s)\nstdout:\n%s\nstderr:\n%s",
               exit-code, signal, stdout, stderr);
   end;
+
   if (error? & (exit-code ~= 0))
     git-error("Error running git command %=:\n"
               "exit code: %=\n"
@@ -788,7 +785,6 @@ define function do-object-files
      fun :: <function>)
  => ()
   local method do-object-dir (directory, name, type)
-          log-debug("do-object-dir(%=, %=, %=)", directory, name, type);
           // called once for each file/dir in a prefix directory
           if (class = <wiki-page> & type = #"directory")
             fun(subdirectory-locator(directory, name));
@@ -797,7 +793,6 @@ define function do-object-files
           end;
         end,
         method do-prefix-dir (directory, name, type)
-          log-debug("do-prefix-dir(%=, %=, %=)", directory, name, type);
           // called once per prefix directory
           if (type = #"directory")
             do-directory(do-object-dir, subdirectory-locator(directory, name))
@@ -908,7 +903,6 @@ define function git-load-changes
             if (empty?(lines)
                 | (lines.head = end-marker)
                 | (~end-marker & hash?(lines.head)))
-              log-debug("meta-data = %=", meta-data);
               values(reverse!(meta-data),
                      lines.tail)
             else
