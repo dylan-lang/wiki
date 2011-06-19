@@ -149,8 +149,8 @@ define method load
   let page-path = sformat("%s/%s/%s/%s",
                           $pages-directory-name,
                           $default-sandbox-name, prefix, etitle);
-  let content-path = sformat("%s/%s", page-path, $content);
-  let changes = git-load-changes(storage, content-path, revision, 1);
+  let source-path = sformat("%s/%s", page-path, $content);
+  let changes = git-load-changes(storage, source-path, revision, 1);
   if (empty?(changes))
     git-error("Page %= not found.", title);
   end;
@@ -158,12 +158,13 @@ define method load
   let hash = change.change-revision;
   let tags = git-load-blob(storage, sformat("%s/%s", page-path, $tags), hash);
   let acls = git-load-blob(storage, sformat("%s/%s", page-path, $acls), hash);
-  let content = git-load-blob(storage, content-path, hash);
+  let source = git-load-blob(storage, source-path, hash);
   let (owner, acls) = git-parse-acls(acls, title);
   make(<wiki-page>,
        creation-date: creation-date,
        title: title,
-       content: content,
+       source: source,
+       parsed-source: parse-wiki-markup(source, title),
        comment: change.change-comment,
        owner: owner,
        author: find-user(change.change-author) | *admin-user*,
@@ -212,12 +213,12 @@ define method find-or-load-pages-with-tags
   local method load-page-with-tags (page-directory :: <directory-locator>)
           let title = git-decode-title(locator-name(page-directory));
           let page = find-page(title);
-          let page-tags = iff(page,
-                              page.page-tags,
-                              load-page-tags(page-directory));
+          let pg-tags = iff(page,
+                            page.page-tags,
+                            load-page-tags(page-directory));
           block (return)
             for (tag in tags)
-              if (member?(tag, page-tags, test: \=))
+              if (member?(tag, pg-tags, test: \=))
                 add!(pages, find-or-load-page(title));
                 return();
               end;
@@ -243,7 +244,7 @@ define method store
   ensure-directories-exist(prefix-dir);
   ensure-directories-exist(page-dir);
 
-  store-blob(file-locator(page-dir, $content), page.page-content);
+  store-blob(file-locator(page-dir, $content), page.page-source);
   store-blob(file-locator(page-dir, $tags), tags-to-string(page.page-tags));
   store-blob(file-locator(page-dir, $acls), acls-to-string(page));
 

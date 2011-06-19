@@ -124,7 +124,7 @@ define test test-save/load-page ()
         standard-meta-data(old-page, "create"));
   let new-page = load(storage, <wiki-page>, old-page.page-title);
   for (fn in list(page-title,
-                  page-content,
+                  page-source,
                   page-comment,
                   page-owner,
                   page-author,

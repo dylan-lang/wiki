@@ -229,10 +229,11 @@ define function restore-from-text-files
       let comment = parse-line(stream);
       let page = find-page(title);
       if (~page)
-        let content = file-contents(page-locator(page-num, rev-num, "content"));
+        let source = file-contents(page-locator(page-num, rev-num, "content"));
         page := make(<wiki-page>,
                      title: title,
-                     content: content,
+                     source: source,
+                     parsed-source: parse-wiki-markup(source, title),
                      owner: author);
       end;
       store(*storage*, page, author, comment, standard-meta-data(page, "create"));
@@ -372,6 +373,17 @@ define function preload-wiki-data ()
   // TODO: This won't scale.
   for (page in load-all(*storage*, <wiki-page>))
     *pages*[page.page-title] := page;
+  end;
+
+  // 2nd pass to update <wiki-reference>s.
+  let ref-count :: <integer> = 0;
+  for (page in *pages*)
+    for (chunk in page.page-parsed-source)
+      if (instance?(chunk, <wiki-reference>))
+        resolve-reference(chunk);
+        inc!(ref-count);
+      end;
+    end;
   end;
 end function preload-wiki-data;
 

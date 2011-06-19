@@ -66,7 +66,8 @@ define module %wiki
   use common-extensions,
     exclude: { format-to-string };
   use date;
-  use dsp;
+  use dsp,
+    exclude: { page-source };
   use dylan;
   use file-system;
   use format;
@@ -154,7 +155,7 @@ define module %wiki
     *pages*, $page-lock,
     <wiki-page>,
     page-title,
-    page-content,
+    page-source,
     page-comment,
     page-owner,
     page-author,

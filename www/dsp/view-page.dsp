@@ -38,7 +38,7 @@
 
       <dsp:if test="can-view-content?">
         <dsp:then>
-          <wiki:show-page-content/>
+          <wiki:render-page/>
           <%dsp:include url="view-page-tags.dsp"/>
         </dsp:then>
         <dsp:else>

@@ -13,8 +13,12 @@ define class <wiki-page> (<wiki-object>)
   slot page-title :: <string>,
     required-init-keyword: title:;
 
-  slot page-content :: <string>,
-    required-init-keyword: content:;
+  slot page-source :: <string>,
+    required-init-keyword: source:;
+
+  // A sequence of <string>s (of RST source) or <wiki-reference>s.
+  slot page-parsed-source :: <sequence>,
+    required-init-keyword: parsed-source:;
 
   // Comment entered by the user describing the changes for this revision.
   slot page-comment :: <string>,
@@ -50,6 +54,90 @@ define thread variable *page* :: false-or(<wiki-page>) = #f;
 define named-method page? in wiki
     (page :: <dylan-server-page>)
   *page* ~= #f
+end;
+
+
+//// References (to other wiki objects)
+
+
+/// A wiki reference is a pointer to another wik object.  These have to
+/// survive deletion of the target object, which is why the reference-target
+/// slot may be #f.
+define class <wiki-reference> (<object>)
+
+  /// This holds the name of the page, user, or group.
+  constant slot reference-name :: <string>,
+    required-init-keyword: name:;
+
+  // The text to display for this reference.  Often the same as the name.
+  constant slot reference-text :: <string>,
+    required-init-keyword: text:;
+
+  slot reference-target :: false-or(<wiki-object>),
+    init-keyword: target:;
+
+end class <wiki-reference>;
+
+
+define generic as-rst
+    (x :: <object>) => (rst :: <string>);
+
+define generic resolve-reference
+    (ref :: <wiki-reference>) => ();
+
+
+       
+define class <page-reference> (<wiki-reference>) end;
+define class <user-reference> (<wiki-reference>) end;
+define class <group-reference> (<wiki-reference>) end;
+
+
+define method as-rst
+    (rst-markup :: <string>) => (rst :: <string>)
+  rst-markup
+end;
+
+define method as-rst
+    (ref :: <page-reference>) => (rst :: <string>)
+  format-to-string("`%s %s<%s/page/view/%s>`_",
+                   ref.reference-text,
+                   iff(ref.reference-target, "", "(?) "),
+                   *wiki-url-prefix*,
+                   percent-encode($uri-pchar, ref.reference-name))
+end;
+
+define method as-rst
+    (ref :: <user-reference>) => (rst :: <string>)
+  format-to-string("`%s %s<%s/user/view/%s>`_",
+                   ref.reference-text,
+                   iff(ref.reference-target, "", "(?) "),
+                   *wiki-url-prefix*,
+                   percent-encode($uri-pchar, ref.reference-name))
+end;
+
+define method as-rst
+    (ref :: <group-reference>) => (rst :: <string>)
+  format-to-string("`%s %s<%s/group/view/%s>`_",
+                   ref.reference-text,
+                   iff(ref.reference-target, "", "(?) "),
+                   *wiki-url-prefix*,
+                   percent-encode($uri-pchar, ref.reference-name))
+end;
+
+
+define method resolve-reference
+    (ref :: <page-reference>) => ()
+  ref.reference-target := find-page(ref.reference-name);
+end;
+
+define method resolve-reference
+    (ref :: <user-reference>) => ()
+  ref.reference-target := find-user(ref.reference-name);
+end;
+
+define method resolve-reference
+    (ref :: <group-reference>) => ()
+  ref.reference-target := find-group(ref.reference-name);
 end;
 
 
@@ -159,12 +247,13 @@ define method reserved-tag?
 end;
 
 define method save-page
-    (title :: <string>, content :: <string>, comment :: <string>, tags :: <sequence>)
+    (title :: <string>, source :: <string>, comment :: <string>, tags :: <sequence>)
  => (page :: <wiki-page>)
   let user = authenticated-user();
   let page = make(<wiki-page>,
                   title: title,
-                  content: content,
+                  source: source,
+                  parsed-source: parse-wiki-markup(source, title),
                   tags: tags | #(),
                   comment: comment,
                   author: user,
@@ -216,26 +305,6 @@ define method generate-connections-graph
                          concatenate("graphs/", page.page-title, ".svg"));
     rename-file(graph-file, destination, if-exists: #"replace");
   end if;
-end;
-*/
-
-/*
-define method extract-references
-    (version :: <wiki-page-version>)
- => (references :: <sequence>)
-  let references = list();
-  let content = version.content.content;
-  let regex = compile-regex("\\[\\[([^\\]]*)\\]\\]");
-  let start = 0;
-  while (regex-position(regex, content, start: start))
-    let (#rest matches) = regex-search-strings(regex, slice(content, start, #f));
-    if (first(matches))
-      references := add!(references, second(matches));
-    end if;
-    let (#rest positions) = regex-position(regex, content, start: start);
-    start := last(positions) | size(content);
-  end while;
-  references;
 end;
 */
 
@@ -463,11 +532,10 @@ define method respond-to-get
   end;
 end method respond-to-get;
 
-define tag show-page-content in wiki
+define tag render-page in wiki
     (page :: <wiki-dsp>)
     ()
-  let xhtml = wiki-markup-to-html(*page*.page-content, *page*.page-title);
-  output("%s", xhtml);
+  output("%s", as-html(*page*, *page*.page-title))
 end;
 
 
@@ -487,7 +555,8 @@ define method respond-to-get
     dynamic-bind (*page* = find-or-load-page(title))
       set-attribute(pc, "original-title", title);
       if (*page*)
-        set-attribute(pc, "content", *page*.page-content);
+        // TODO: change this to "source"
+        set-attribute(pc, "content", *page*.page-source);
         set-attribute(pc, "owner", *page*.page-owner);
         set-attribute(pc, "tags", unparse-tags(*page*.page-tags));
       end;
@@ -509,7 +578,7 @@ define method respond-to-post
     (wiki-dsp :: <edit-page-page>, #key title :: <string>)
   let title = percent-decode(title);
   let page = find-or-load-page(title);
-  with-query-values (content, comment, tags, button)
+  with-query-values (content as source, comment, tags, button)
     let tags = iff(tags, parse-tags(tags), #[]);
     let previewing? = (button = "Preview");
     let author = authenticated-user();
@@ -530,7 +599,7 @@ define method respond-to-post
       set-attribute(page-context(), "title", title);
       process-template(wiki-dsp);
     else
-      let page = save-page(title, content | "", comment, tags);
+      let page = save-page(title, source | "", comment, tags);
       redirect-to(page);
     end;
   end;
@@ -539,9 +608,10 @@ end method respond-to-post;
 define tag show-page-preview in wiki
     (page :: <edit-page-page>)
     ()
+  // TODO: change this to "source"
   let markup = get-query-value("content");
   let title = get-query-value("title");
-  output("%s", wiki-markup-to-html(markup, title));
+  output("%s", as-html(markup, title));
 end;
 
 
@@ -674,7 +744,7 @@ define tag include-page in wiki
     (title :: <string>)
   let page = find-or-load-page(title);
   if (page)
-    output("%s", wiki-markup-to-html(page.page-content, title));
+    output("%s", as-html(page, title));
   else
     output("PAGE '%S' NOT FOUND", title);
   end;
@@ -732,8 +802,8 @@ define named-method latest-page-version? in wiki
   *page* & *page* == element(*pages*, *page*.page-title, default: $unfound)
 end;
 
-define named-method page-tags in wiki
-    (page :: <wiki-dsp>)
+define named-method active-page-tags in wiki
+    (page :: <wiki-dsp>) => (tags :: <sequence>)
   iff(*page*,
       sort(*page*.page-tags, test: \=),
       #[])

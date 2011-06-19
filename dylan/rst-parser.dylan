@@ -18,14 +18,17 @@ define thread variable *markup-suffix* :: <string> = *default-markup-suffix*;
 
 
 /// External entry point to the parser.
-///
-define method wiki-markup-to-html
-    (markup :: <string>, title :: <string>,
-     #key start :: <integer> = 0)
+define generic as-html
+    (page :: <object>, title :: <string>)
+ => (html :: <string>);
+
+
+define method as-html
+    (page :: <wiki-page>, title :: <string>)
  => (html :: <string>)
-  let chunks :: <sequence> = parse-wiki-markup(markup, title);
-  rst2html(chunks)
-end method wiki-markup-to-html;
+  rst2html(map(as-rst, page.page-parsed-source))
+end method as-html;
+
 
 /// Parse one unit of wiki markup.  Normally that means a page.  When
 /// one page is included in another, the included page is not part of
@@ -35,9 +38,12 @@ end method wiki-markup-to-html;
 /// affixes are restored to their previous values when the parser is
 /// done processing a given unit.
 ///
+/// Values:
+///   chunks - A sequence of strings (RST source) and <wiki-reference>s.
+///
 define function parse-wiki-markup
     (markup :: <string>, title :: <string>)
- => (rst-chunks :: <sequence>)
+ => (chunks :: <sequence>)
   let chunks :: <sequence> = make(<stretchy-vector>);
   // Save the two bindings and restore them to their original
   // values when this markup unit is done being processed.
@@ -54,8 +60,9 @@ define function parse-wiki-markup
           // but the suffix in effect when the prefix was parsed must be used
           // for parsing this element.
           let markup-suffix-size = *markup-suffix*.size;
-          let (text, epos) = parse-markup-element(markup, markup-bpos + *markup-prefix*.size);
-          add!(chunks, text);
+          let (chunk, epos)
+            = parse-markup-element(markup, markup-bpos + *markup-prefix*.size);
+          add!(chunks, chunk);
           loop(epos + markup-suffix-size);
         end if;
       end if;
@@ -69,15 +76,16 @@ end function parse-wiki-markup;
 ///   markup-text - The entire text being parsed.
 ///   bpos - The index within 'markup-text' following '*markup-prefix*'.
 /// Values:
-///   text - The string resulting from parsing the element.  This value
-///       may include RST markup elements.
+///   chunk - The string or <wiki-reference> resulting from parsing the element.
+///     If a string, then it may contain RST markup.  If a <wiki-reference>,
+///     then the reference may contain RST markup when rendered as a string.
 ///   epos - The index within 'markup-text' of *markup-suffix*.
 /// Signals:
 ///   <parse-error>
 ///
 define function parse-markup-element
     (markup-text :: <string>, bpos :: <integer>)
- => (text :: <string>, epos :: <integer>)
+ => (chunk :: type-union(<string>, <wiki-reference>), epos :: <integer>)
   let epos = index-of(markup-text, *markup-suffix*, start: bpos);
   if (epos)
     let tokens = tokenize(slice(markup-text, bpos, epos));
@@ -185,7 +193,9 @@ end function parse-string-token;
 /// existing keywords, which might be nice.)
 ///
 define open generic handle-markup
-    (token :: <object>, #rest more-tokens) => (rst :: <string>);
+    (token :: <object>, #rest more-tokens)
+ => (chunk :: type-union(<string>, <wiki-reference>));
+
 
 /// Give some warning about invalid markup keywords.
 define method handle-markup
@@ -195,12 +205,14 @@ define method handle-markup
   format-to-string("INVALID WIKI MARKUP KEYWORD: %s:", token)
 end;
 
-/// This method is called when the markup contains a string instead of
-/// a keyword following {{.  e.g., {{Page,Text}} or {{"Foo Bar"}}  It
-/// simply converts it into the canonical form: {{page: Page, text: Text}}
+
+/// This method handles the shorthand cases of {{Page Title}} or
+/// {{Page Title, Text to show}}.  It simply converts it into the
+/// canonical form: {{page: Page, text: Text}} and passes it on.
 ///
 define method handle-markup
-    (token :: <string>, #rest more-tokens) => (rst :: <string>)
+    (token :: <string>, #rest more-tokens)
+ => (rst :: type-union(<string>, <wiki-reference>))
   apply(handle-markup, #"page", token,
         select (more-tokens.size)
           0 => list(#"text", token);
@@ -209,20 +221,18 @@ define method handle-markup
         end)
 end method handle-markup;
 
-/// Make an RST link to the page with the given title.
+/// Make a <wiki-reference> to the page with the given title.
 /// This handles the forms {{page: foo}}, {{page: foo, bar}},
 /// and {{page: foo, text: bar}}.
 ///
 define method handle-markup
-    (token == #"page", #rest more-tokens) => (rst :: <string>)
+    (token == #"page", #rest more-tokens) => (ref :: <page-reference>)
   let (title, keyword, text) = apply(values, more-tokens);
   let text = text | keyword | title;
-  // Note that the space before the '<' is required by the RST parser.
-  format-to-string("`%s %s<%s/page/view/%s>`_",
-                   text,
-                   iff(page-exists?(title), "", "(?) "),
-                   *wiki-url-prefix*,
-                   percent-encode($uri-pchar, title))
+  make(<page-reference>,
+       name: title,
+       text: text,
+       target: find-page(title))  // may be #f
 end method handle-markup;
 
 /// Make an RST link to the user with the given name.
@@ -230,15 +240,13 @@ end method handle-markup;
 /// {{user: foo, text: bar}}.
 ///
 define method handle-markup
-    (token == #"user", #rest more-tokens) => (rst :: <string>)
+    (token == #"user", #rest more-tokens) => (ref :: <user-reference>)
   let (name, keyword, text) = apply(values, more-tokens);
   let text = text | keyword | name;
-  // Note that the space before the '<' is required by the RST parser.
-  format-to-string("`%s %s<%s/user/view/%s>`_",
-                   text,
-                   iff(user-exists?(name), "", "(?) "),
-                   *wiki-url-prefix*,
-                   percent-encode($uri-pchar, name))
+  make(<user-reference>,
+       name: name,
+       text: text,
+       target: find-user(name)) // may be #f
 end method handle-markup;
 
 /// Make an RST link to the group with the given name.
@@ -246,15 +254,13 @@ end method handle-markup;
 /// and {{group: foo, text: bar}}.
 ///
 define method handle-markup
-    (token == #"group", #rest more-tokens) => (rst :: <string>)
+    (token == #"group", #rest more-tokens) => (ref :: <group-reference>)
   let (name, keyword, text) = apply(values, more-tokens);
   let text = text | keyword | name;
-  // Note that the space before the '<' is required by the RST parser.
-  format-to-string("`%s %s<%s/group/view/%s>`_",
-                   text,
-                   iff(group-exists?(name), "", "(?) "),
-                   *wiki-url-prefix*,
-                   percent-encode($uri-pchar, name))
+  make(<group-reference>,
+       name: name,
+       text: text,
+       target: find-group(name)) // may be #f
 end method handle-markup;
 
 /// Handle markup of the form {{escape: "[[" "]]"}}
@@ -281,10 +287,11 @@ define method handle-markup
     let page = find-page(title);
     if (page)
       // Undo any change to the markup suffixes done via the "escape"
-      // directive.
+      // directive in the containing page.
       dynamic-bind (*markup-prefix* = *default-markup-prefix*,
                     *markup-suffix* = *default-markup-suffix*)
-        join(parse-wiki-markup(page.page-content, page.page-title), "")
+        join(parse-wiki-markup(page.page-parsed-source, page.page-title), "",
+             key: as-rst)
       end
     else
       // Display the standard markup for a not-yet-written page, with
@@ -313,7 +320,7 @@ define function rst2html
     log-debug("ran rst2html");
     process := child;
     for (chunk in rst-chunks)
-      write(stdin, chunk);
+      write(stdin, as-rst(chunk));
     end;
     force-output(stdin);
     close(stdin);
