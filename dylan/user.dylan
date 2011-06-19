@@ -405,7 +405,7 @@ define method respond-to-post
             end;
           end;
         end if;
-    if (user)
+    if (user & ~page-has-errors?())
       // Hannes commented in IRC 2009-06-12: this will probably block
       // the responder thread while the mail is being delivered; and
       // to circumvent greylisting you've to wait 5-10 minutes between
