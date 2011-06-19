@@ -308,17 +308,19 @@ define function rst2html
     (rst-chunks :: <sequence>) => (html :: <string>)
   let command = format-to-string("%s %s --template %s --no-doc-title --link-stylesheet",
                                  *python-executable*, *rst2html*, *rst2html-template*);
-  let error = #f;
   let html = "";
-  let process = #f;
+  let (error, process, stdin, stdout, stderr) = #f;
   block ()
     log-debug("running rst2html");
-    let (exit-code, signal, child, stdin, stdout, stderr)
+    let (exit-code, signal, child, in, out, err)
       = run-application(command,
                         asynchronous?: #t,
                         input: #"stream", output: #"stream", error: #"stream");
     log-debug("ran rst2html");
     process := child;
+    stdin := in;
+    stdout := out;
+    stderr := err;
     for (chunk in rst-chunks)
       write(stdin, as-rst(chunk));
     end;
@@ -328,9 +330,13 @@ define function rst2html
     error := read-to-end(stderr);
     log-debug("read stderr %d bytes", error.size);
   cleanup
-    // prevent zombies
-    process & wait-for-application-process(process);
-  end;
+    if (process)
+      ignore-errors(close(stdin, abort?: #t));
+      ignore-errors(close(stdout, abort?: #t));
+      ignore-errors(close(stderr, abort?: #t));
+      wait-for-application-process(process);   // prevent zombies
+    end;
+  end block;
   if (~empty?(error))
     log-error("stderr: %s", error);
   end;
