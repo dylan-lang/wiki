@@ -854,7 +854,7 @@ define function %git-commit
   if (subsequence-position(stdout, "nothing to commit"))
     // No changes were made.  Return the head revision.
     trim(call-git(storage,
-                  sformat("rev-list --max-count 1 HEAD -- %s", extra-path | path),
+                  sformat("rev-list --max-count=1 HEAD -- %s", extra-path | path),
                   working-directory: repo-root))
   elseif (exit-code ~= 0)
     log-error("Commit failed:\nexit-code: %s\nstdout: %s\nstderr: %s",
@@ -875,7 +875,7 @@ define function %git-commit
       let short-hash = elt(parts, -1);
       // Unfortunately we have to run another command to get the full hash...
       let hash = trim(call-git(storage,
-                               sformat("rev-list --max-count 1 %s -- \"%s\"",
+                               sformat("rev-list --max-count=1 %s -- \"%s\"",
                                        short-hash, extra-path | path),
                                working-directory: repo-root));
       if (~empty?(meta-data))
