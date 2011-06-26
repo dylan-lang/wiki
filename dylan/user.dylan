@@ -70,7 +70,7 @@ end;
 define function find-user
     (name :: <string>, #key default)
  => (user :: false-or(<wiki-user>))
-  element(*users*, as-lowercase(name), default: default)
+  element(*users*, name, default: default)
 end;
 
 define method user-exists?
@@ -396,12 +396,12 @@ define method respond-to-post
               add-field-error("user-name", "A user named %s already exists.", new-name);
               #f
             else
-              *users*[as-lowercase(new-name)] := make(<wiki-user>,
-                                                      name: new-name,
-                                                      real-name: #f,  // TODO
-                                                      password: password,
-                                                      email: email,
-                                                      administrator?: #f);
+              *users*[new-name] := make(<wiki-user>,
+                                        name: new-name,
+                                        real-name: #f,  // TODO
+                                        password: password,
+                                        email: email,
+                                        administrator?: #f);
             end;
           end;
         end if;
@@ -426,7 +426,7 @@ define method respond-to-post
     // Check again for errors since sending mail may have failed.
     if (page-has-errors?())
       with-lock($user-lock)
-        remove-key!(*users*, as-lowercase(new-name));
+        remove-key!(*users*, new-name);
       end;
       next-method();
     else
@@ -434,7 +434,7 @@ define method respond-to-post
         store(*storage*, user, user, "New user created",
               standard-meta-data(user, "create"));
         with-lock ($user-lock)
-          *users*[as-lowercase(user.user-name)] := user;
+          *users*[user.user-name] := user;
         end;
         add-page-note("User %s created.  Please follow the link in the confirmation "
                       "email sent to %s to activate the account.",
@@ -442,7 +442,7 @@ define method respond-to-post
         respond-to-get(*view-user-page*, name: user.user-name);
       exception (ex :: <serious-condition>)
         with-lock($user-lock)
-          remove-key!(*users*, as-lowercase(new-name));
+          remove-key!(*users*, new-name);
         end;
       end;
     end if;
@@ -589,7 +589,7 @@ define method respond-to-post
         store(*storage*, user, active-user, "User created",
               standard-meta-data(user, "create"));
         with-lock ($user-lock)
-          *users*[as-lowercase(new-name)] := user;
+          *users*[new-name] := user;
         end;
         add-page-note("User %s created.", new-name);
         login(realm: *wiki-realm*);
@@ -607,8 +607,8 @@ define function rename-user
                         standard-meta-data(user, "rename"));
   let old-name = user.user-name;
   with-lock ($user-lock)
-    remove-key!(*users*, as-lowercase(old-name));
-    *users*[as-lowercase(new-name)] := user;
+    remove-key!(*users*, old-name);
+    *users*[new-name] := user;
   end;
   user.user-name := new-name;
   // user.user-revision := revision;

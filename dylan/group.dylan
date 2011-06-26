@@ -68,7 +68,7 @@ end;
 define method find-group
     (name :: <string>)
  => (group :: false-or(<wiki-group>))
-  element(*groups*, as-lowercase(name), default: #f)
+  element(*groups*, name, default: #f)
 end;
 
 define method group-exists?
@@ -114,7 +114,8 @@ define method rename-group
   let new-lc-name = as-lowercase(new-name);
   if (old-lc-name ~= new-lc-name)
     if (find-group(new-lc-name))
-      // todo -- raise more specific error...test...
+      // TODO: raise more specific error...test...
+      // TODO: handle case-change-only rename.
       error("group %s already exists", new-name);
     end;
     let comment = concatenate("was: ", group.group-name, ". ", comment);
@@ -137,7 +138,7 @@ define method create-group
                    owner: author);
   store(*storage*, group, author, comment, standard-meta-data(group, "create"));
   with-lock ($group-lock)
-    *groups*[as-lowercase(name)] := group;
+    *groups*[name] := group;
   end;
   group
 end method create-group;
@@ -173,7 +174,7 @@ define method remove-group
     end;
   end;
   with-lock ($group-lock)
-    remove-key!(*groups*, as-lowercase(group.group-name));
+    remove-key!(*groups*, group.group-name);
   end;
 end method remove-group;
 

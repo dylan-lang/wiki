@@ -66,6 +66,18 @@ define variable *edit-access-page* = #f;
 
 //// Wiki object caches
 
+
+// TODO: why's this not in table-extensions?
+define class <case-insensitive-string-table> (<table>)
+end;
+
+define sealed method table-protocol
+    (table :: <case-insensitive-string-table>)
+ => (test :: <function>, hash :: <function>)
+  values(case-insensitive-equal, case-insensitive-string-hash)
+end;
+
+
 /// All objects stored in the wiki (pages, users, groups) must subclass this.
 ///
 define class <wiki-object> (<object>)
@@ -78,30 +90,25 @@ end;
 // If you need to hold more than one of these locks, acquire them in
 // this order: $group-lock, $user-lock, $page-lock.
 
-/// All users are loaded from storage at startup and stored in this collection.
-/// Users created after startup are added.  Keys are lowercased.
-///
-define variable *users* :: <string-table> = make(<string-table>);
+/// Maps user name to newest revision of <wiki-user>.
+define variable *users* :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
 
 /// Hold this when modifying *users*.
 define constant $user-lock :: <lock> = make(<lock>);
 
 
-/// All groups are loaded from storage at startup and stored in this collection.
-/// Groups created after startup are added.  Keys are lowercased.
-///
-define variable *groups* :: <string-table> = make(<string-table>);
+/// Maps group name to newest revision of <wiki-group>.
+define variable *groups* :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
 
 /// Hold this when modifying *groups*.
 define constant $group-lock :: <lock> = make(<lock>);
 
 
-/// Pages are stored here as they are lazily loaded.  find-page first
-/// looks here and if not found, loads the page and stores it here.
-/// Keys are page titles (not encoded, not lowercased) and values are
-/// <wiki-page>s.
-///
-define variable *pages* :: <string-table> = make(<string-table>);
+/// Maps page titles to newest revision of <wiki-page>.
+define variable *pages* :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
 
 /// Hold this when modifying *pages*.
 define constant $page-lock :: <lock> = make(<lock>);

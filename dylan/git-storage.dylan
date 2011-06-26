@@ -506,7 +506,9 @@ define function git-parse-group
           if (user)
             user
           else
-            log-error("Owner of group %= not found: %=", group-name, owner-name);
+            // This probably means the user data repo wasn't maintained in
+            // sync with the main data.
+            log-error("User %= not found for group %=", name, group-name);
             *admin-user*
           end
         end;

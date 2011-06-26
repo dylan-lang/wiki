@@ -50,7 +50,7 @@ define sideways method process-config-element
           standard-meta-data(admin-user, "edit"));
   end;
   *admin-user* := admin-user;
-  *users*[as-lowercase(admin-user.user-name)] := admin-user;
+  *users*[admin-user.user-name] := admin-user;
 
   *site-name* := get-attr(node, #"site-name") | *site-name*;
   log-info("Site name: %s", *site-name*);
@@ -93,6 +93,7 @@ end method process-config-element;
 
 define method process-administrator-configuration
     (admin-element :: xml/<element>)
+  log-debug("process-administrator-configuration");
   let password = get-attr(admin-element, #"password");
   let email = get-attr(admin-element, #"email");
   if (~(password & email))
@@ -125,6 +126,7 @@ define method process-administrator-configuration
     admin-changed? := #t;
     log-info("Administrator user (%s) created.", $administrator-user-name);
   end;
+  *users*[admin.user-name] := admin;
   values(*admin-user* := admin, admin-changed?)
 end method process-administrator-configuration;
 
@@ -352,6 +354,7 @@ add-option-parser-by-type(*argument-list-parser*,
 
 define function initialize-wiki
     (server :: <http-server>)
+  log-debug("initialize-wiki");
   let directory = option-value-by-long-name(*argument-list-parser*,
                                             "static-directory");
   if (directory)
@@ -365,10 +368,10 @@ end function initialize-wiki;
 define function preload-wiki-data ()
   // Load all wiki data.  Not serving yet, so no lock needed.
   for (user in load-all(*storage*, <wiki-user>))
-    *users*[as-lowercase(user.user-name)] := user;
+    *users*[user.user-name] := user;
   end;
   for (group in load-all(*storage*, <wiki-group>))
-    *groups*[as-lowercase(group.group-name)] := group;
+    *groups*[group.group-name] := group;
   end;
   // TODO: This won't scale.
   for (page in load-all(*storage*, <wiki-page>))

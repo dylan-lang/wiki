@@ -46,10 +46,12 @@ define function make-test-page
     (#key title, content, comment, owner, author, tags, access-controls)
  => (page :: <wiki-page>)
   let title = title | "Title";
+  let parsed-source = parse-wiki-markup(content | "Content", title);
   with-lock ($page-lock)
     *pages*[title] := make(<wiki-page>,
                            title: title,
-                           content: content | "Content",
+                           source: content | "Content",
+                           parsed-source: parsed-source,
                            comment: comment | "Comment",
                            owner: owner | *admin-user*,
                            author: author | *admin-user*,
@@ -218,7 +220,6 @@ define test test-find-or-load-pages-with-tags ()
   // was loaded and therefore isn't == to page3.
   remove-key!(*pages*, page3.page-title);
   let pages = find-or-load-pages-with-tags(storage, #("tag3"));
-  break("pages = %=", pages);
   check-equal("found one page with tag3", pages.size, 1);
   check-true("found page3",
              (pages[0].page-title = page3.page-title)

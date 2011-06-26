@@ -29,11 +29,20 @@ define constant $admin-user = make(<wiki-user>,
 define function make-page
     (title :: <string>, acls :: <acls>)
  => (page :: <wiki-page>)
-  make(<wiki-page>, title: title, owner: $owner-user, access-controls: acls)
+  make(<wiki-page>,
+       title: title,
+       author: $plain-user,
+       tags: #(),
+       source: "foo",
+       parsed-source: parse-wiki-markup("foo", title),
+       comment: "bar",
+       owner: $owner-user,
+       access-controls: acls)
 end;
   
 
 // Tests the default access controls for a <wiki-page>.
+// This depends on administrator being the page owner.
 //
 define test test-default-access-controls ()
   for (page in list(#f,  // #f is for new pages being created
