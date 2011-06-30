@@ -93,7 +93,6 @@ end method process-config-element;
 
 define method process-administrator-configuration
     (admin-element :: xml/<element>)
-  log-debug("process-administrator-configuration");
   let password = get-attr(admin-element, #"password");
   let email = get-attr(admin-element, #"email");
   if (~(password & email))
@@ -354,7 +353,6 @@ add-option-parser-by-type(*argument-list-parser*,
 
 define function initialize-wiki
     (server :: <http-server>)
-  log-debug("initialize-wiki");
   let directory = option-value-by-long-name(*argument-list-parser*,
                                             "static-directory");
   if (directory)

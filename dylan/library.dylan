@@ -51,8 +51,8 @@ end library wiki;
 ///
 define module wiki
   create
-    add-wiki-responders,
-    handle-markup;
+    handle-markup,
+    initialize-wiki;
 end;
 
 /// Internal module, for test suite

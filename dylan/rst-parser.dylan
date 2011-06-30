@@ -81,7 +81,7 @@ end function parse-wiki-markup;
 ///     then the reference may contain RST markup when rendered as a string.
 ///   epos - The index within 'markup-text' of *markup-suffix*.
 /// Signals:
-///   <parse-error>
+///   <parse-error>  TODO:
 ///
 define function parse-markup-element
     (markup-text :: <string>, bpos :: <integer>)
