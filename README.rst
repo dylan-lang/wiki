@@ -107,6 +107,11 @@ The wiki repositories (main content and user data) make use of the
 "git notes" feature to store meta-data about each commit.  Becaues of
 this they need some special attention when pushing/pulling.
 
+Clone::
+
+  $ git clone git@github.com:cgay/dylan-wiki-data
+  $ git pull origin refs/notes/commits:refs/notes/commits
+
 Push::
 
   $ git push origin
