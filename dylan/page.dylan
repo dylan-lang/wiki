@@ -10,9 +10,6 @@ define constant $default-list-size :: <integer> = 25;
 //
 define class <wiki-page> (<wiki-object>)
 
-  slot page-title :: <string>,
-    required-init-keyword: title:;
-
   constant slot page-source :: <string>,
     required-init-keyword: source:;
 
@@ -47,6 +44,19 @@ define class <wiki-page> (<wiki-object>)
     init-keyword: revision:;
 
 end class <wiki-page>;
+
+
+// back compat
+define inline function page-title
+    (page :: <wiki-page>) => (title :: <string>)
+  page.object-name
+end;
+
+// back compat
+define inline function page-title-setter
+    (new-name :: <string>, page :: <wiki-page>) => (new-name :: <string>)
+  page.object-name := new-name
+end;
 
 
 define thread variable *page* :: false-or(<wiki-page>) = #f;

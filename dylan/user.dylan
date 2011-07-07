@@ -29,9 +29,6 @@ define variable *ignore-logins* = list();
 //
 define class <wiki-user> (<wiki-object>)
 
-  slot user-name :: <string>,
-    required-init-keyword: name:;
-
   slot %user-real-name :: false-or(<string>) = #f,
     init-keyword: real-name:;
 
@@ -58,6 +55,20 @@ define method initialize
     user.user-activation-key := generate-activation-key(user);
   end;
 end;
+
+
+// back compat
+define inline function user-name
+    (user :: <wiki-user>) => (name :: <string>)
+  user.object-name
+end;
+
+// back compat
+define inline function user-name-setter
+    (new-name :: <string>, user :: <wiki-user>) => (new-name :: <string>)
+  user.object-name := new-name
+end;
+
 
 define generic user-real-name
     (user :: <wiki-user>) => (real-name :: <string>);

@@ -6,8 +6,6 @@ Synopsis: Group maintenance
 //         reason about the code.  Probably goes for other objects too.
 //
 define class <wiki-group> (<wiki-object>)
-  slot group-name :: <string>,
-    required-init-keyword: name:;
   slot group-owner :: <wiki-user>,
     required-init-keyword: owner:;
   slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
@@ -26,6 +24,20 @@ define method initialize
     (group :: <wiki-group>, #key)
   add-new!(group.group-members, group.group-owner);
 end;
+
+
+// back compat
+define inline function group-name
+    (group :: <wiki-group>) => (name :: <string>)
+  group.object-name
+end;
+
+// back compat
+define inline function group-name-setter
+    (new-name :: <string>, group :: <wiki-group>) => (new-name :: <string>)
+  group.object-name := new-name
+end;
+
 
 // This is pretty restrictive for now.  Easier to loosen the rules later
 // than to tighten them up.  The name has been pre-trimmed and %-decoded.

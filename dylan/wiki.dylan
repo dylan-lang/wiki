@@ -82,8 +82,12 @@ end;
 ///
 define class <wiki-object> (<object>)
   constant slot creation-date :: <date> = current-date();
+
   // TODO:
   //constant slot modification-date :: <date> = <same as creation-date>;
+
+  slot object-name :: <string>,
+    required-init-keyword: name:;
 end;
 
 
