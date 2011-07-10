@@ -159,7 +159,7 @@ define method load
   let (owner, acls) = git-parse-acls(acls, title);
   make(<wiki-page>,
        creation-date: creation-date,
-       title: title,
+       name: title,
        source: source,
        parsed-source: parse-wiki-markup(source, title),
        comment: change.change-comment,

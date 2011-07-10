@@ -376,15 +376,8 @@ define function preload-wiki-data ()
     *pages*[page.page-title] := page;
   end;
 
-  // 2nd pass to update <wiki-reference>s.
-  let ref-count :: <integer> = 0;
   for (page in *pages*)
-    for (chunk in page.page-parsed-source)
-      if (instance?(chunk, <wiki-reference>))
-        resolve-reference(chunk);
-        inc!(ref-count);
-      end;
-    end;
+    update-reference-tables!(page, #(), page.outbound-references);
   end;
 end function preload-wiki-data;
 

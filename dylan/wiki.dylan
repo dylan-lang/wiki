@@ -434,9 +434,7 @@ define variable *not-logged-in-page* = #f;
 //// References (to other wiki objects)
 
 
-/// A wiki reference is a pointer to another wik object.  These have to
-/// survive deletion of the target object, which is why the reference-target
-/// slot may be #f.
+/// A wiki reference is a pointer to another wiki object.
 define class <wiki-reference> (<object>)
 
   /// This holds the name of the page, user, or group.
@@ -447,18 +445,33 @@ define class <wiki-reference> (<object>)
   constant slot reference-text :: <string>,
     required-init-keyword: text:;
 
-  slot reference-target :: false-or(<wiki-object>),
-    init-keyword: target:;
-
 end class <wiki-reference>;
+
+
+/// Map from page name to a sequence of <wiki-object>s that refer to it.
+/// The keys here may be for non-existant objects.  e.g. pages that
+/// haven't yet been created, or that have been deleted.
+define constant $page-reference-map :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
+
+/// Map from user name to a sequence of <wiki-object>s that refer to it.
+/// The keys here may be for non-existant objects.  e.g. users that
+/// haven't yet been created, or that have been deleted.
+define constant $user-reference-map :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
+
+/// Map from group name to a sequence of <wiki-object>s that refer to it.
+/// The keys here may be for non-existant objects.  e.g. groups that
+/// haven't yet been created, or that have been deleted.
+define constant $group-reference-map :: <case-insensitive-string-table>
+  = make(<case-insensitive-string-table>);
 
 
 define generic as-rst
     (x :: <object>) => (rst :: <string>);
 
 define generic resolve-reference
-    (ref :: <wiki-reference>) => ();
-
+    (ref :: <wiki-reference>) => (object :: false-or(<wiki-object>));
 
        
 define class <page-reference> (<wiki-reference>) end;
@@ -475,7 +488,7 @@ define method as-rst
     (ref :: <page-reference>) => (rst :: <string>)
   format-to-string("`%s %s<%s/page/view/%s>`_",
                    ref.reference-text,
-                   iff(ref.reference-target, "", "(?) "),
+                   iff(ref.resolve-reference, "", "(?) "),
                    *wiki-url-prefix*,
                    percent-encode($uri-pchar, ref.reference-name))
 end;
@@ -484,7 +497,7 @@ define method as-rst
     (ref :: <user-reference>) => (rst :: <string>)
   format-to-string("`%s %s<%s/user/view/%s>`_",
                    ref.reference-text,
-                   iff(ref.reference-target, "", "(?) "),
+                   iff(ref.resolve-reference, "", "(?) "),
                    *wiki-url-prefix*,
                    percent-encode($uri-pchar, ref.reference-name))
 end;
@@ -493,25 +506,102 @@ define method as-rst
     (ref :: <group-reference>) => (rst :: <string>)
   format-to-string("`%s %s<%s/group/view/%s>`_",
                    ref.reference-text,
-                   iff(ref.reference-target, "", "(?) "),
+                   iff(ref.resolve-reference, "", "(?) "),
                    *wiki-url-prefix*,
                    percent-encode($uri-pchar, ref.reference-name))
 end;
 
 
 define method resolve-reference
-    (ref :: <page-reference>) => ()
-  ref.reference-target := find-page(ref.reference-name);
+    (ref :: <page-reference>) => (page :: false-or(<wiki-page>))
+  find-page(ref.reference-name)
 end;
 
 define method resolve-reference
-    (ref :: <user-reference>) => ()
-  ref.reference-target := find-user(ref.reference-name);
+    (ref :: <user-reference>) => (user :: false-or(<wiki-user>))
+  find-user(ref.reference-name)
 end;
 
 define method resolve-reference
-    (ref :: <group-reference>) => ()
-  ref.reference-target := find-group(ref.reference-name);
+    (ref :: <group-reference>) => (group :: false-or(<wiki-group>))
+  find-group(ref.reference-name)
 end;
 
+
+define constant $reference-map-lock :: <lock> = make(<lock>);
+
+/// Update reference tables to reflect changes when an object is created,
+/// modified, or deleted.
+/// Arguments:
+///   source - The source of the references.
+///   old-refs - Sequence of <wiki-reference> from before the object was changed.
+///   new-refs - Sequence of <wiki-reference> from after the object was changed.
+define function update-reference-tables!
+    (source :: <wiki-object>, old-refs :: <sequence>, new-refs :: <sequence>)
+ => ()
+  local method same? (object1 :: <wiki-object>, object2 :: <wiki-object>)
+          case-insensitive-equal(object1.object-name, object2.object-name)
+        end;
+  let table = select (source by instance?)
+                <wiki-page> => $page-reference-map;
+                <wiki-user> => $user-reference-map;
+                <wiki-group> => $group-reference-map;
+              end;
+  with-lock ($reference-map-lock)
+    for (ref in old-refs)
+      let target-name = ref.reference-name;
+      let refs = element(table, target-name, default: #f);
+      if (refs)
+        table[target-name] := remove!(refs, source, test: same?);
+      end;
+    end;
+    for (ref in new-refs)
+      let target-name = ref.reference-name;
+      let refs = element(table, target-name, default: #());
+      table[target-name] := add!(refs, source);
+    end;
+  end;
+end function update-reference-tables!;
+
+
+/// Find references to the given wiki object.  Currently this cannot handle
+/// references to specific revisions of objects; all references are assumed
+/// to be to the latest revision.
+/// Arguments:
+///     target - The object being referred to.
+/// Values:
+///     wiki-objects - A sequence of <wiki-objects>s.
+define generic inbound-references
+    (target :: <wiki-object>) => (wiki-objects :: <sequence>);
+
+define method inbound-references
+    (target :: <wiki-page>) => (wiki-objects :: <sequence>)
+  element($page-reference-map, target.object-name, default: #())
+end;
+
+define method inbound-references
+    (target :: <wiki-user>) => (wiki-objects :: <sequence>)
+  element($user-reference-map, target.object-name, default: #())
+end;
+
+define method inbound-references
+    (target :: <wiki-group>) => (wiki-objects :: <sequence>)
+  element($group-reference-map, target.object-name, default: #())
+end;
+
+
+/// Return a sequence of <wiki-object>s that are referred to by 'source'.
+define generic outbound-references
+    (source :: <wiki-object>) => (refs :: <sequence>);
+
+define method outbound-references
+    (source :: <wiki-object>) => (refs :: <sequence>)
+  #()  // nothing yet
+end;
+
+define method outbound-references
+    (page :: <wiki-page>) => (refs :: <sequence>)
+  choose(rcurry(instance?, <wiki-reference>),
+         page.page-parsed-source)
+end method outbound-references;
 

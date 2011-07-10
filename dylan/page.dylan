@@ -176,8 +176,9 @@ define method save-page
     (title :: <string>, source :: <string>, comment :: <string>, tags :: <sequence>)
  => (page :: <wiki-page>)
   let user = authenticated-user();
+  let old-page = find-page(title);
   let page = make(<wiki-page>,
-                  title: title,
+                  name: title,
                   source: source,
                   parsed-source: parse-wiki-markup(source, title),
                   tags: tags | #(),
@@ -185,6 +186,11 @@ define method save-page
                   author: user,
                   owner: user,
                   access-controls: $default-access-controls);
+  update-reference-tables!(page,
+                           iff(old-page,
+                               outbound-references(old-page),
+                               #()),
+                           outbound-references(page));
   let action = "create";
   with-lock ($page-lock)
     if (key-exists?(*pages*, title))
@@ -250,40 +256,6 @@ define method rename-page
 end method rename-page;
 
 
-/// Find references to the given wiki object.  Currently this cannot handle
-/// references to specific revisions of objects; all references are assumed
-/// to be to the latest revision.
-/// Values:
-///   backlinks - A sequence of <wiki-objects>s.  In reality these will only
-///     be <wiki-page>s or <wiki-group>s because <wiki-user>s can't reference
-///     other wiki objects.
-define generic find-references
-    (object :: <wiki-object>)
- => (backlinks :: <sequence>);
-
-/// Find references to wiki pages.  These refs can only come from other pages.
-/// For now do the stoopid thing and scan the entire wiki for refs.
-///
-define method find-references
-    (target-page :: <wiki-page>)
- => (backlinks :: <sequence>)
-  let refs :: <stretchy-vector> = make(<stretchy-vector>);
-  let target-name :: <string> = target-page.page-title;
-  for (wiki-page in *pages*)
-    block (skip-rest-of-page)
-      for (chunk in wiki-page.page-parsed-source)
-        if (instance?(chunk, <page-reference>)
-              & chunk.reference-name = target-name)
-          log-debug("Page %s refers to page %s", chunk.reference-name, target-name);
-          add!(refs, wiki-page);
-          skip-rest-of-page();
-        end;
-      end;
-    end block;
-  end;
-  refs
-end method find-references;
-
 define method discussion-page?
     (page :: <wiki-page>)
  => (is? :: <boolean>)
@@ -348,10 +320,14 @@ define method respond-to-get
   end;
 end method respond-to-get;
 
+// rename to list-referring-pages
 define body tag list-page-backlinks in wiki
     (page :: <wiki-dsp>, do-body :: <function>)
     ()
-  let backlinks = find-references(*page*);
+  let backlinks = sort(inbound-references(*page*),
+                       test: method (x, y)
+                               as-lowercase(x.object-name) < as-lowercase(y.object-name)
+                             end);
   if (empty?(backlinks))
     output("There are no connections to this page.");
   else
