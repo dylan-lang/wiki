@@ -16,7 +16,6 @@
  */
 
 body {
-  font-size: 0.8em;
   font-family: "Lucida Grande", Verdana, Arial, sans-serif;
   color: #666;
   line-height: 1.5em;
@@ -41,7 +40,6 @@ fieldset {
   float: left;
   margin-bottom: 1.5em;
   position: relative;
-  border-bottom: 1px;  /* remove dotted underline */
 }
 
 #header-left {
@@ -162,25 +160,22 @@ a {
   border: none;
   text-decoration: none;
   padding-bottom: 0px;
-  border-bottom: 1px dotted #58a;
 }
 
 a:visited {
   color: #152772;
   text-decoration: none;
   padding-bottom: 0px;
-  border-bottom: 1px dotted #58a;
 }
 
 a:hover {
-  color:#58a;
+  color: #58a;
   text-decoration: none;
   padding-bottom: 0px;
   border-bottom: 1px dotted black;
 }
 
 h2 {
-  font-size: 1.5em;
   padding-top: 2em;
   margin-bottom: 1em;
 }
@@ -205,7 +200,6 @@ h2, #midsection, body hr {
 }
 
 h3 {
-  font-size: 1.2em;
   margin-bottom: 0.2em;
   padding-bottom: 0.1em;
 }
@@ -238,7 +232,6 @@ small.date {
 
 #menu span {
   display: block;
-  font-size: 1em;
   margin: 0.3em 0.5em;
   display: block;
 }
@@ -248,7 +241,6 @@ small.date {
   display: none;
   padding: 0 0.4em;
   margin: 0;
-  font-size: 0.8em;
 }
 
 #menu a {
@@ -387,4 +379,11 @@ span.object {
 
 #comment-input {
   width: 30em;
+}
+
+pre {
+  background: #cdf;
+  border: 1px solid #679;
+  color: #235;
+  padding: 0.5em;
 }
