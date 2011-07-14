@@ -81,7 +81,8 @@ end;
 /// All objects stored in the wiki (pages, users, groups) must subclass this.
 ///
 define class <wiki-object> (<object>)
-  constant slot creation-date :: <date> = current-date();
+  constant slot creation-date :: <date> = current-date(),
+    init-keyword: creation-date:;
 
   // TODO:
   //constant slot modification-date :: <date> = <same as creation-date>;
