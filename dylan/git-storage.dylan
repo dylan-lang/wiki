@@ -158,7 +158,7 @@ define method load
   let source = git-load-blob(storage, source-path, hash);
   let (owner, acls) = git-parse-acls(acls, title);
   make(<wiki-page>,
-       creation-date: creation-date,
+       creation-date: change.change-date,
        name: title,
        source: source,
        parsed-source: parse-wiki-markup(source, title),
