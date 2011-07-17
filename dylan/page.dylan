@@ -15,7 +15,7 @@ define class <wiki-page> (<wiki-object>)
 
   // A sequence of <string>s (of RST source) or <wiki-reference>s.
   constant slot page-parsed-source :: <sequence>,
-    required-init-keyword: parsed-source:;
+    init-keyword: parsed-source:;
 
   // Comment entered by the user describing the changes for this revision.
   constant slot page-comment :: <string>,
@@ -31,12 +31,12 @@ define class <wiki-page> (<wiki-object>)
   constant slot page-author :: <wiki-user>,
     required-init-keyword: author:;
 
-  // Tags (strings) entered by the author when the page was saved.
-  constant slot page-tags :: <sequence>,
-    required-init-keyword: tags:;
-
   slot page-access-controls :: <acls>,
     required-init-keyword: access-controls:;
+
+  // Tags (strings) entered by the author when the page was saved.
+  constant slot page-tags :: <sequence> = #(),
+    init-keyword: tags:;
 
   // e.g. a git commit hash or a revision number
   // Filled in by the storage back-end.
@@ -44,6 +44,36 @@ define class <wiki-page> (<wiki-object>)
     init-keyword: revision:;
 
 end class <wiki-page>;
+
+
+/// Provide defaulting and a copy-from argument.
+define method make
+    (class == <wiki-page>,
+     #rest args,
+     #key copy-from :: false-or(<wiki-page>),
+     name, source, parsed-source, comment, owner,
+     author, tags, access-controls, revision)
+ => (page :: <wiki-page>)
+  let p = copy-from;
+  let name = name | (p & p.object-name);
+  let source = source | (p & p.page-source);
+  let owner = owner | (p & p.page-owner) | author;
+  apply(next-method,
+        class,
+        name: name,
+        source: source,
+        parsed-source: parsed-source
+                       | (source & parse-wiki-markup(source, name))
+                       | (p & p.parsed-source),
+        comment: comment | "",
+        owner: owner,
+        author: author | (p & p.page-author) | owner,
+        tags: tags | (p & p.page-tags) | #(),
+        access-controls: access-controls
+                         | (p & p.page-access-controls)
+                         | $default-access-controls,
+        args)
+end method make;
 
 
 // back compat
@@ -178,14 +208,12 @@ define method save-page
   let user = authenticated-user();
   let old-page = find-page(title);
   let page = make(<wiki-page>,
+                  copy-from: old-page,
                   name: title,
                   source: source,
-                  parsed-source: parse-wiki-markup(source, title),
-                  tags: tags | #(),
+                  tags: tags,
                   comment: comment,
-                  author: user,
-                  owner: user,
-                  access-controls: $default-access-controls);
+                  author: user);
   update-reference-tables!(page,
                            iff(old-page,
                                outbound-references(old-page),
@@ -497,7 +525,8 @@ define method respond-to-post
     (wiki-dsp :: <edit-page-page>, #key title :: <string>)
   let title = percent-decode(title);
   let page = find-or-load-page(title);
-  with-query-values (content as source, comment, tags, button)
+  with-query-values (content, comment, tags, button)
+    let source = content | "";
     let tags = iff(tags, parse-tags(tags), #[]);
     let previewing? = (button = "Preview");
     let author = authenticated-user();
@@ -514,24 +543,24 @@ define method respond-to-post
     end;
 
     if (previewing? | page-has-errors?())
-      set-attribute(page-context(), "previewing?", #t);
-      set-attribute(page-context(), "title", title);
-      process-template(wiki-dsp);
+      dynamic-bind (*page* = make(<wiki-page>,
+                                  copy-from: page,
+                                  name: title,
+                                  source: source,
+                                  comment: comment,
+                                  author: author))
+        let pc = page-context();
+        set-attribute(pc, "previewing?", #t);
+        set-attribute(pc, "title", title);
+        set-attribute(pc, "preview", as-html(source, title));
+        process-template(wiki-dsp);
+      end;
     else
-      let page = save-page(title, source | "", comment, tags);
+      let page = save-page(title, source, comment, tags);
       redirect-to(page);
     end;
   end;
 end method respond-to-post;
-
-define tag show-page-preview in wiki
-    (page :: <edit-page-page>)
-    ()
-  // TODO: change this to "source"
-  let markup = get-query-value("content");
-  let title = get-query-value("title");
-  output("%s", as-html(markup, title));
-end;
 
 
 

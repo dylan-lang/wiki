@@ -27,7 +27,7 @@
         <div class="preview">
           <dsp:if test="can-view-content?">
             <dsp:then>
-              <wiki:show-page-preview/>
+              <dsp:get name="preview" context="page" raw="true"/>
               <%dsp:include url="view-page-tags.dsp"/>
             </dsp:then>
             <dsp:else>

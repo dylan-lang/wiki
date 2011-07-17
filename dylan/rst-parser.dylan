@@ -29,6 +29,12 @@ define method as-html
   rst2html(map(as-rst, page.page-parsed-source))
 end method as-html;
 
+define method as-html
+    (source :: <string>, title :: <string>)
+ => (html :: <string>)
+  rst2html(map(as-rst, parse-wiki-markup(source, title)))
+end;
+
 
 /// Parse one unit of wiki markup.  Normally that means a page.  When
 /// one page is included in another, the included page is not part of

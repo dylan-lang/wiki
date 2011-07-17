@@ -364,7 +364,7 @@ define tag show-rules in wiki
 end tag show-rules;
 
 define named-method can-view-content? in wiki
-    (acls-page :: <wiki-dsp>)
+    (page :: <wiki-dsp>)
   has-permission?(authenticated-user(), *page*, $view-content)
 end;
 

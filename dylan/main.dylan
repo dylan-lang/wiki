@@ -234,7 +234,6 @@ define function restore-from-text-files
         page := make(<wiki-page>,
                      title: title,
                      source: source,
-                     parsed-source: parse-wiki-markup(source, title),
                      owner: author);
       end;
       store(*storage*, page, author, comment, standard-meta-data(page, "create"));
