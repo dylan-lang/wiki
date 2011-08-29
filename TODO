@@ -10,6 +10,7 @@ Fix before going live
 
 General
 -------
+* wikimatrix.org is a good source of feature ideas.
 * The "Recent Changes" and "Pages" links both get an error if there
   is nothing to list.  (minor)
 * static files (e.g., /styles.css) should be under the dynamically
