@@ -246,7 +246,7 @@ define method account-activation-url
   let default = current-request().request-absolute-url;
   let prefix = iff(*wiki-url-prefix*.size = 0,
                    #(),
-                   split(*wiki-url-prefix*, "/", remove-if-empty: #t));
+                   split(*wiki-url-prefix*, "/", remove-if-empty?: #t));
   as(<string>,
      make(<url>,
           scheme: "http",
