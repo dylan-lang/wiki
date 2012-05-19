@@ -259,7 +259,7 @@ define method account-activation-url
 end method account-activation-url;
 
 // This is pretty restrictive for now.  Easier to loosen the rules later
-// than to tighten them up.  The name has been pre-trimmed and %-decoded.
+// than to tighten them up.  The name has been pre-stripped and %-decoded.
 //
 define method validate-user-name
     (name :: <string>) => (name :: <string>)

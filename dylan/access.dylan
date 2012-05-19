@@ -217,7 +217,7 @@ end method parse-rules;
 define method parse-rule
     (rule :: <string>)
  => (rule, errors? :: <boolean>)
-  let rule = trim(rule);
+  let rule = strip(rule);
   let action = $allow;
   if (rule.size > 0)
     if (rule[0] = '!')
@@ -297,7 +297,7 @@ define method respond-to-post
     resource-not-found-error(url: request-url(current-request()));
   end;
   with-query-values (view-content, modify-content, modify-acls, comment, owner-name)
-    let owner = trim(owner-name);
+    let owner = strip(owner-name);
     let new-owner = ~empty?(owner) & find-user(owner);
     let owner-err? = ~empty?(owner) & ~new-owner;
 

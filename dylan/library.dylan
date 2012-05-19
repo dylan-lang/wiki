@@ -86,7 +86,7 @@ define module %wiki
   use smtp-client;
   use streams;
   use strings,
-    import: { index-of, trim };
+    import: { find-substring, strip };
   use substring-search;
   use table-extensions,
     rename: { table => make-table };

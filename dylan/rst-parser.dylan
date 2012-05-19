@@ -57,7 +57,7 @@ define function parse-wiki-markup
                 *markup-suffix* = *default-markup-suffix*)
     iterate loop (start :: <integer> = 0)
       if (start < markup.size)
-        let markup-bpos = index-of(markup, *markup-prefix*, start: start);
+        let markup-bpos = find-substring(markup, *markup-prefix*, start: start);
         if (~markup-bpos)
           add!(chunks, slice(markup, start, #f));
         else
@@ -92,7 +92,7 @@ end function parse-wiki-markup;
 define function parse-markup-element
     (markup-text :: <string>, bpos :: <integer>)
  => (chunk :: type-union(<string>, <wiki-reference>), epos :: <integer>)
-  let epos = index-of(markup-text, *markup-suffix*, start: bpos);
+  let epos = find-substring(markup-text, *markup-suffix*, start: bpos);
   if (epos)
     let tokens = tokenize(slice(markup-text, bpos, epos));
     values(iff(empty?(tokens),
@@ -178,12 +178,12 @@ define function parse-string-token
   iterate loop (i = bpos)
     case
       i = len =>
-        values(trim(slice(text, bpos, #f)), i, '\0');
+        values(strip(slice(text, bpos, #f)), i, '\0');
       member?(text[i], end-delims) =>
         let tok = slice(text, bpos, i);
         let delim = text[i];
         if (delim ~= '"' & delim ~= '\'')
-          tok := trim(tok);
+          tok := strip(tok);
         end;
         values(tok, i + 1, text[i]);
       otherwise =>

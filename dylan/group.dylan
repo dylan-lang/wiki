@@ -40,7 +40,7 @@ end;
 
 
 // This is pretty restrictive for now.  Easier to loosen the rules later
-// than to tighten them up.  The name has been pre-trimmed and %-decoded.
+// than to tighten them up.  The name has been pre-stripped and %-decoded.
 //
 define method validate-group-name
     (name :: <string>) => (name :: <string>)
@@ -279,7 +279,7 @@ define method respond-to-get
     (dsp :: <edit-group-page>,
      #key name :: <string>,
           revision :: false-or(<string>))  // TODO:
-  let name = trim(percent-decode(name));
+  let name = strip(percent-decode(name));
   let group = find-group(name);
   set-group-page-attributes(name, group);
   process-template(dsp);
@@ -289,7 +289,7 @@ define method respond-to-post
     (dsp :: <edit-group-page>,
      #key name :: <string>,
           revision :: false-or(<string>))  // TODO:
-  let name = trim(percent-decode(name));
+  let name = strip(percent-decode(name));
   let group = find-group(name);
   set-group-page-attributes(name, group);
   if (~group)
@@ -299,8 +299,8 @@ define method respond-to-post
     let new-name = validate-form-field("group-name", validate-group-name);
     let owner-name = validate-form-field("group-owner", validate-user-name);
     let new-owner = find-user(owner-name);
-    let comment = trim(get-query-value("comment") | "");
-    let description = trim(get-query-value("group-description") | "");
+    let comment = strip(get-query-value("comment") | "");
+    let description = strip(get-query-value("group-description") | "");
     if (empty?(description))
       add-field-error("group-description", "A description is required.");
     end;
