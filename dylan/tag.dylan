@@ -12,7 +12,7 @@ define wf/object-test (tag) in wiki end;
 define function parse-tags
     (tag-string :: <string>) => (tags :: <sequence>)
   choose(complement(empty?),
-         remove-duplicates!(map(trim, split(tag-string, ",")), test: \=));
+         remove-duplicates!(map(strip, split(tag-string, ",")), test: \=));
 end;
 
 define function unparse-tags

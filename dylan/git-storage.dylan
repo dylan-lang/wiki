@@ -499,7 +499,7 @@ define function git-parse-group
      description :: <string>)
  => (user :: <wiki-group>)
   let (group-name, owner-name, #rest member-names) = apply(values, split(people, ':'));
-  let desc-size = string-to-integer(trim(description-size));
+  let desc-size = string-to-integer(strip(description-size));
   let description = slice(description, 0, desc-size);
   local method find-user-or-admin (name)
           let user = find-user(name);
@@ -754,7 +754,7 @@ define function git-parse-tags
     (blob :: <string>) => (tags :: <sequence>)
   // one tag per line...
   choose(complement(empty?),
-         remove-duplicates!(map(trim, split(blob, $newline-regex)),
+         remove-duplicates!(map(strip, split(blob, $newline-regex)),
                             test: \=))
 end;
 
@@ -843,7 +843,7 @@ define function %git-commit
                       sformat("\"%s\" \"%s\"", path, extra-path),
                       sformat("\"%s\"", path));
 
-  let comment = trim(comment);
+  let comment = strip(comment);
   let (stdout, stderr, exit-code)
     = call-git(storage,
                sformat("commit --author \"%s <%s@opendylan.org>\" -m \"%s\" %s",
@@ -855,7 +855,7 @@ define function %git-commit
                error?: #f);
   if (subsequence-position(stdout, "nothing to commit"))
     // No changes were made.  Return the head revision.
-    trim(call-git(storage,
+    strip(call-git(storage,
                   sformat("rev-list --max-count=1 HEAD -- %s", extra-path | path),
                   working-directory: repo-root))
   elseif (exit-code ~= 0)
@@ -876,7 +876,7 @@ define function %git-commit
                         $whitespace-regex);
       let short-hash = elt(parts, -1);
       // Unfortunately we have to run another command to get the full hash...
-      let hash = trim(call-git(storage,
+      let hash = strip(call-git(storage,
                                sformat("rev-list --max-count=1 %s -- \"%s\"",
                                        short-hash, extra-path | path),
                                working-directory: repo-root));
@@ -908,7 +908,7 @@ define function git-load-changes
               values(reverse!(meta-data),
                      lines.tail)
             else
-              loop(pair(trim(lines.head), meta-data),
+              loop(pair(strip(lines.head), meta-data),
                    lines.tail)
             end
           end
