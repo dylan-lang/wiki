@@ -68,6 +68,14 @@ define sideways method process-config-element
   *template-directory* := subdirectory-locator(*static-directory*, "dsp");
   log-info("Wiki static directory: %s", *static-directory*);
 
+  let rst2html-template
+    = merge-locators(as(<file-locator>, "rst2html-template.txt"),
+                     *static-directory*);
+  *rst2html-template* := as(<string>, rst2html-template);
+  if (~file-exists?(rst2html-template))
+    error("File not found: %s", *rst2html-template*);
+  end;
+
   let auth-element = child-node-named(#"authentication");
   if (auth-element)
     process-authentication-configuration(auth-element);
@@ -85,9 +93,6 @@ define sideways method process-config-element
             "config file element.");
   *rst2html* := get-attr(node, #"rst2html")
     | error("The 'rst2html' attribute must be specified in the 'wiki' "
-            "config file element.");
-  *rst2html-template* := get-attr(node, #"rst2html-template")
-    | error("The 'rst2html-template' attribute must be specified in the 'wiki' "
             "config file element.");
 end method process-config-element;
 
