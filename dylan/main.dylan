@@ -345,15 +345,14 @@ define function add-wiki-responders
 end function add-wiki-responders;
 
 // --static-directory <dir>
-add-option-parser-by-type(*argument-list-parser*,
-                          <parameter-option-parser>,
-                          description: "Directory containing wiki static files",
-                          long-options: #("static-directory"));
+add-option(*command-line-parser*,
+           make(<parameter-option>,
+                names: #("static-directory"),
+                help: "Directory containing wiki static files"));
 
 define function initialize-wiki
     (server :: <http-server>)
-  let directory = option-value-by-long-name(*argument-list-parser*,
-                                            "static-directory");
+  let directory = get-option-value(*command-line-parser*, "static-directory");
   if (directory)
     *static-directory* := as(<directory-locator>, directory);
     *template-directory* := subdirectory-locator(*static-directory*, "dsp");
@@ -434,9 +433,9 @@ define function main
   if (member?("--restore", application-arguments(), test: \=))
     // need to handle the --config argument here so the content directory is set.
     // Remove this when the old, pre-turbo wiki is dead.
-    let parser = *argument-list-parser*;
-    parse-arguments(parser, application-arguments());
-    let config-file = option-value-by-long-name(parser, "config");
+    let parser = *command-line-parser*;
+    parse-command-line(parser, application-arguments());
+    let config-file = get-option-value(parser, "config");
     if (config-file)
       // we just cons up a server here because all we care about is that
       // the <wiki> setting is processed.

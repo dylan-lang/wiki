@@ -19,7 +19,6 @@ define library wiki
   use network;
   use smtp-client;
   use strings;
-  use string-extensions;
   use system,
     import: {
       date,
@@ -87,7 +86,6 @@ define module %wiki
   use streams;
   use strings,
     import: { find-substring, strip };
-  use substring-search;
   use table-extensions,
     rename: { table => make-table };
   use threads;
