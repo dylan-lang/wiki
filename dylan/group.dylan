@@ -8,7 +8,7 @@ Synopsis: Group maintenance
 define class <wiki-group> (<wiki-object>)
   slot group-owner :: <wiki-user>,
     required-init-keyword: owner:;
-  slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
+  constant slot group-members :: <stretchy-vector> = make(<stretchy-vector>),
     init-keyword: members:;
   slot group-description :: <string> = "",
     init-keyword: description:;
@@ -83,10 +83,12 @@ define method find-group
   element(*groups*, name, default: #f)
 end;
 
+/* unused
 define method group-exists?
     (name :: <string>) => (exists? :: <boolean>)
   find-group(name) & #t
 end;
+*/
 
 // Find all groups that a user is a member of.
 //

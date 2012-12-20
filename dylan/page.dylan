@@ -83,10 +83,12 @@ define inline function page-title
 end;
 
 // back compat
+/* unused
 define inline function page-title-setter
     (new-name :: <string>, page :: <wiki-page>) => (new-name :: <string>)
   page.object-name := new-name
 end;
+*/
 
 
 define thread variable *page* :: false-or(<wiki-page>) = #f;
@@ -123,10 +125,12 @@ define method find-page
   element(*pages*, title, default: #f)
 end;
 
+/* unused
 define method page-exists?
     (title :: <string>) => (exists? :: <boolean>)
   find-page(title) & #t
 end;
+*/
 
 // The latest revisions of all pages are loaded at startup for now (to
 // simplify searches and iteration over lists of pages) so this will only
@@ -268,6 +272,7 @@ define method generate-connections-graph
 end;
 */
 
+/* unused
 define method rename-page
     (page :: <wiki-page>, new-title :: <string>, comment ::<string>)
  => ()
@@ -282,7 +287,7 @@ define method rename-page
   page.page-title := new-title;
   page.page-revision := revision;
 end method rename-page;
-
+*/
 
 define method discussion-page?
     (page :: <wiki-page>)

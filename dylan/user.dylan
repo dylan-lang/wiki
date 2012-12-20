@@ -29,7 +29,7 @@ define variable *ignore-logins* = list();
 //
 define class <wiki-user> (<wiki-object>)
 
-  slot %user-real-name :: false-or(<string>) = #f,
+  constant slot %user-real-name :: false-or(<string>) = #f,
     init-keyword: real-name:;
 
   slot user-password :: <string>,
@@ -84,10 +84,12 @@ define function find-user
   element(*users*, name, default: default)
 end;
 
+/* unused
 define method user-exists?
     (name :: <string>) => (exists? :: <boolean>)
   find-user(name) & #t
 end;
+*/
 
 // This is set when the config file is loaded.
 define variable *admin-user* :: false-or(<wiki-user>) = #f;
@@ -625,6 +627,7 @@ define function rename-user
   // user.user-revision := revision;
 end function rename-user;
 
+/* unused
 define method redirect-to-user-or
     (page :: <wiki-dsp>, #key username)
   if (*user*)
@@ -633,6 +636,7 @@ define method redirect-to-user-or
     redirect-to(user-permanent-link(percent-decode(username)));
   end if;
 end;
+*/
 
 
 // tags

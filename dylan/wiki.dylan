@@ -3,9 +3,6 @@ Synopsis: Utilities, globals, protocols, base classes, ...
           Basically anything that needs to be defined first.
 
 
-define constant $wiki-version :: <string> = "2011.04.07"; // YYYY.mm.dd
-
-
 define taglib wiki () end;
 
 // Represents a DSP maintained in our source code tree. Not to be confused
@@ -259,6 +256,7 @@ define function change-type-name
   change.change-meta-data["type"]
 end;
 
+/* unused
 define function change-object-type
     (change :: <wiki-change>) => (type :: subclass(<wiki-object>))
   select (change.change-type-name by \=)
@@ -267,6 +265,7 @@ define function change-object-type
     "group" => <wiki-group>;
   end
 end;
+*/
 
 define function change-action
     (change :: <wiki-change>) => (action :: <string>)

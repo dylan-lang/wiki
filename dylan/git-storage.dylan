@@ -42,8 +42,6 @@ define constant sformat = format-to-string;
 
 define constant $newline-regex :: <regex> = compile-regex("[\r\n]+");
 define constant $whitespace-regex :: <regex> = compile-regex("[ \r\n\t]");
-define constant $git-author-regex :: <regex>
-  = compile-regex("Author: .* <([^@]+)@.*>");
 
 define variable *pages-directory* :: false-or(<directory-locator>) = #f;
 define variable *users-directory* :: false-or(<directory-locator>) = #f;
@@ -548,17 +546,17 @@ define method delete
     (storage :: <storage>, group :: <wiki-group>, author :: <wiki-user>,
      comment :: <string>, meta-data :: <string-table>)
  => ()
-  TODO--delete-group;
+  error("Not yet implemented.");
 end method delete;
 
 define method rename
     (storage :: <storage>, group :: <wiki-group>, new-name :: <string>,
      author :: <wiki-user>, comment :: <string>, meta-data :: <string-table>)
  => (revision :: <string>)
-  TODO--rename-group;
   // Need to maintain object IDs that are permanent and monotonically increasing
   // so that renaming an object doesn't require modifying all references.
   // Page references are problematic since users type in the page names.
+  error("Not yet implemented.");
 end method rename;
 
 define function git-group-storage-file
