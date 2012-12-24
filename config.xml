@@ -26,7 +26,7 @@
          Directory where the wiki should look for its static files.
          This should point to the wiki project directory; the one
          containing the www, dylan, and dsp subdirectories.
-     git-repository-root (required)
+     git-main-repository-root (required)
          Full path of main git repository.  This is where wiki page
          and group data is stored.
      git-user-repository-root (required)
@@ -45,9 +45,9 @@
   <wiki site-name="Wiki"
         site-url="http://localhost"
         url-prefix="/wiki"
-        static-directory="/wiki-source-dir/www"
-        git-repository-root="/wiki-main-data"
-        git-user-repository-root="/wiki-user-data"
+        wiki-root=".../dylan/src/wiki"
+        git-main-repository-root=".../wiki/main-data"
+        git-user-repository-root=".../wiki/user-data"
         git-executable="/usr/bin/git"
         python-executable="/usr/bin/python"
         rst2html="/usr/bin/rst2html"

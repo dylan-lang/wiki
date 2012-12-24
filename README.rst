@@ -21,7 +21,7 @@ Configuration
 
 You will need to tweak these values in the config file:
 
-* **koala.wiki.git-repository-root** -- Make it point to the root
+* **koala.wiki.git-main-repository-root** -- Make it point to the root
   directory of your wiki git repository.  Example::
 
      $ cd
@@ -29,7 +29,7 @@ You will need to tweak these values in the config file:
      $ cd wiki-data
      $ git init
 
-     <wiki git-repository-root = "/home/you/wiki-data" ...>
+     <wiki git-main-repository-root = "/home/you/wiki-data" ...>
 
 * **koala.wiki.git-user-repository-root** -- Make this point to the
   root directory of the user data repository.  This is separate from

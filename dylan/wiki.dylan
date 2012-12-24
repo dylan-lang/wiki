@@ -11,16 +11,9 @@ define taglib wiki () end;
 define class <wiki-dsp> (<dylan-server-page>)
 end;
 
-
-// These two variables should reflect the layout of the subdirectories
-// in the wiki project directory.  The default values are setup to work
-//  if you cd to wiki/ and run the wiki executable.
-
-define variable *static-directory* :: <directory-locator>
-  = subdirectory-locator(working-directory(), "www");
-
-define variable *template-directory* :: <directory-locator>
-  = subdirectory-locator(*static-directory*, "dsp");
+// These are both set to something else when the config file is loaded.
+define variable *static-directory* :: <directory-locator> = working-directory();
+define variable *template-directory* :: <directory-locator> = working-directory();
 
 
 define method make

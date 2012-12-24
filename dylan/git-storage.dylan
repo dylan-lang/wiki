@@ -51,7 +51,7 @@ define variable *groups-directory* :: false-or(<directory-locator>) = #f;
 define class <git-storage> (<storage>)
 
   // The root directory of the wiki data repository, as a string.
-  constant slot git-repository-root :: <directory-locator>,
+  constant slot git-main-repository-root :: <directory-locator>,
     required-init-keyword: repository-root:;
 
   // User data is stored in a separate repository so that it can
@@ -90,7 +90,7 @@ end;
 ///
 define method initialize-storage-for-reads
     (storage :: <git-storage>) => ()
-  ensure-directories-exist(storage.git-repository-root);
+  ensure-directories-exist(storage.git-main-repository-root);
   ensure-directories-exist(storage.git-user-repository-root);
 
   // It is supposed to be safe to call "git init" on an already
@@ -100,11 +100,11 @@ define method initialize-storage-for-reads
   call-git(storage, "init", working-directory: storage.git-user-repository-root);
 
   *pages-directory*
-    := subdirectory-locator(storage.git-repository-root, $pages-directory-name);
+    := subdirectory-locator(storage.git-main-repository-root, $pages-directory-name);
   *users-directory*
     := subdirectory-locator(storage.git-user-repository-root, $users-directory-name);
   *groups-directory*
-    := subdirectory-locator(storage.git-repository-root, $groups-directory-name);
+    := subdirectory-locator(storage.git-main-repository-root, $groups-directory-name);
 
   ensure-directories-exist(*pages-directory*);
   ensure-directories-exist(subdirectory-locator(*pages-directory*,
@@ -175,7 +175,7 @@ define method load-all
     (storage :: <storage>, class == <wiki-page>)
  => (pages :: <sequence>)
   log-info("Loading all pages from storage (%s)...",
-           as(<string>, storage.git-repository-root));
+           as(<string>, storage.git-main-repository-root));
   let pages :: <stretchy-vector> = make(<stretchy-vector>);
   local method load-page (page-directory :: <directory-locator>)
           let title = git-decode-title(locator-name(page-directory));
@@ -629,7 +629,7 @@ define function call-git
                   iff(format-args,
                       apply(sformat, command-fmt, format-args),
                       command-fmt));
-  let cwd = working-directory | storage.git-repository-root;
+  let cwd = working-directory | storage.git-main-repository-root;
 
   if (debug?)
     log-debug("Running command in cwd = %s: %s", as(<string>, cwd), command);
@@ -807,7 +807,7 @@ define function git-commit
      #key extra-path :: false-or(<string>))
  => (revision :: <string>)
   %git-commit(storage, path, author, comment, meta-data,
-              storage.git-repository-root,
+              storage.git-main-repository-root,
               extra-path)
 end;
 

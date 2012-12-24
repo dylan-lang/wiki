@@ -16,11 +16,15 @@ define constant $administrator-user-name :: <string> = "administrator";
 /// processed.
 define sideways method process-config-element
     (server :: <http-server>, node :: xml/<element>, name == #"wiki")
-
+  // TODO(cgay): error out if any of the files configured here don't exist,
+  // including executables.
   let git-exe = get-attr(node, #"git-executable")
                 | "git";
-  let main-root = get-attr(node, #"git-repository-root")
-                  | error("The git-repository-root setting is required.");
+  let wiki-root = get-attr(node, #"wiki-root")
+                  | error("The wiki-root setting is required.");
+  let wiki-root-directory = as(<directory-locator>, wiki-root);
+  let main-root = get-attr(node, #"git-main-repository-root")
+                  | error("The git-main-repository-root setting is required.");
   let user-root = get-attr(node, #"git-user-repository-root")
                   | error("The git-user-repository-root setting is required.");
   *storage* := make(<git-storage>,
@@ -62,9 +66,7 @@ define sideways method process-config-element
   *wiki-url-prefix* := get-attr(node, #"url-prefix") | *wiki-url-prefix*;
   log-info("Wiki URL prefix: %s", *wiki-url-prefix*);
 
-  *static-directory*
-    := as(<directory-locator>,
-          get-attr(node, #"static-directory") | *static-directory*);
+  *static-directory* := subdirectory-locator(wiki-root-directory, "www");
   *template-directory* := subdirectory-locator(*static-directory*, "dsp");
   log-info("Wiki static directory: %s", *static-directory*);
 
@@ -86,9 +88,9 @@ define sideways method process-config-element
   *rst2html* := get-attr(node, #"rst2html")
     | error("The 'rst2html' attribute must be specified in the 'wiki' "
             "config file element.");
-  *rst2html-template* := get-attr(node, #"rst2html-template")
-    | error("The 'rst2html-template' attribute must be specified in the 'wiki' "
-            "config file element.");
+  *rst2html-template* := as(<string>,
+                            merge-locators(as(<file-locator>, "rst2html-template.txt"),
+                                           wiki-root-directory));
 end method process-config-element;
 
 define method process-administrator-configuration
@@ -344,18 +346,11 @@ define function add-wiki-responders
 
 end function add-wiki-responders;
 
-// --static-directory <dir>
-add-option(*command-line-parser*,
-           make(<parameter-option>,
-                names: #("static-directory"),
-                help: "Directory containing wiki static files"));
-
+// Called after config file loaded.
 define function initialize-wiki
     (server :: <http-server>)
-  let directory = get-option-value(*command-line-parser*, "static-directory");
-  if (directory)
-    *static-directory* := as(<directory-locator>, directory);
-    *template-directory* := subdirectory-locator(*static-directory*, "dsp");
+  if (~get-option-value(*command-line-parser*, "config"))
+    error("You must specify a config file with the --config option.");
   end;
   add-wiki-responders(server);
   preload-wiki-data();
