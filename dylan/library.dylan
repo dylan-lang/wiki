@@ -14,8 +14,8 @@ define library wiki
   use dylan;
   use graphviz-renderer;
   use http-common;
+  use http-server;
   use io;
-  use koala;
   use network;
   use smtp-client;
   use strings;
@@ -73,7 +73,7 @@ define module %wiki
   use format-out;
   use http-common,
     exclude: { remove-attribute };
-  use koala;
+  use http-server;
   use locators,
     exclude: { <http-server>, <url> };
   use operating-system;
