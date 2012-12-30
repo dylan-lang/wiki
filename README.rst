@@ -21,7 +21,7 @@ Configuration
 
 You will need to tweak these values in the config file:
 
-* **koala.wiki.git-main-repository-root** -- Make it point to the root
+* **http-server.wiki.git-main-repository-root** -- Make it point to the root
   directory of your wiki git repository.  Example::
 
      $ cd
@@ -31,7 +31,7 @@ You will need to tweak these values in the config file:
 
      <wiki git-main-repository-root = "/home/you/wiki-data" ...>
 
-* **koala.wiki.git-user-repository-root** -- Make this point to the
+* **http-server.wiki.git-user-repository-root** -- Make this point to the
   root directory of the user data repository.  This is separate from
   the page and group data so that it can easily be backed-up
   separately (e.g., by pushing to a different remote).  Example::
@@ -43,18 +43,18 @@ You will need to tweak these values in the config file:
 
      <wiki user-repository = "/home/you/wiki-user-data" ...>
 
-* **koala.wiki.git-executable** -- If the "git" executable is not on the
+* **http-server.wiki.git-executable** -- If the "git" executable is not on the
   path of the user running the wiki, then you need to specify it in
   the <wiki> element::
 
      <wiki git-executable = "/usr/bin/git" ... />
 
-* **koala.wiki.static-directory** -- Make it point at the "www" subdirectory
+* **http-server.wiki.static-directory** -- Make it point at the "www" subdirectory
   (I guess this should be made relative to <server-root>.)
 
-* **koala.wiki.administrator.password** -- Choose a password you like.
+* **http-server.wiki.administrator.password** -- Choose a password you like.
 
-* **koala.wiki.rst2html** -- Path to the rst2html executable.
+* **http-server.wiki.rst2html** -- Path to the rst2html executable.
 
 
 Startup

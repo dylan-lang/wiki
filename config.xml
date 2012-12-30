@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 
 <!-- The wiki settings are documented here.
-     See the default koala-config.xml for documentation on Koala settings.
+     See the default config.xml for documentation on HTTP server settings.
   -->
 
-<koala>
+<http-server>
   <listener address="0.0.0.0" port="8000"/>
 
   <server
@@ -60,4 +60,4 @@
     <authentication realm="dylan-wiki"/>
     <mail host="localhost"/>
   </wiki>
-</koala>
+</http-server>

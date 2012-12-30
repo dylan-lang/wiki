@@ -11,6 +11,6 @@ Files: library
        git-storage
        main
 Other-files: ../README.rst
-             ../koala-config.xml
+             ../config.xml
              ../TODO
              ../rst2html-template.txt

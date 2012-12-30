@@ -441,8 +441,8 @@ define function main
     let filename = locator-name(as(<file-locator>, application-name()));
     if (split(filename, ".")[0] = "wiki")
       // This eventually causes process-config-element (above) to be called.
-      koala-main(description: "Dylan Wiki",
-                 before-startup: initialize-wiki);
+      http-server-main(description: "Dylan Wiki",
+                       before-startup: initialize-wiki);
     end;
   end;
 end function main;
