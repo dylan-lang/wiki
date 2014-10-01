@@ -56,18 +56,6 @@ define variable *edit-access-page* = #f;
 
 //// Wiki object caches
 
-
-// TODO: why's this not in table-extensions?
-//define class <case-insensitive-string-table> (<table>)
-//end;
-
-//define sealed method table-protocol
-//    (table :: <case-insensitive-string-table>)
-// => (test :: <function>, hash :: <function>)
-//  values(case-insensitive-equal, case-insensitive-string-hash)
-//end;
-
-
 /// All objects stored in the wiki (pages, users, groups) must subclass this.
 ///
 define class <wiki-object> (<object>)
