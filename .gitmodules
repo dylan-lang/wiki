@@ -1,0 +1,12 @@
+[submodule "ext/web-framework"]
+	path = ext/web-framework
+	url = https://github.com/dylan-lang/web-framework
+[submodule "ext/graphviz-renderer"]
+	path = ext/graphviz-renderer
+	url = https://github.com/dylan-lang/graphviz-renderer
+[submodule "ext/xml-rpc"]
+	path = ext/xml-rpc
+	url = https://github.com/dylan-lang/xml-rpc
+[submodule "ext/http"]
+	path = ext/http
+	url = https://github.com/dylan-lang/http
