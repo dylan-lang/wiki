@@ -69,6 +69,7 @@ define sideways method process-config-element
   *static-directory* := subdirectory-locator(wiki-root-directory, "www");
   *template-directory* := subdirectory-locator(*static-directory*, "dsp");
   log-info("Wiki static directory: %s", *static-directory*);
+  log-info("Wiki template directory: %s", *template-directory*);
 
   let auth-element = child-node-named(#"authentication");
   if (auth-element)

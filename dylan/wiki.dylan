@@ -56,7 +56,6 @@ define variable *edit-access-page* = #f;
 
 //// Wiki object caches
 
-
 /// All objects stored in the wiki (pages, users, groups) must subclass this.
 ///
 define class <wiki-object> (<object>)
