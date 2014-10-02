@@ -121,21 +121,27 @@ end;
 
 define method login
     (#key realm :: false-or(<string>))
+  log-info("Called login\n");
   let redirect-url = get-query-value("redirect");
   let user = check-authorization();
   if (~user)
+    log-info("~user\n");
     require-authorization(realm: realm);
   elseif (member?(user, *ignore-authorizations*, test: \=) &
           member?(user, *ignore-logins*, test: \=))
+    log-info("mess 1\n");
     *ignore-authorizations* := remove!(*ignore-authorizations*, user);
     require-authorization(realm: realm);
   elseif (~member?(user, *ignore-authorizations*, test: \=) &
           member?(user, *ignore-logins*, test: \=))
+    log-info("mess 1\n");    
     *ignore-logins* := remove!(*ignore-logins*, user);
     redirect-url & redirect-to(redirect-url);
   else
+    log-info("last\n");
     redirect-url & redirect-to(redirect-url);
   end if;
+  log-info("Exit login\n");
 end;
 
 define function logout ()
@@ -182,10 +188,13 @@ end function authenticate;
 
 define function require-authorization
     (#key realm :: false-or(<string>))
+  //log-info("Called require-authorization");
   let realm = realm | *default-authentication-realm*;
-  let headers = current-response().raw-headers;
-  set-header(headers, "WWW-Authenticate", concatenate("Basic realm=\"", realm, "\""));
-  unauthorized-error(headers: headers);
+  let response = current-response();
+  //log-info("set headers ...");
+  set-header(response, "WWW-Authenticate", concatenate("Basic realm=\"", realm, "\""));
+  //log-info("Exit require-authorization"); 
+  unauthorized-error();
 end;
 
 define wf/object-test (user) in wiki end;
@@ -418,7 +427,7 @@ define method respond-to-post
             end;
           end;
         end if;
-    if (user & ~page-has-errors?())
+    if (#f & user & ~page-has-errors?())
       // Hannes commented in IRC 2009-06-12: this will probably block
       // the responder thread while the mail is being delivered; and
       // to circumvent greylisting you've to wait 5-10 minutes between
