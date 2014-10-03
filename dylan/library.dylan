@@ -31,7 +31,6 @@ define library wiki
   use uri;
   use web-framework;
   use xml-parser;
-  use xml-rpc-client;
 
 /* for the monday parser, currently unused
   use grammar;
@@ -97,7 +96,6 @@ define module %wiki
   use wiki;
   use xml-parser,
     prefix: "xml/";
-  use xml-rpc-client;
 
   // for the monday parser, currently unused
 /*
