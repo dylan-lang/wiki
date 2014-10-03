@@ -27,6 +27,5 @@ build: $(APP_SOURCES) check-submodules
 	OPEN_DYLAN_USER_REGISTRIES=$(REGISTRIES) dylan-compiler -build wiki
 
 clean:
-	rm -rf _build/bin/
-	rm -rf _build/lib/
-	rm -rf _build/build/
+	rm -rf _build/
+
